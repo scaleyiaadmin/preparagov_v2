@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const savedUser = localStorage.getItem('preparagov_user');
     const savedImpersonating = localStorage.getItem('preparagov_impersonating');
-    
+
     if (savedUser) {
       const user = JSON.parse(savedUser);
       setAuthState({
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     const credential = mockCredentials.find(c => c.email === email && c.password === password);
-    
+
     if (!credential) {
       toast({
         title: "Erro de autenticação",
@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const user = users.find(u => u.id === credential.userId);
-    
+
     if (!user || user.status === 'inativo') {
       toast({
         title: "Acesso negado",
@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     localStorage.removeItem('preparagov_user');
     localStorage.removeItem('preparagov_impersonating');
-    
+
     toast({
       title: "Logout realizado",
       description: "Você foi desconectado com sucesso",
@@ -129,12 +129,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const hasPermission = useCallback((module: keyof ModulePermissions): boolean => {
     const currentUser = getCurrentUser();
     if (!currentUser) return false;
-    
+
     // Super Admin sempre tem acesso (exceto se estiver impersonando)
     if (authState.user?.role === 'super_admin' && !authState.impersonating) {
       return true;
     }
-    
+
     return currentUser.permissions[module] === true;
   }, [authState, getCurrentUser]);
 
@@ -221,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [toast]);
 
   const updateUser = useCallback((userId: string, updates: Partial<User>) => {
-    setUsers(prev => prev.map(u => 
+    setUsers(prev => prev.map(u =>
       u.id === userId ? { ...u, ...updates } : u
     ));
 

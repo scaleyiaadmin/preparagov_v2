@@ -12,11 +12,11 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { ModulePermissions, User, defaultPermissionsByRole, moduleLabels, roleLabels } from '@/types/auth';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Key, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Key,
   Users,
   Shield,
   UserPlus,
@@ -37,11 +37,11 @@ const configurableModules: (keyof ModulePermissions)[] = [
 
 const GerenciarUsuarios = () => {
   const { toast } = useToast();
-  const { 
-    getCurrentUser, 
-    getUsersForPrefeitura, 
-    createUser, 
-    updateUser, 
+  const {
+    getCurrentUser,
+    getUsersForPrefeitura,
+    createUser,
+    updateUser,
     deleteUser,
     getPrefeituraById,
     isAdmin,
@@ -55,7 +55,7 @@ const GerenciarUsuarios = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  
+
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -65,8 +65,8 @@ const GerenciarUsuarios = () => {
   });
 
   // Busca usuários da prefeitura atual
-  const users = prefeituraId 
-    ? getUsersForPrefeitura(prefeituraId).filter(u => u.id !== currentUser?.id) 
+  const users = prefeituraId
+    ? getUsersForPrefeitura(prefeituraId).filter(u => u.id !== currentUser?.id)
     : [];
 
   const filteredUsers = users.filter(u =>
@@ -110,7 +110,7 @@ const GerenciarUsuarios = () => {
     setFormData(prev => ({
       ...prev,
       role,
-      permissions: role === 'admin' 
+      permissions: role === 'admin'
         ? { ...defaultPermissionsByRole.admin }
         : { ...defaultPermissionsByRole.operator },
     }));
@@ -219,7 +219,7 @@ const GerenciarUsuarios = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -233,7 +233,7 @@ const GerenciarUsuarios = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -308,11 +308,11 @@ const GerenciarUsuarios = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant="outline"
                         className={cn(
-                          user.status === 'ativo' 
-                            ? 'text-green-600 border-green-300 bg-green-50' 
+                          user.status === 'ativo'
+                            ? 'text-green-600 border-green-300 bg-green-50'
                             : 'text-gray-500 border-gray-300 bg-gray-50'
                         )}
                       >
@@ -365,7 +365,7 @@ const GerenciarUsuarios = () => {
               {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-6 py-4">
             {/* Basic Info */}
             <div className="grid grid-cols-2 gap-4">
@@ -404,8 +404,8 @@ const GerenciarUsuarios = () => {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  {formData.role === 'admin' 
-                    ? 'Acesso total aos módulos e gestão de usuários' 
+                  {formData.role === 'admin'
+                    ? 'Acesso total aos módulos e gestão de usuários'
                     : 'Acesso limitado aos módulos selecionados'}
                 </p>
               </div>
@@ -434,20 +434,20 @@ const GerenciarUsuarios = () => {
                     Selecione quais módulos este usuário poderá acessar
                   </p>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   {configurableModules.map((module) => (
-                    <div 
+                    <div
                       key={module}
                       className={cn(
                         "flex items-center justify-between p-3 rounded-lg border transition-colors",
-                        formData.permissions[module] 
-                          ? "bg-orange-50 border-orange-200" 
+                        formData.permissions[module]
+                          ? "bg-orange-50 border-orange-200"
                           : "bg-gray-50 border-gray-200"
                       )}
                     >
-                      <Label 
-                        htmlFor={module} 
+                      <Label
+                        htmlFor={module}
                         className="cursor-pointer flex-1"
                       >
                         {moduleLabels[module]}
@@ -466,7 +466,7 @@ const GerenciarUsuarios = () => {
             {formData.role === 'admin' && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800">
-                  <strong>Administradores</strong> têm acesso completo a todos os módulos do sistema, 
+                  <strong>Administradores</strong> têm acesso completo a todos os módulos do sistema,
                   incluindo a gestão de usuários da organização.
                 </p>
               </div>

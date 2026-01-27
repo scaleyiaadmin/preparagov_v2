@@ -15,9 +15,12 @@ import CronogramaLicitacoes from "./pages/CronogramaLicitacoes";
 import TermoReferencia from "./pages/TermoReferencia";
 import Edital from "./pages/Edital";
 import Perfil from "./pages/Perfil";
-import Admin from "./pages/Admin";
-import SuperAdmin from "./pages/SuperAdmin";
-import GerenciarUsuarios from "./pages/GerenciarUsuarios";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminPrefeituras from "./pages/admin/Prefeituras";
+import AdminUsuarios from "./pages/admin/Usuarios";
+import AdminLogin from "./pages/admin/Login";
+import AdminRoute from "./components/AdminRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +33,19 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Plataforma Admin (Independente) */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+
+            <Route element={<AdminRoute />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="prefeituras" element={<AdminPrefeituras />} />
+                <Route path="usuarios" element={<AdminUsuarios />} />
+                {/* Outras rotas administrativas aqui */}
+              </Route>
+            </Route>
+
+            {/* Plataforma de Usuário / Secretárias (Atual) */}
             <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="dfd" element={<DFD />} />
@@ -40,10 +56,8 @@ const App = () => (
               <Route path="termo" element={<TermoReferencia />} />
               <Route path="edital" element={<Edital />} />
               <Route path="perfil" element={<Perfil />} />
-              <Route path="admin" element={<Admin />} />
-              <Route path="super-admin" element={<SuperAdmin />} />
-              <Route path="usuarios" element={<GerenciarUsuarios />} />
             </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

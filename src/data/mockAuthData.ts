@@ -53,7 +53,7 @@ export const mockUsers: User[] = [
     createdAt: '2024-01-01',
     status: 'ativo',
   },
-  
+
   // Admin da Prefeitura de São Paulo
   {
     id: 'user-admin-sp',
@@ -65,7 +65,7 @@ export const mockUsers: User[] = [
     createdAt: '2024-01-16',
     status: 'ativo',
   },
-  
+
   // Operadores de São Paulo
   {
     id: 'user-op-sp-001',
@@ -96,7 +96,7 @@ export const mockUsers: User[] = [
     createdAt: '2024-02-01',
     status: 'ativo',
   },
-  
+
   // Admin do Rio de Janeiro
   {
     id: 'user-admin-rj',
@@ -108,7 +108,7 @@ export const mockUsers: User[] = [
     createdAt: '2024-02-21',
     status: 'ativo',
   },
-  
+
   // Operador do Rio de Janeiro (sem muitas permissões)
   {
     id: 'user-op-rj-001',
@@ -123,7 +123,7 @@ export const mockUsers: User[] = [
     createdAt: '2024-02-25',
     status: 'ativo',
   },
-  
+
   // Admin de Belo Horizonte
   {
     id: 'user-admin-bh',

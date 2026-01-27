@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import {
   Dialog,
@@ -27,12 +27,12 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Eye, 
-  Edit, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Eye,
+  Edit,
   XCircle,
   Upload,
   Building,
@@ -127,20 +127,20 @@ const Admin = () => {
   ];
 
   const filteredPrefeituras = prefeituras.filter(prefeitura => {
-    const matchesSearch = 
+    const matchesSearch =
       prefeitura.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prefeitura.cnpj.includes(searchTerm) ||
       prefeitura.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'todos' || prefeitura.status === statusFilter;
     const matchesUf = ufFilter === 'todos' || prefeitura.uf === ufFilter;
-    
+
     return matchesSearch && matchesStatus && matchesUf;
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (viewMode === 'create') {
       const novaPrefeitura: Prefeitura = {
         id: Date.now().toString(),
@@ -155,15 +155,15 @@ const Admin = () => {
         dataCadastro: new Date().toLocaleDateString('pt-BR'),
         status: 'ativa'
       };
-      
+
       setPrefeituras([...prefeituras, novaPrefeitura]);
       toast({
         title: "Prefeitura cadastrada",
         description: "Nova prefeitura cadastrada com sucesso!",
       });
     } else if (viewMode === 'edit' && selectedPrefeitura) {
-      setPrefeituras(prefeituras.map(p => 
-        p.id === selectedPrefeitura.id 
+      setPrefeituras(prefeituras.map(p =>
+        p.id === selectedPrefeitura.id
           ? { ...p, ...formData }
           : p
       ));
@@ -172,7 +172,7 @@ const Admin = () => {
         description: "Dados atualizados com sucesso!",
       });
     }
-    
+
     setIsModalOpen(false);
     resetForm();
   };
@@ -215,15 +215,15 @@ const Admin = () => {
   };
 
   const toggleStatus = (id: string) => {
-    setPrefeituras(prefeituras.map(p => 
-      p.id === id 
+    setPrefeituras(prefeituras.map(p =>
+      p.id === id
         ? { ...p, status: p.status === 'ativa' ? 'inativa' : 'ativa' }
         : p
     ));
-    
+
     const prefeitura = prefeituras.find(p => p.id === id);
     const novoStatus = prefeitura?.status === 'ativa' ? 'inativa' : 'ativa';
-    
+
     toast({
       title: `Prefeitura ${novoStatus === 'ativa' ? 'ativada' : 'desativada'}`,
       description: `Status alterado com sucesso!`,
@@ -233,13 +233,13 @@ const Admin = () => {
   const startManaging = (prefeitura: Prefeitura) => {
     setManagingPrefeitura(prefeitura);
     localStorage.setItem('managingPrefeitura', JSON.stringify(prefeitura));
-    
+
     // Registro de auditoria
     const logEntry = `Administrador acessou a prefeitura ${prefeitura.nome} como gestor em ${new Date().toLocaleString('pt-BR')}`;
     const newLogs = [...auditLogs, logEntry];
     setAuditLogs(newLogs);
     localStorage.setItem('auditLogs', JSON.stringify(newLogs));
-    
+
     toast({
       title: "Modo de Gestão Ativado",
       description: `Você está agora gerenciando ${prefeitura.nome}`,
@@ -249,7 +249,7 @@ const Admin = () => {
   const stopManaging = () => {
     setManagingPrefeitura(null);
     localStorage.removeItem('managingPrefeitura');
-    
+
     toast({
       title: "Retornado ao Painel de Administração",
       description: "Modo de gestão encerrado",
@@ -295,8 +295,8 @@ const Admin = () => {
             {managingPrefeitura ? `Gestão - ${managingPrefeitura.nome}` : 'Administração do Sistema'}
           </h1>
           <p className="text-gray-600 mt-2">
-            {managingPrefeitura 
-              ? `Gerenciando como: ${managingPrefeitura.gestorPrincipal}` 
+            {managingPrefeitura
+              ? `Gerenciando como: ${managingPrefeitura.gestorPrincipal}`
               : 'Gerenciamento de prefeituras e usuários gestores'
             }
           </p>
@@ -335,10 +335,9 @@ const Admin = () => {
         <>
           {/* Stats Cards - Now clickable filters */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card 
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                statusFilter === 'todos' ? 'ring-2 ring-blue-500 bg-blue-50' : ''
-              }`}
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-md ${statusFilter === 'todos' ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                }`}
               onClick={() => setStatusFilter('todos')}
             >
               <CardContent className="p-6">
@@ -353,11 +352,10 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
-            
-            <Card 
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                statusFilter === 'ativa' ? 'ring-2 ring-green-500 bg-green-50' : ''
-              }`}
+
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-md ${statusFilter === 'ativa' ? 'ring-2 ring-green-500 bg-green-50' : ''
+                }`}
               onClick={() => setStatusFilter('ativa')}
             >
               <CardContent className="p-6">
@@ -372,11 +370,10 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
-            
-            <Card 
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                statusFilter === 'inativa' ? 'ring-2 ring-red-500 bg-red-50' : ''
-              }`}
+
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-md ${statusFilter === 'inativa' ? 'ring-2 ring-red-500 bg-red-50' : ''
+                }`}
               onClick={() => setStatusFilter('inativa')}
             >
               <CardContent className="p-6">
@@ -408,7 +405,7 @@ const Admin = () => {
                     />
                   </div>
                 </div>
-                
+
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-full md:w-40">
                     <SelectValue placeholder="Status" />
@@ -419,7 +416,7 @@ const Admin = () => {
                     <SelectItem value="inativa">Inativas</SelectItem>
                   </SelectContent>
                 </Select>
-                
+
                 <Select value={ufFilter} onValueChange={setUfFilter}>
                   <SelectTrigger className="w-full md:w-20">
                     <SelectValue placeholder="UF" />
@@ -468,7 +465,7 @@ const Admin = () => {
                         <TableCell>{prefeitura.email}</TableCell>
                         <TableCell>{prefeitura.dataCadastro}</TableCell>
                         <TableCell>
-                          <Badge 
+                          <Badge
                             variant={prefeitura.status === 'ativa' ? 'default' : 'secondary'}
                             className={prefeitura.status === 'ativa' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
                           >
@@ -535,12 +532,12 @@ const Admin = () => {
               {viewMode === 'view' && 'Detalhes da Prefeitura'}
             </DialogTitle>
           </DialogHeader>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Dados da Prefeitura */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Dados da Prefeitura</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="nome">Nome da Prefeitura / Órgão</Label>
@@ -552,7 +549,7 @@ const Admin = () => {
                     disabled={viewMode === 'view'}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="cnpj">CNPJ</Label>
                   <Input
@@ -565,12 +562,12 @@ const Admin = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="uf">UF</Label>
-                  <Select 
-                    value={formData.uf} 
+                  <Select
+                    value={formData.uf}
                     onValueChange={(value) => setFormData({ ...formData, uf: value })}
                     disabled={viewMode === 'view'}
                   >
@@ -584,7 +581,7 @@ const Admin = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="municipio">Município</Label>
                   <Input
@@ -614,7 +611,7 @@ const Admin = () => {
             {/* Cadastro do Gestor Principal */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Cadastro do Gestor Principal</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="gestorPrincipal">Nome Completo</Label>
@@ -626,7 +623,7 @@ const Admin = () => {
                     disabled={viewMode === 'view'}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="email">E-mail Institucional</Label>
                   <Input
@@ -639,7 +636,7 @@ const Admin = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="telefone">Telefone de Contato</Label>
@@ -652,7 +649,7 @@ const Admin = () => {
                     disabled={viewMode === 'view'}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="cargo">Cargo</Label>
                   <Input

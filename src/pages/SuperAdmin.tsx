@@ -7,13 +7,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Building2, 
-  Search, 
-  UserCog, 
-  Eye, 
-  Users, 
-  LogIn, 
+import {
+  Building2,
+  Search,
+  UserCog,
+  Eye,
+  Users,
+  LogIn,
   XCircle,
   AlertTriangle,
   ChevronRight
@@ -22,10 +22,10 @@ import { cn } from '@/lib/utils';
 
 const SuperAdminPage = () => {
   const { toast } = useToast();
-  const { 
-    getAllPrefeituras, 
-    getUsersForPrefeitura, 
-    startImpersonation, 
+  const {
+    getAllPrefeituras,
+    getUsersForPrefeitura,
+    startImpersonation,
     stopImpersonation,
     impersonating,
     user
@@ -51,7 +51,7 @@ const SuperAdminPage = () => {
   const handleImpersonateAdmin = (prefeituraId: string) => {
     const users = getUsersForPrefeitura(prefeituraId);
     const admin = users.find(u => u.role === 'admin');
-    
+
     if (admin) {
       startImpersonation(admin.id);
     } else {
@@ -82,8 +82,8 @@ const SuperAdminPage = () => {
               </p>
             </div>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="border-amber-300 text-amber-700 hover:bg-amber-100"
             onClick={stopImpersonation}
           >
@@ -122,7 +122,7 @@ const SuperAdminPage = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -138,7 +138,7 @@ const SuperAdminPage = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -154,7 +154,7 @@ const SuperAdminPage = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -205,7 +205,7 @@ const SuperAdminPage = () => {
               {filteredPrefeituras.map((prefeitura) => {
                 const userCount = getUsersForPrefeitura(prefeitura.id).length;
                 const adminUser = getUsersForPrefeitura(prefeitura.id).find(u => u.role === 'admin');
-                
+
                 return (
                   <TableRow key={prefeitura.id}>
                     <TableCell>
@@ -227,11 +227,11 @@ const SuperAdminPage = () => {
                       <Badge variant="secondary">{userCount} usuário(s)</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant={prefeitura.status === 'ativa' ? 'default' : 'secondary'}
                         className={cn(
-                          prefeitura.status === 'ativa' 
-                            ? 'bg-green-100 text-green-700 hover:bg-green-100' 
+                          prefeitura.status === 'ativa'
+                            ? 'bg-green-100 text-green-700 hover:bg-green-100'
                             : 'bg-gray-100 text-gray-600'
                         )}
                       >
@@ -278,7 +278,7 @@ const SuperAdminPage = () => {
               Usuários - {selectedPrefeituraData?.nome}
             </DialogTitle>
           </DialogHeader>
-          
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -300,7 +300,7 @@ const SuperAdminPage = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge 
+                    <Badge
                       variant="outline"
                       className={u.status === 'ativo' ? 'text-green-600 border-green-300' : 'text-gray-500'}
                     >

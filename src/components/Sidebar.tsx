@@ -1,13 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  Home, 
-  FileText, 
-  Calendar, 
-  Search, 
-  Shield, 
-  BookOpen, 
-  Gavel, 
+import {
+  Home,
+  FileText,
+  Calendar,
+  Search,
+  Shield,
+  BookOpen,
+  Gavel,
   User,
   Menu,
   CalendarDays,
@@ -47,8 +47,6 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
     { icon: BookOpen, label: 'Termo de Referência', path: '/termo', permissionKey: 'termoReferencia' },
     { icon: Gavel, label: 'Edital', path: '/edital', permissionKey: 'edital' },
     { icon: User, label: 'Perfil', path: '/perfil', permissionKey: 'perfil' },
-    { icon: Users, label: 'Gerenciar Usuários', path: '/usuarios', permissionKey: 'gerenciarUsuarios', requiresAdmin: true },
-    { icon: Building2, label: 'Gestão de Prefeituras', path: '/super-admin', requiresSuperAdmin: true },
   ];
 
   // Filtra menu items baseado nas permissões
@@ -80,12 +78,12 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={onToggle}
         />
       )}
-      
+
       {/* Sidebar */}
       <div className={cn(
         "fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-50 transition-all duration-300 ease-in-out",
@@ -103,7 +101,7 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
                 <span className="text-white font-bold text-sm">PG</span>
               </div>
             )}
-            <button 
+            <button
               onClick={onToggle}
               className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
             >
@@ -111,7 +109,7 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
             </button>
           </div>
         </div>
-        
+
         <nav className="mt-6">
           {visibleMenuItems.map((item) => (
             <NavLink
@@ -120,8 +118,8 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
               className={({ isActive }) =>
                 cn(
                   "flex items-center transition-colors group relative",
-                  isCollapsed 
-                    ? "px-3 py-4 mx-2 my-1 rounded-lg justify-center" 
+                  isCollapsed
+                    ? "px-3 py-4 mx-2 my-1 rounded-lg justify-center"
                     : "px-6 py-3",
                   "text-gray-700 hover:bg-orange-50 hover:text-orange-600",
                   isActive && "bg-orange-100 text-orange-600",
