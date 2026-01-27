@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
       // 1. Tentar login via Supabase na tabela usuarios_acesso
-      const { data: dbUser, error: dbError } = await supabase
+      const { data: dbUser, error: dbError, status } = await supabase
         .from('usuarios_acesso')
         .select('*')
         .eq('email', email)
@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Database connection error:', dbError);
         toast({
           title: "Erro de Conexão",
-          description: dbError.status === 401
+          description: status === 401
             ? "Falha na autenticação com o banco de dados. Verifique as chaves no arquivo .env."
             : "Não foi possível conectar ao banco de dados.",
           variant: "destructive"

@@ -11,11 +11,12 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import UserManagement from '@/components/Perfil/UserManagement';
 import SecretariaManagement from '@/components/Perfil/SecretariaManagement';
-import { 
-  Save, 
-  User, 
-  Mail, 
-  Phone, 
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  Save,
+  User,
+  Mail,
+  Phone,
   MapPin,
   Bell,
   Shield,
@@ -27,15 +28,18 @@ import {
 } from 'lucide-react';
 
 const Perfil = () => {
+  const { user, logout, isSuperAdmin } = useAuth();
+  const { toast } = useToast();
+
   const [userData, setUserData] = useState({
-    nome: 'João Silva Santos',
-    email: 'joao.silva@gov.br',
-    telefone: '(11) 98765-4321',
-    cargo: 'Gestor do Sistema',
-    unidade: 'Secretaria de Administração',
-    cpf: '123.456.789-00',
-    matricula: '12345',
-    isGestor: true // Simula usuário gestor/master
+    nome: user?.nome || '',
+    email: user?.email || '',
+    telefone: '(11) 98765-4321', // Mocked as not in User type yet
+    cargo: user?.role === 'super_admin' ? 'Super Administrador' : user?.role === 'admin' ? 'Administrador' : 'Operador',
+    unidade: 'Secretaria de Administração', // Mocked as not in User type yet
+    cpf: '123.456.789-00', // Mocked as not in User type yet
+    matricula: '12345', // Mocked as not in User type yet
+    isGestor: user?.role === 'super_admin' || user?.role === 'admin'
   });
 
   // Simula permissões do usuário atual
@@ -132,14 +136,10 @@ const Perfil = () => {
   };
 
   const handleLogout = () => {
-    toast({
-      title: "Logout Realizado",
-      description: "Você foi desconectado com sucesso.",
-    });
-    // Simular logout
+    logout();
     setTimeout(() => {
       window.location.href = '/';
-    }, 1000);
+    }, 500);
   };
 
   const getPermissionsSummary = (permissions: any): string[] => {
@@ -202,8 +202,10 @@ const Perfil = () => {
                 <CardContent className="space-y-4">
                   <div className="flex items-center space-x-4 mb-6">
                     <Avatar className="h-20 w-20">
-                      <AvatarImage src="/placeholder.svg" alt="Avatar" />
-                      <AvatarFallback className="text-lg">JS</AvatarFallback>
+                      <AvatarImage src="/placeholder.svg" alt={userData.nome} />
+                      <AvatarFallback className="text-lg">
+                        {userData.nome.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)}
+                      </AvatarFallback>
                     </Avatar>
                     <div>
                       <h3 className="text-lg font-semibold">{userData.nome}</h3>
@@ -465,7 +467,7 @@ const Perfil = () => {
             <TabsContent value="usuarios">
               <UserManagement />
             </TabsContent>
-            
+
             <TabsContent value="secretarias">
               <SecretariaManagement />
             </TabsContent>

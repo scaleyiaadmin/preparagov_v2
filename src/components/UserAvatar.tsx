@@ -11,9 +11,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { User, Settings, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+
+import { useNavigate } from 'react-router-dom';
 
 const UserAvatar = () => {
   const { toast } = useToast();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleProfileClick = () => {
     toast({
@@ -30,23 +35,26 @@ const UserAvatar = () => {
   };
 
   const handleLogout = () => {
-    toast({
-      title: "Logout realizado",
-      description: "Você foi desconectado com sucesso.",
-    });
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 1000);
+    logout();
+    navigate('/login');
+    // Forçar recarregamento para garantir que todos os estados sejam limpos
+    window.location.reload();
   };
+
+  if (!user) return null;
+
+  const initials = user.nome
+    ? user.nome.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+    : 'U';
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src="/placeholder.svg" alt="João Silva" />
+            <AvatarImage src="/placeholder.svg" alt={user.nome} />
             <AvatarFallback className="bg-orange-100 text-orange-600 font-semibold">
-              JS
+              {initials}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -54,14 +62,14 @@ const UserAvatar = () => {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <div className="flex items-center justify-start gap-2 p-2">
           <div className="flex flex-col space-y-1 leading-none">
-            <p className="font-medium">João Silva</p>
+            <p className="font-medium">{user.nome}</p>
             <p className="w-[200px] truncate text-sm text-muted-foreground">
-              joao.silva@prefeitura.gov.br
+              {user.email}
             </p>
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700">
+        <DropdownMenuItem onSelect={handleLogout} className="text-red-600 focus:text-red-700 cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sair</span>
         </DropdownMenuItem>
