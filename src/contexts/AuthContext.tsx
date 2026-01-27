@@ -72,7 +72,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('Login attempt:', { email, hasData: !!dbUser, error: dbError });
 
-      if (dbUser && !dbError) {
+      if (dbError) {
+        console.error('Database connection error:', dbError);
+        toast({
+          title: "Erro de Conexão",
+          description: dbError.status === 401
+            ? "Falha na autenticação com o banco de dados. Verifique as chaves no arquivo .env."
+            : "Não foi possível conectar ao banco de dados.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      if (dbUser) {
         const user: User = {
           id: dbUser.id.toString(),
           email: dbUser.email,
