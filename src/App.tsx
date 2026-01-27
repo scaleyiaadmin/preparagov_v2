@@ -19,6 +19,8 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminPrefeituras from "./pages/admin/Prefeituras";
 import AdminUsuarios from "./pages/admin/Usuarios";
+import AdminSecretarias from "./pages/admin/Secretarias";
+import AdminConfiguracoes from "./pages/admin/Configuracoes";
 import AdminLogin from "./pages/admin/Login";
 import AdminRoute from "./components/AdminRoute";
 import NotFound from "./pages/NotFound";
@@ -40,7 +42,9 @@ const App = () => (
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="prefeituras" element={<AdminPrefeituras />} />
+                <Route path="secretarias" element={<AdminSecretarias />} />
                 <Route path="usuarios" element={<AdminUsuarios />} />
+                <Route path="settings" element={<AdminConfiguracoes />} />
                 {/* Outras rotas administrativas aqui */}
               </Route>
             </Route>
