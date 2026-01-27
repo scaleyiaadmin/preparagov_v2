@@ -36,7 +36,9 @@ const configurableModules: (keyof ModulePermissions)[] = [
 ];
 
 const GerenciarUsuarios = () => {
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const {
     getCurrentUser,
     getUsersForPrefeitura,
@@ -44,6 +46,8 @@ const GerenciarUsuarios = () => {
     updateUser,
     deleteUser,
     getPrefeituraById,
+    getAllPrefeituras,
+    getSecretariasForPrefeitura,
     isAdmin,
     isSuperAdmin
   } = useAuth();
@@ -51,6 +55,10 @@ const GerenciarUsuarios = () => {
   const currentUser = getCurrentUser();
   const prefeituraId = currentUser?.prefeituraId;
   const prefeitura = prefeituraId ? getPrefeituraById(prefeituraId) : null;
+  const prefeiturasDisponiveis = getAllPrefeituras().filter(p => p.status === 'ativa');
+  const secretariasDisponiveis = formData.prefeituraId
+    ? getSecretariasForPrefeitura(formData.prefeituraId)
+    : [];
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserModal, setShowUserModal] = useState(false);
@@ -60,6 +68,8 @@ const GerenciarUsuarios = () => {
     nome: '',
     email: '',
     role: 'operator' as 'admin' | 'operator',
+    prefeituraId: '' as string,
+    secretariaId: '' as string,
     permissions: { ...defaultPermissionsByRole.operator } as ModulePermissions,
     status: 'ativo' as 'ativo' | 'inativo',
   });
@@ -79,6 +89,8 @@ const GerenciarUsuarios = () => {
       nome: '',
       email: '',
       role: 'operator',
+      prefeituraId: currentUser?.prefeituraId || '',
+      secretariaId: currentUser?.secretariaId || '',
       permissions: { ...defaultPermissionsByRole.operator },
       status: 'ativo',
     });
@@ -92,6 +104,8 @@ const GerenciarUsuarios = () => {
         nome: user.nome,
         email: user.email,
         role: user.role as 'admin' | 'operator',
+        prefeituraId: user.prefeituraId || '',
+        secretariaId: user.secretariaId || '',
         permissions: { ...user.permissions },
         status: user.status,
       });
@@ -141,6 +155,8 @@ const GerenciarUsuarios = () => {
         nome: formData.nome,
         email: formData.email,
         role: formData.role,
+        prefeituraId: formData.prefeituraId,
+        secretariaId: formData.secretariaId,
         permissions: formData.permissions,
         status: formData.status,
       });
@@ -149,7 +165,8 @@ const GerenciarUsuarios = () => {
         nome: formData.nome,
         email: formData.email,
         role: formData.role,
-        prefeituraId: prefeituraId!,
+        prefeituraId: formData.prefeituraId,
+        secretariaId: formData.secretariaId,
         permissions: formData.permissions,
         status: formData.status,
       });
@@ -395,7 +412,7 @@ const GerenciarUsuarios = () => {
               <div className="space-y-2">
                 <Label>Perfil de Acesso</Label>
                 <Select value={formData.role} onValueChange={(v) => handleRoleChange(v as 'admin' | 'operator')}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full text-slate-900">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -403,21 +420,53 @@ const GerenciarUsuarios = () => {
                     <SelectItem value="operator">Operador</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  {formData.role === 'admin'
-                    ? 'Acesso total aos módulos e gestão de usuários'
-                    : 'Acesso limitado aos módulos selecionados'}
-                </p>
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={formData.status} onValueChange={(v) => setFormData(prev => ({ ...prev, status: v as 'ativo' | 'inativo' }))}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full text-slate-900">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ativo">Ativo</SelectItem>
                     <SelectItem value="inativo">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Prefeitura & Secretaria Selection */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Prefeitura *</Label>
+                <Select
+                  value={formData.prefeituraId}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, prefeituraId: v, secretariaId: '' }))}
+                >
+                  <SelectTrigger className="w-full text-slate-900">
+                    <SelectValue placeholder="Selecione uma prefeitura" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {prefeiturasDisponiveis.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Secretaria *</Label>
+                <Select
+                  value={formData.secretariaId}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, secretariaId: v }))}
+                  disabled={!formData.prefeituraId}
+                >
+                  <SelectTrigger className="w-full text-slate-900">
+                    <SelectValue placeholder={formData.prefeituraId ? "Selecione uma secretaria" : "Selecione a prefeitura primeiro"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {secretariasDisponiveis.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

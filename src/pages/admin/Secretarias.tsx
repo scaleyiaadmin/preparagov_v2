@@ -29,6 +29,9 @@ interface Secretaria {
 
 const Secretarias = () => {
     const { toast } = useToast();
+    const { getAllPrefeituras } = useAuth();
+    const prefeiturasDisponiveis = getAllPrefeituras().filter(p => p.status === 'ativa');
+
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSecretaria, setEditingSecretaria] = useState<Secretaria | null>(null);
@@ -74,7 +77,7 @@ const Secretarias = () => {
         if (!formData.nome || !formData.prefeitura) {
             toast({
                 title: "Erro ao salvar",
-                description: "Preencha pelo menos o nome e a prefeitura.",
+                description: "Preencha pelo menos o nome e selecione uma prefeitura.",
                 variant: "destructive"
             });
             return;
@@ -214,11 +217,19 @@ const Secretarias = () => {
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="prefeitura">Prefeitura</Label>
-                            <Input
-                                id="prefeitura"
+                            <Select
                                 value={formData.prefeitura}
-                                onChange={(e) => setFormData({ ...formData, prefeitura: e.target.value })}
-                            />
+                                onValueChange={(value) => setFormData({ ...formData, prefeitura: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a prefeitura" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {prefeiturasDisponiveis.map(p => (
+                                        <SelectItem key={p.id} value={p.nome}>{p.nome}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">

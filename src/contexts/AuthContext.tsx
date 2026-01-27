@@ -19,6 +19,8 @@ interface AuthContextType extends AuthState {
   deleteUser: (userId: string) => void;
   getPrefeituraById: (prefeituraId: string) => typeof mockPrefeituras[0] | undefined;
   getAllPrefeituras: () => typeof mockPrefeituras;
+  getSecretariasForPrefeitura: (prefeituraId: string) => any[];
+  addSecretaria: (data: any) => void;
   switchToUser: (email: string) => void; // For testing different users
 }
 
@@ -27,6 +29,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>(mockUsers);
+  const [secretarias, setSecretarias] = useState<any[]>([
+    { id: '1', nome: 'Secretaria de Saúde', prefeituraId: 'pref-sp', responsavel: 'Dr. Ricardo Abreu', funcionarios: 45, status: 'ativa' },
+    { id: '2', nome: 'Secretaria de Educação', prefeituraId: 'pref-sp', responsavel: 'Prof. Ana Xavier', funcionarios: 120, status: 'ativa' },
+    { id: '3', nome: 'Secretaria de Saúde', prefeituraId: 'pref-rj', responsavel: 'Dr. Roberto', funcionarios: 30, status: 'ativa' },
+  ]);
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
@@ -248,6 +255,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return mockPrefeituras;
   }, []);
 
+  const getSecretariasForPrefeitura = useCallback((prefeituraId: string) => {
+    // Busca pelo ID da prefeitura ou pelo nome (para compatibilidade com mocks anteriores)
+    const pref = mockPrefeituras.find(p => p.id === prefeituraId || p.nome === prefeituraId);
+    if (!pref) return secretarias.filter(s => s.prefeituraId === prefeituraId);
+    return secretarias.filter(s => s.prefeituraId === pref.id);
+  }, [secretarias]);
+
+  const addSecretaria = useCallback((data: any) => {
+    setSecretarias(prev => [...prev, { ...data, id: `sec-${Date.now()}` }]);
+  }, []);
+
   const switchToUser = useCallback((email: string) => {
     const user = users.find(u => u.email === email);
     if (user) {
@@ -285,6 +303,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteUser,
         getPrefeituraById,
         getAllPrefeituras,
+        getSecretariasForPrefeitura,
+        addSecretaria,
         switchToUser,
       }}
     >

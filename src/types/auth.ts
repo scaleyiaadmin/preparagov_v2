@@ -33,6 +33,7 @@ export interface User {
   nome: string;
   role: UserRole;
   prefeituraId: string | null; // null para super_admin
+  secretariaId: string | null; // null para super_admin
   permissions: ModulePermissions;
   createdAt: string;
   status: 'ativo' | 'inativo';
