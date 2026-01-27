@@ -56,10 +56,6 @@ const GerenciarUsuarios = () => {
   const prefeituraId = currentUser?.prefeituraId;
   const prefeitura = prefeituraId ? getPrefeituraById(prefeituraId) : null;
   const prefeiturasDisponiveis = getAllPrefeituras().filter(p => p.status === 'ativa');
-  const secretariasDisponiveis = formData.prefeituraId
-    ? getSecretariasForPrefeitura(formData.prefeituraId)
-    : [];
-
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -73,6 +69,10 @@ const GerenciarUsuarios = () => {
     permissions: { ...defaultPermissionsByRole.operator } as ModulePermissions,
     status: 'ativo' as 'ativo' | 'inativo',
   });
+
+  const secretariasDisponiveis = formData.prefeituraId
+    ? getSecretariasForPrefeitura(formData.prefeituraId)
+    : [];
 
   // Busca usuários da prefeitura atual
   const users = prefeituraId
