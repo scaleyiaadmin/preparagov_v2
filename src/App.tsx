@@ -22,7 +22,9 @@ import AdminUsuarios from "./pages/admin/Usuarios";
 import AdminSecretarias from "./pages/admin/Secretarias";
 import AdminConfiguracoes from "./pages/admin/Configuracoes";
 import AdminLogin from "./pages/admin/Login";
+import Login from "./pages/Login";
 import AdminRoute from "./components/AdminRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,16 +52,20 @@ const App = () => (
             </Route>
 
             {/* Plataforma de Usuário / Secretárias (Atual) */}
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="dfd" element={<DFD />} />
-              <Route path="pca" element={<PCA />} />
-              <Route path="etp" element={<ETP />} />
-              <Route path="riscos" element={<MapaRiscos />} />
-              <Route path="cronograma" element={<CronogramaLicitacoes />} />
-              <Route path="termo" element={<TermoReferencia />} />
-              <Route path="edital" element={<Edital />} />
-              <Route path="perfil" element={<Perfil />} />
+            <Route path="/login" element={<Login />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="dfd" element={<DFD />} />
+                <Route path="pca" element={<PCA />} />
+                <Route path="etp" element={<ETP />} />
+                <Route path="riscos" element={<MapaRiscos />} />
+                <Route path="cronograma" element={<CronogramaLicitacoes />} />
+                <Route path="termo" element={<TermoReferencia />} />
+                <Route path="edital" element={<Edital />} />
+                <Route path="perfil" element={<Perfil />} />
+              </Route>
             </Route>
 
             <Route path="*" element={<NotFound />} />

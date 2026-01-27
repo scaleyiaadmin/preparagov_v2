@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { User, AuthState, ModulePermissions, UserRole, defaultPermissionsByRole } from '@/types/auth';
 import { mockUsers, mockCredentials, mockPrefeituras } from '@/data/mockAuthData';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
@@ -55,23 +56,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         impersonating: savedImpersonating ? JSON.parse(savedImpersonating) : null,
       });
     } else {
-      // Auto-login como Super Admin para desenvolvimento
-      const superAdmin = users.find(u => u.role === 'super_admin');
-      if (superAdmin) {
-        setAuthState({
-          user: superAdmin,
-          isAuthenticated: true,
-          isLoading: false,
-          impersonating: null,
-        });
-        localStorage.setItem('preparagov_user', JSON.stringify(superAdmin));
-      } else {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-      }
+      setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    try {
+      // 1. Tentar login via Supabase na tabela usuarios_acesso
+      const { data: dbUser, error: dbError } = await supabase
+        .from('usuarios_acesso')
+        .select('*')
+        .eq('email', email)
+        .eq('senha', password)
+        .single();
+
+      if (dbUser && !dbError) {
+        const user: User = {
+          id: dbUser.id.toString(),
+          email: dbUser.email,
+          nome: dbUser.nome || dbUser.email.split('@')[0],
+          role: (dbUser.role as UserRole) || 'operator',
+          prefeituraId: dbUser.prefeitura_id || null,
+          secretariaId: dbUser.secretaria_id || null,
+          permissions: dbUser.permissions || defaultPermissionsByRole[(dbUser.role as UserRole) || 'operator'],
+          createdAt: dbUser.created_at || new Date().toISOString(),
+          status: dbUser.status || 'ativo',
+        };
+
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          impersonating: null,
+        });
+
+        localStorage.setItem('preparagov_user', JSON.stringify(user));
+        localStorage.removeItem('preparagov_impersonating');
+
+        toast({
+          title: "Login realizado",
+          description: `Bem-vindo, ${user.nome}!`,
+        });
+
+        return true;
+      }
+    } catch (err) {
+      console.error('Database connection error:', err);
+    }
+
+    // 2. Fallback para Mock (Desenvolvimento)
     const credential = mockCredentials.find(c => c.email === email && c.password === password);
 
     if (!credential) {
