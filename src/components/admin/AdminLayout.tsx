@@ -95,9 +95,6 @@ const AdminLayout = () => {
                             <DropdownMenuContent align="end" className="w-56">
                                 <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>Meu Perfil</DropdownMenuItem>
-                                <DropdownMenuItem>Audit Log</DropdownMenuItem>
-                                <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-700">
                                     Sair do Sistema
                                 </DropdownMenuItem>

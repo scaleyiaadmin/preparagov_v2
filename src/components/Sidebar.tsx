@@ -46,7 +46,6 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
     { icon: CalendarDays, label: 'Cronograma de Licitações', path: '/cronograma', permissionKey: 'cronograma' },
     { icon: BookOpen, label: 'Termo de Referência', path: '/termo', permissionKey: 'termoReferencia' },
     { icon: Gavel, label: 'Edital', path: '/edital', permissionKey: 'edital' },
-    { icon: User, label: 'Perfil', path: '/perfil', permissionKey: 'perfil' },
   ];
 
   // Filtra menu items baseado nas permissões

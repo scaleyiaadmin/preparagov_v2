@@ -61,16 +61,7 @@ const UserAvatar = () => {
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleProfileClick}>
-          <User className="mr-2 h-4 w-4" />
-          <span>Perfil</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handlePasswordChange}>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Alterar Senha</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
+        <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sair</span>
         </DropdownMenuItem>
