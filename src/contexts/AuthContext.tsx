@@ -68,7 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('*')
         .eq('email', email)
         .eq('senha', password)
-        .single();
+        .maybeSingle();
+
+      console.log('Login attempt:', { email, hasData: !!dbUser, error: dbError });
 
       if (dbUser && !dbError) {
         const user: User = {
