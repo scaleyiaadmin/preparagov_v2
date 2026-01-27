@@ -67,8 +67,6 @@ const Perfil = () => {
     confirmPassword: ''
   });
 
-  const { toast } = useToast();
-
   const handleUserDataChange = (field: string, value: string) => {
     setUserData(prev => ({
       ...prev,
