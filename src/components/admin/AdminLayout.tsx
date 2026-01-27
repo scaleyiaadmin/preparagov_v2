@@ -107,7 +107,7 @@ const AdminLayout = () => {
                 </header>
 
                 {/* Main Content Area */}
-                <main className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
+                <main className="flex-1 p-6 lg:p-10 max-w-[1400px] mx-auto w-full">
                     <Outlet />
                 </main>
             </div>
