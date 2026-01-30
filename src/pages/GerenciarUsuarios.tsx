@@ -9,20 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { ModulePermissions, User, defaultPermissionsByRole, moduleLabels, roleLabels } from '@/types/auth';
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Key,
-  Users,
-  Shield,
-  UserPlus,
-  Search
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { generateRandomPassword } from '@/utils/auth';
+
 
 // Módulos que podem ser configurados para operadores
 const configurableModules: (keyof ModulePermissions)[] = [
@@ -63,6 +52,7 @@ const GerenciarUsuarios = () => {
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
+    password: '',
     role: 'operator' as 'admin' | 'operator',
     prefeituraId: '' as string,
     secretariaId: '' as string,
@@ -88,6 +78,7 @@ const GerenciarUsuarios = () => {
     setFormData({
       nome: '',
       email: '',
+      password: '',
       role: 'operator',
       prefeituraId: currentUser?.prefeituraId || '',
       secretariaId: currentUser?.secretariaId || '',
@@ -103,6 +94,7 @@ const GerenciarUsuarios = () => {
       setFormData({
         nome: user.nome,
         email: user.email,
+        password: '',
         role: user.role as 'admin' | 'operator',
         prefeituraId: user.prefeituraId || '',
         secretariaId: user.secretariaId || '',
@@ -130,15 +122,15 @@ const GerenciarUsuarios = () => {
     }));
   };
 
-  const handlePermissionToggle = (module: keyof ModulePermissions) => {
-    setFormData(prev => ({
-      ...prev,
-      permissions: {
-        ...prev.permissions,
-        [module]: !prev.permissions[module],
-      },
-    }));
+  const handleGeneratePassword = () => {
+    const newPassword = generateRandomPassword();
+    setFormData(prev => ({ ...prev, password: newPassword }));
+    toast({
+      title: "Senha Gerada",
+      description: `A nova senha é: ${newPassword}`,
+    });
   };
+
 
   const handleSaveUser = () => {
     if (!formData.nome || !formData.email) {
@@ -169,8 +161,9 @@ const GerenciarUsuarios = () => {
         secretariaId: formData.secretariaId,
         permissions: formData.permissions,
         status: formData.status,
-      });
+      }, formData.password);
     }
+
 
     handleCloseModal();
   };
@@ -407,7 +400,7 @@ const GerenciarUsuarios = () => {
               </div>
             </div>
 
-            {/* Role & Status */}
+            {/* Role & Status & Password */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Perfil de Acesso</Label>
@@ -434,6 +427,30 @@ const GerenciarUsuarios = () => {
                 </Select>
               </div>
             </div>
+
+            {!editingUser && (
+              <div className="grid grid-cols-2 gap-4 items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha Temporária</Label>
+                  <Input
+                    id="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Senha do usuário"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleGeneratePassword}
+                  className="gap-2"
+                >
+                  <Key size={16} />
+                  Gerar Senha
+                </Button>
+              </div>
+            )}
+
 
             {/* Prefeitura & Secretaria Selection */}
             <div className="grid grid-cols-2 gap-4">

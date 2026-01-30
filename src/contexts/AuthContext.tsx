@@ -29,18 +29,67 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [secretarias, setSecretarias] = useState<any[]>([
-    { id: '1', nome: 'Secretaria de Saúde', prefeituraId: 'pref-sp', responsavel: 'Dr. Ricardo Abreu', funcionarios: 45, status: 'ativa' },
-    { id: '2', nome: 'Secretaria de Educação', prefeituraId: 'pref-sp', responsavel: 'Prof. Ana Xavier', funcionarios: 120, status: 'ativa' },
-    { id: '3', nome: 'Secretaria de Saúde', prefeituraId: 'pref-rj', responsavel: 'Dr. Roberto', funcionarios: 30, status: 'ativa' },
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [prefeituras, setPrefeituras] = useState<Prefeitura[]>([]);
+  const [secretarias, setSecretarias] = useState<any[]>([]);
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
     isLoading: true,
     impersonating: null,
   });
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('usuarios_acesso').select('*');
+      if (error) throw error;
+
+      const mappedUsers: User[] = (data || []).map(dbUser => ({
+        id: dbUser.id.toString(),
+        email: dbUser.email,
+        nome: dbUser.nome || dbUser.email.split('@')[0],
+        role: (dbUser.tipo_perfil as UserRole) || 'operator',
+        prefeituraId: dbUser.prefeitura_id || null,
+        secretariaId: dbUser.secretaria_id || null,
+        permissions: (dbUser.modulos_acesso && Object.keys(dbUser.modulos_acesso).length > 0)
+          ? dbUser.modulos_acesso
+          : defaultPermissionsByRole[(dbUser.tipo_perfil as UserRole) || 'operator'],
+        createdAt: dbUser.created_at || new Date().toISOString(),
+        status: dbUser.status || 'ativo',
+      }));
+      setUsers(mappedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  }, []);
+
+  const fetchPrefeituras = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('prefeituras').select('*');
+      if (error) throw error;
+      setPrefeituras(data || []);
+    } catch (error) {
+      console.error('Error fetching prefeituras:', error);
+    }
+  }, []);
+
+  const fetchSecretarias = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('secretarias').select('*');
+      if (error) throw error;
+      setSecretarias(data || []);
+    } catch (error) {
+      console.error('Error fetching secretarias:', error);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchUsers();
+    fetchPrefeituras();
+    fetchSecretarias();
+  }, [fetchUsers, fetchPrefeituras, fetchSecretarias]);
+
 
   // Load saved auth state from localStorage
   useEffect(() => {
@@ -283,57 +332,101 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return users.filter(u => u.prefeituraId === prefeituraId);
   }, [users]);
 
-  const createUser = useCallback((userData: Omit<User, 'id' | 'createdAt'>): User => {
-    const newUser: User = {
-      ...userData,
-      id: `user-${Date.now()}`,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
+  const createUser = useCallback(async (userData: Omit<User, 'id' | 'createdAt'>, password?: string): Promise<User | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('usuarios_acesso')
+        .insert([{
+          email: userData.email,
+          senha: password || '123456', // Padrão se não informado
+          nome: userData.nome,
+          tipo_perfil: userData.role,
+          prefeitura_id: userData.prefeituraId,
+          secretaria_id: userData.secretariaId,
+          modulos_acesso: userData.permissions,
+          status: userData.status,
+        }])
+        .select()
+        .single();
 
-    setUsers(prev => [...prev, newUser]);
+      if (error) throw error;
 
-    toast({
-      title: "Usuário criado",
-      description: `${newUser.nome} foi cadastrado com sucesso`,
-    });
+      const newUser: User = {
+        id: data.id.toString(),
+        email: data.email,
+        nome: data.nome,
+        role: (data.tipo_perfil as UserRole) || 'operator',
+        prefeituraId: data.prefeitura_id,
+        secretariaId: data.secretaria_id,
+        permissions: data.modulos_acesso || defaultPermissionsByRole[data.tipo_perfil as UserRole],
+        createdAt: data.created_at,
+        status: data.status || 'ativo',
+      };
 
-    return newUser;
+      setUsers(prev => [...prev, newUser]);
+      toast({ title: "Usuário criado", description: `${newUser.nome} foi cadastrado com sucesso` });
+      return newUser;
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast({ title: "Erro ao criar usuário", description: error.message, variant: "destructive" });
+      return null;
+    }
   }, [toast]);
 
-  const updateUser = useCallback((userId: string, updates: Partial<User>) => {
-    setUsers(prev => prev.map(u =>
-      u.id === userId ? { ...u, ...updates } : u
-    ));
 
-    toast({
-      title: "Usuário atualizado",
-      description: "As alterações foram salvas com sucesso",
-    });
+  const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
+    try {
+      const dbUpdates: any = {};
+      if (updates.nome) dbUpdates.nome = updates.nome;
+      if (updates.email) dbUpdates.email = updates.email;
+      if (updates.role) dbUpdates.tipo_perfil = updates.role;
+      if (updates.prefeituraId !== undefined) dbUpdates.prefeitura_id = updates.prefeituraId;
+      if (updates.secretariaId !== undefined) dbUpdates.secretaria_id = updates.secretariaId;
+      if (updates.permissions) dbUpdates.modulos_acesso = updates.permissions;
+      if (updates.status) dbUpdates.status = updates.status;
+
+      const { error } = await supabase
+        .from('usuarios_acesso')
+        .update(dbUpdates)
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
+      toast({ title: "Usuário atualizado", description: "As alterações foram salvas com sucesso" });
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+    }
   }, [toast]);
 
-  const deleteUser = useCallback((userId: string) => {
-    setUsers(prev => prev.filter(u => u.id !== userId));
 
-    toast({
-      title: "Usuário removido",
-      description: "O usuário foi excluído com sucesso",
-    });
+  const deleteUser = useCallback(async (userId: string) => {
+    try {
+      const { error } = await supabase.from('usuarios_acesso').delete().eq('id', userId);
+      if (error) throw error;
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      toast({ title: "Usuário removido", description: "O usuário foi excluído com sucesso" });
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
+    }
   }, [toast]);
+
 
   const getPrefeituraById = useCallback((prefeituraId: string) => {
-    return mockPrefeituras.find(p => p.id === prefeituraId);
-  }, []);
+    return prefeituras.find(p => p.id === prefeituraId);
+  }, [prefeituras]);
 
   const getAllPrefeituras = useCallback(() => {
-    return mockPrefeituras;
-  }, []);
+    return prefeituras;
+  }, [prefeituras]);
+
 
   const getSecretariasForPrefeitura = useCallback((prefeituraId: string) => {
-    // Busca pelo ID da prefeitura ou pelo nome (para compatibilidade com mocks anteriores)
-    const pref = mockPrefeituras.find(p => p.id === prefeituraId || p.nome === prefeituraId);
-    if (!pref) return secretarias.filter(s => s.prefeituraId === prefeituraId);
-    return secretarias.filter(s => s.prefeituraId === pref.id);
+    return secretarias.filter(s => s.prefeitura_id === prefeituraId);
   }, [secretarias]);
+
 
   const addSecretaria = useCallback((data: any) => {
     setSecretarias(prev => [...prev, { ...data, id: `sec-${Date.now()}` }]);
