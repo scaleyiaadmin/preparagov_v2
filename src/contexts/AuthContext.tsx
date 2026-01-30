@@ -62,17 +62,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
+      let dbUser = null;
+      let isGlobalAdmin = false;
+
       // 1. Tentar login via Supabase na tabela usuarios_acesso
-      const { data: dbUser, error: dbError, status } = await supabase
+      const { data: accessUser, error: dbError, status } = await supabase
         .from('usuarios_acesso')
         .select('*')
         .eq('email', email)
         .eq('senha', password)
         .maybeSingle();
 
+      if (accessUser) {
+        dbUser = accessUser;
+      } else if (!dbError) {
+        // 2. Tentar login via Supabase na tabela admin_users (Global Admins)
+        const { data: adminUser, error: adminError } = await supabase
+          .from('admin_users')
+          .select('*')
+          .eq('email', email)
+          .eq('password', password)
+          .maybeSingle();
+
+        if (adminUser) {
+          dbUser = adminUser;
+          isGlobalAdmin = true;
+        }
+      }
+
       console.log('Login attempt:', { email, hasData: !!dbUser, error: dbError });
 
-      if (dbError) {
+      if (dbError && !isGlobalAdmin) {
         console.error('Database connection error:', dbError);
         toast({
           title: "Erro de Conexão",
@@ -85,16 +105,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (dbUser) {
+        const role = isGlobalAdmin ? 'super_admin' : (dbUser.tipo_perfil as UserRole) || 'operator';
+
         const user: User = {
           id: dbUser.id.toString(),
           email: dbUser.email,
           nome: dbUser.nome || dbUser.email.split('@')[0],
-          role: (dbUser.tipo_perfil as UserRole) || 'operator',
+          role: role,
           prefeituraId: dbUser.prefeitura_id || null,
           secretariaId: dbUser.secretaria_id || null,
-          permissions: (dbUser.modulos_acesso && Object.keys(dbUser.modulos_acesso).length > 0) 
-            ? dbUser.modulos_acesso 
-            : defaultPermissionsByRole[(dbUser.tipo_perfil as UserRole) || 'operator'],
+          permissions: isGlobalAdmin
+            ? defaultPermissionsByRole.super_admin
+            : (dbUser.modulos_acesso && Object.keys(dbUser.modulos_acesso).length > 0)
+              ? dbUser.modulos_acesso
+              : defaultPermissionsByRole[role],
           createdAt: dbUser.created_at || new Date().toISOString(),
           status: dbUser.status || 'ativo',
         };
