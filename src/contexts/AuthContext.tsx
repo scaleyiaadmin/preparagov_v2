@@ -89,10 +89,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: dbUser.id.toString(),
           email: dbUser.email,
           nome: dbUser.nome || dbUser.email.split('@')[0],
-          role: (dbUser.role as UserRole) || 'operator',
+          role: (dbUser.tipo_perfil as UserRole) || 'operator',
           prefeituraId: dbUser.prefeitura_id || null,
           secretariaId: dbUser.secretaria_id || null,
-          permissions: dbUser.permissions || defaultPermissionsByRole[(dbUser.role as UserRole) || 'operator'],
+          permissions: (dbUser.modulos_acesso && Object.keys(dbUser.modulos_acesso).length > 0) 
+            ? dbUser.modulos_acesso 
+            : defaultPermissionsByRole[(dbUser.tipo_perfil as UserRole) || 'operator'],
           createdAt: dbUser.created_at || new Date().toISOString(),
           status: dbUser.status || 'ativo',
         };
