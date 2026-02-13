@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { User, AuthState, ModulePermissions, UserRole, defaultPermissionsByRole } from '@/types/auth';
+import { User, AuthState, ModulePermissions, UserRole, defaultPermissionsByRole, Prefeitura } from '@/types/auth';
+import { DbUser, DbPrefeitura, DbSecretaria } from '@/types/database';
 import { mockUsers, mockCredentials, mockPrefeituras } from '@/data/mockAuthData';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { handleSupabaseError } from '@/utils/supabaseErrorHandler';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
@@ -15,14 +17,17 @@ interface AuthContextType extends AuthState {
   stopImpersonation: () => void;
   getCurrentUser: () => User | null;
   getUsersForPrefeitura: (prefeituraId: string) => User[];
-  createUser: (userData: Omit<User, 'id' | 'createdAt'>) => User;
-  updateUser: (userId: string, updates: Partial<User>) => void;
-  deleteUser: (userId: string) => void;
-  getPrefeituraById: (prefeituraId: string) => typeof mockPrefeituras[0] | undefined;
-  getAllPrefeituras: () => typeof mockPrefeituras;
-  getSecretariasForPrefeitura: (prefeituraId: string) => any[];
-  addSecretaria: (data: any) => void;
-  switchToUser: (email: string) => void; // For testing different users
+  createUser: (userData: Omit<User, 'id' | 'createdAt'>, password?: string) => Promise<User | null>;
+  updateUser: (userId: string, updates: Partial<User>) => Promise<boolean>;
+  deleteUser: (userId: string) => Promise<void>;
+  getPrefeituraById: (prefeituraId: string) => Prefeitura | undefined;
+  getAllPrefeituras: () => Prefeitura[];
+  getSecretariasForPrefeitura: (prefeituraId: string) => DbSecretaria[];
+  addSecretaria: (data: Omit<DbSecretaria, 'id' | 'created_at'>) => void;
+  switchToUser: (email: string) => void;
+  createPrefeitura: (prefeituraData: Pick<DbPrefeitura, 'nome' | 'cnpj' | 'uf' | 'municipio'>) => Promise<boolean>;
+  deletePrefeitura: (prefeituraId: string) => Promise<boolean>;
+  getAllUsers: () => User[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,22 +49,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.from('usuarios_acesso').select('*');
       if (error) throw error;
 
-      const mappedUsers: User[] = (data || []).map(dbUser => ({
+      // Cast data to DbUser[] to ensure type safety based on our schema definition
+      const dbUsers = data as unknown as DbUser[];
+
+      const mappedUsers: User[] = (dbUsers || []).map(dbUser => ({
         id: dbUser.id.toString(),
         email: dbUser.email,
         nome: dbUser.nome || dbUser.email.split('@')[0],
-        role: (dbUser.tipo_perfil as UserRole) || 'operator',
+        role: dbUser.tipo_perfil || 'operator',
         prefeituraId: dbUser.prefeitura_id || null,
         secretariaId: dbUser.secretaria_id || null,
         permissions: (dbUser.modulos_acesso && Object.keys(dbUser.modulos_acesso).length > 0)
           ? dbUser.modulos_acesso
-          : defaultPermissionsByRole[(dbUser.tipo_perfil as UserRole) || 'operator'],
+          : defaultPermissionsByRole[dbUser.tipo_perfil || 'operator'],
         createdAt: dbUser.created_at || new Date().toISOString(),
         status: dbUser.status || 'ativo',
       }));
       setUsers(mappedUsers);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      handleSupabaseError(error, 'Fetching Users');
     }
   }, []);
 
@@ -67,9 +75,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error } = await supabase.from('prefeituras').select('*');
       if (error) throw error;
-      setPrefeituras(data || []);
+
+      const dbPrefeituras = data as unknown as DbPrefeitura[];
+
+      const mappedPrefeituras: Prefeitura[] = (dbPrefeituras || []).map((dbPref) => ({
+        id: dbPref.id,
+        nome: dbPref.nome,
+        cnpj: dbPref.cnpj,
+        uf: dbPref.uf,
+        municipio: dbPref.municipio,
+        logoUrl: dbPref.logo_url || undefined,
+        gestorPrincipal: dbPref.gestor_principal || undefined,
+        email: dbPref.email || undefined,
+        telefone: dbPref.telefone || undefined,
+        cargo: dbPref.cargo || undefined,
+        dataCadastro: dbPref.created_at || new Date().toISOString(),
+        status: dbPref.status || 'inativa',
+      }));
+      setPrefeituras(mappedPrefeituras);
     } catch (error) {
-      console.error('Error fetching prefeituras:', error);
+      handleSupabaseError(error, 'Fetching Prefeituras');
     }
   }, []);
 
@@ -190,7 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
       }
     } catch (err) {
-      console.error('Database connection error:', err);
+      handleSupabaseError(err, 'Login');
     }
 
     // 2. Fallback para Mock (Desenvolvimento)
@@ -334,41 +359,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createUser = useCallback(async (userData: Omit<User, 'id' | 'createdAt'>, password?: string): Promise<User | null> => {
     try {
+      const newUserPayload: Partial<DbUser> = {
+        email: userData.email,
+        senha: password || '123456', // Padrão se não informado
+        nome: userData.nome,
+        tipo_perfil: userData.role,
+        prefeitura_id: userData.prefeituraId || null,
+        secretaria_id: userData.secretariaId || null,
+        modulos_acesso: userData.permissions,
+        status: userData.status
+      };
+
       const { data, error } = await supabase
         .from('usuarios_acesso')
-        .insert([{
-          email: userData.email,
-          senha: password || '123456', // Padrão se não informado
-          nome: userData.nome,
-          tipo_perfil: userData.role,
-          prefeitura_id: userData.prefeituraId,
-          secretaria_id: userData.secretariaId,
-          modulos_acesso: userData.permissions,
-          status: userData.status,
-        }])
+        .insert([newUserPayload])
         .select()
         .single();
 
       if (error) throw error;
 
+      // Cast response to DbUser
+      const dbUser = data as unknown as DbUser;
+
       const newUser: User = {
-        id: data.id.toString(),
-        email: data.email,
-        nome: data.nome,
-        role: (data.tipo_perfil as UserRole) || 'operator',
-        prefeituraId: data.prefeitura_id,
-        secretariaId: data.secretaria_id,
-        permissions: data.modulos_acesso || defaultPermissionsByRole[data.tipo_perfil as UserRole],
-        createdAt: data.created_at,
-        status: data.status || 'ativo',
+        id: dbUser.id,
+        email: dbUser.email,
+        nome: dbUser.nome,
+        role: dbUser.tipo_perfil || 'operator',
+        prefeituraId: dbUser.prefeitura_id,
+        secretariaId: dbUser.secretaria_id,
+        permissions: dbUser.modulos_acesso || defaultPermissionsByRole[dbUser.tipo_perfil || 'operator'],
+        createdAt: dbUser.created_at,
+        status: dbUser.status || 'ativo',
       };
 
       setUsers(prev => [...prev, newUser]);
       toast({ title: "Usuário criado", description: `${newUser.nome} foi cadastrado com sucesso` });
       return newUser;
-    } catch (error: any) {
-      console.error('Error creating user:', error);
-      toast({ title: "Erro ao criar usuário", description: error.message, variant: "destructive" });
+    } catch (error) {
+      handleSupabaseError(error, 'Creating User');
       return null;
     }
   }, [toast]);
@@ -376,12 +405,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
     try {
-      const dbUpdates: any = {};
+      const dbUpdates: Partial<DbUser> = {};
       if (updates.nome) dbUpdates.nome = updates.nome;
       if (updates.email) dbUpdates.email = updates.email;
       if (updates.role) dbUpdates.tipo_perfil = updates.role;
-      if (updates.prefeituraId !== undefined) dbUpdates.prefeitura_id = updates.prefeituraId;
-      if (updates.secretariaId !== undefined) dbUpdates.secretaria_id = updates.secretariaId;
+      if (updates.prefeituraId !== undefined) dbUpdates.prefeitura_id = updates.prefeituraId || null;
+      if (updates.secretariaId !== undefined) dbUpdates.secretaria_id = updates.secretariaId || null;
       if (updates.permissions) dbUpdates.modulos_acesso = updates.permissions;
       if (updates.status) dbUpdates.status = updates.status;
 
@@ -394,9 +423,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
       toast({ title: "Usuário atualizado", description: "As alterações foram salvas com sucesso" });
-    } catch (error: any) {
-      console.error('Error updating user:', error);
-      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+      return true;
+    } catch (error) {
+      handleSupabaseError(error, 'Updating User');
+      return false;
     }
   }, [toast]);
 
@@ -404,12 +434,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteUser = useCallback(async (userId: string) => {
     try {
       const { error } = await supabase.from('usuarios_acesso').delete().eq('id', userId);
-      if (error) throw error;
+
+      if (error) {
+        // Erro de violação de chave estrangeira (violates foreign key constraint)
+        if (error.code === '23503') {
+          toast({
+            title: "Usuário em Uso",
+            description: "Este usuário possui documentos (DFDs, PCAs, etc) vinculados a ele e não pode ser excluído permanentemente. Recomendamos apenas desativar o usuário.",
+            variant: "destructive"
+          });
+          return;
+        }
+        throw error;
+      }
+
       setUsers(prev => prev.filter(u => u.id !== userId));
       toast({ title: "Usuário removido", description: "O usuário foi excluído com sucesso" });
-    } catch (error: any) {
-      console.error('Error deleting user:', error);
-      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
+    } catch (error) {
+      handleSupabaseError(error, 'Deleting User');
     }
   }, [toast]);
 
@@ -427,10 +469,93 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return secretarias.filter(s => s.prefeitura_id === prefeituraId);
   }, [secretarias]);
 
+  const getAllUsers = useCallback(() => {
+    return users;
+  }, [users]);
 
-  const addSecretaria = useCallback((data: any) => {
+
+  const addSecretaria = useCallback((data: Omit<DbSecretaria, 'id' | 'created_at'>) => {
     setSecretarias(prev => [...prev, { ...data, id: `sec-${Date.now()}` }]);
   }, []);
+
+  const createPrefeitura = useCallback(async (prefeituraData: Pick<DbPrefeitura, 'nome' | 'cnpj' | 'uf' | 'municipio'>): Promise<boolean> => {
+    try {
+      // 1. Verificar se a prefeitura já existe pelo CNPJ
+      const { data: existingPref, error: searchError } = await supabase
+        .from('prefeituras')
+        .select('id')
+        .eq('cnpj', prefeituraData.cnpj)
+        .maybeSingle();
+
+      if (searchError) throw searchError;
+
+      if (existingPref) {
+        toast({
+          title: "Prefeitura já cadastrada",
+          description: "Já existe uma prefeitura com este CNPJ no sistema.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // 2. Inserir a prefeitura
+      const newPrefeitura: Partial<DbPrefeitura> = {
+        nome: prefeituraData.nome,
+        cnpj: prefeituraData.cnpj,
+        uf: prefeituraData.uf,
+        municipio: prefeituraData.municipio,
+        status: 'ativa'
+      };
+
+      const { error: prefError } = await supabase
+        .from('prefeituras')
+        .insert([newPrefeitura]);
+
+      if (prefError) throw prefError;
+
+      // Atualizar estado local
+      fetchPrefeituras();
+
+      toast({
+        title: "Prefeitura criada",
+        description: "Os dados da prefeitura foram salvos com sucesso."
+      });
+      return true;
+    } catch (error) {
+      handleSupabaseError(error, 'Creating Prefeitura');
+      return false;
+    }
+  }, [fetchPrefeituras, toast]);
+
+  const deletePrefeitura = useCallback(async (prefeituraId: string): Promise<boolean> => {
+    try {
+      // Soft delete: Inativar usuários vinculados
+      const { error: usersError } = await supabase
+        .from('usuarios_acesso')
+        .update({ status: 'inativo' })
+        .eq('prefeitura_id', prefeituraId);
+
+      if (usersError) throw usersError;
+
+      // Soft delete: Inativar a prefeitura
+      const { error } = await supabase
+        .from('prefeituras')
+        .update({ status: 'inativa' })
+        .eq('id', prefeituraId);
+
+      if (error) throw error;
+
+      fetchPrefeituras();
+      toast({
+        title: "Prefeitura inativada",
+        description: "A prefeitura e seus usuários foram inativados com sucesso."
+      });
+      return true;
+    } catch (error) {
+      handleSupabaseError(error, 'Inactivating Prefeitura');
+      return false;
+    }
+  }, [fetchPrefeituras, toast]);
 
   const switchToUser = useCallback((email: string) => {
     const user = users.find(u => u.email === email);
@@ -472,6 +597,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getSecretariasForPrefeitura,
         addSecretaria,
         switchToUser,
+        createPrefeitura,
+        deletePrefeitura,
+        getAllUsers,
       }}
     >
       {children}

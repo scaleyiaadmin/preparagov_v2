@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Plus, 
-  FileText, 
-  Edit, 
-  Clock, 
-  CheckCircle, 
+import {
+  Plus,
+  FileText,
+  Edit,
+  Clock,
+  CheckCircle,
   Eye,
   Download,
   Filter
@@ -52,15 +52,15 @@ const TermoReferencia = () => {
     }
   }, []);
 
-  const termosData = getTermosReferencia();
-  
+  const termosData: any[] = []; // getTermosReferencia();
+
   const secretarias = Array.from(new Set(termosData.map(termo => termo.secretaria)));
 
   const filteredTermos = termosData.filter(termo => {
     const matchesSecretaria = filters.secretaria === 'all' || termo.secretaria === filters.secretaria;
     const matchesStatus = filters.status === 'all' || termo.status === filters.status;
     const matchesAno = filters.ano === 'all' || termo.ano === filters.ano;
-    
+
     return matchesSecretaria && matchesStatus && matchesAno;
   });
 
@@ -149,7 +149,7 @@ const TermoReferencia = () => {
 
   if (showWizard && selectedOrigin) {
     return (
-      <TRCreationWizard 
+      <TRCreationWizard
         origin={selectedOrigin}
         selectedData={selectedData}
         onClose={handleCloseTRWizard}
@@ -175,10 +175,9 @@ const TermoReferencia = () => {
 
       {/* Statistics Cards - Now clickable filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'all' ? 'ring-2 ring-blue-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'all' ? 'ring-2 ring-blue-500' : ''
+            }`}
           onClick={() => handleFilterChange('all')}
         >
           <CardContent className="p-4">
@@ -194,10 +193,9 @@ const TermoReferencia = () => {
           </CardContent>
         </Card>
 
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'em-elaboracao' ? 'ring-2 ring-yellow-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'em-elaboracao' ? 'ring-2 ring-yellow-500' : ''
+            }`}
           onClick={() => handleFilterChange('em-elaboracao')}
         >
           <CardContent className="p-4">
@@ -215,10 +213,9 @@ const TermoReferencia = () => {
           </CardContent>
         </Card>
 
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'prontos' ? 'ring-2 ring-green-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'prontos' ? 'ring-2 ring-green-500' : ''
+            }`}
           onClick={() => handleFilterChange('prontos')}
         >
           <CardContent className="p-4">
@@ -265,7 +262,7 @@ const TermoReferencia = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">
                 Status
@@ -319,8 +316,8 @@ const TermoReferencia = () => {
             <div className="text-center py-8">
               <FileText size={48} className="mx-auto text-gray-400 mb-4" />
               <p className="text-gray-500">
-                {currentFilter === 'all' 
-                  ? 'Nenhum termo de referência encontrado para os filtros selecionados.' 
+                {currentFilter === 'all'
+                  ? 'Nenhum termo de referência encontrado para os filtros selecionados.'
                   : `Nenhum termo de referência ${currentFilter === 'em-elaboracao' ? 'em elaboração' : 'pronto'} encontrado.`}
               </p>
             </div>
@@ -400,12 +397,12 @@ const TermoReferencia = () => {
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
-                        <PaginationPrevious 
+                        <PaginationPrevious
                           onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                           className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />
                       </PaginationItem>
-                      
+
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                         <PaginationItem key={page}>
                           <PaginationLink
@@ -417,9 +414,9 @@ const TermoReferencia = () => {
                           </PaginationLink>
                         </PaginationItem>
                       ))}
-                      
+
                       <PaginationItem>
-                        <PaginationNext 
+                        <PaginationNext
                           onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                           className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />

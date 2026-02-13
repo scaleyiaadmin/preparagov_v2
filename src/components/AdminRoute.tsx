@@ -14,10 +14,10 @@ const AdminRoute = () => {
         );
     }
 
-    // Verifica se está autenticado e se tem papel de admin ou super_admin
-    const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+    // Somente Super Admin tem acesso ao painel global administrativo
+    const isSuperAdminRole = user?.role === 'super_admin';
 
-    if (!isAuthenticated || !isAdmin) {
+    if (!isAuthenticated || !isSuperAdminRole) {
         return <Navigate to="/admin/login" replace />;
     }
 

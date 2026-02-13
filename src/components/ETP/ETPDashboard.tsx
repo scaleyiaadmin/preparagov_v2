@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  Clock, 
-  CheckCircle, 
+import {
+  FileText,
+  Clock,
+  CheckCircle,
   Plus,
   Eye,
   Calendar,
@@ -34,71 +34,24 @@ interface ETPDashboardProps {
   onViewInProgress: () => void;
   onContinueETP: (etp: ETP) => void;
   onGeneratePDF: (etp: ETP) => void;
+  etps: ETP[];
 }
 
-const ETPDashboard = ({ 
-  onCreateNew, 
-  onViewETP, 
-  onViewCompleted, 
+const ETPDashboard = ({
+  onCreateNew,
+  onViewETP,
+  onViewCompleted,
   onViewInProgress,
   onContinueETP,
-  onGeneratePDF 
+  onGeneratePDF,
+  etps
 }: ETPDashboardProps) => {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedETPForView, setSelectedETPForView] = useState<ETP | null>(null);
 
-  // Mock data for ETPs
-  const mockETPs: ETP[] = [
-    {
-      id: '1',
-      titulo: 'ETP Modernização Tecnológica',
-      numeroETP: 'ETP-2024-001',
-      status: 'Concluído',
-      dataCriacao: '2024-01-15',
-      dataUltimaEdicao: '2024-02-10',
-      totalDFDs: 3,
-      valorTotal: 'R$ 2.950.000,00',
-      responsavel: 'João Silva'
-    },
-    {
-      id: '2',
-      titulo: 'ETP Infraestrutura Escolar',
-      numeroETP: 'ETP-2024-002',
-      status: 'Em elaboração',
-      dataCriacao: '2024-06-20',
-      dataUltimaEdicao: '2024-07-01',
-      totalDFDs: 2,
-      valorTotal: 'R$ 1.800.000,00',
-      responsavel: 'Maria Santos',
-      currentStep: 5
-    },
-    {
-      id: '3',
-      titulo: 'ETP Equipamentos de Saúde',
-      numeroETP: 'ETP-2024-003',
-      status: 'Concluído',
-      dataCriacao: '2024-03-10',
-      dataUltimaEdicao: '2024-04-05',
-      totalDFDs: 4,
-      valorTotal: 'R$ 3.200.000,00',
-      responsavel: 'Carlos Pereira'
-    },
-    {
-      id: '4',
-      titulo: 'ETP Serviços Administrativos',
-      numeroETP: 'ETP-2024-004',
-      status: 'Em elaboração',
-      dataCriacao: '2024-06-28',
-      dataUltimaEdicao: '2024-07-03',
-      totalDFDs: 1,
-      valorTotal: 'R$ 450.000,00',
-      responsavel: 'Ana Costa',
-      currentStep: 3
-    }
-  ];
+  const completedETPs = etps.filter(etp => etp.status === 'Concluído');
+  const inProgressETPs = etps.filter(etp => etp.status === 'Em Elaboração' || etp.status === 'Em elaboração'); // Handle potential case mismatch
 
-  const completedETPs = mockETPs.filter(etp => etp.status === 'Concluído');
-  const inProgressETPs = mockETPs.filter(etp => etp.status === 'Em elaboração');
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
@@ -108,7 +61,7 @@ const ETPDashboard = ({
     return status === 'Concluído' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
   };
 
-  const recentETPs = mockETPs
+  const recentETPs = etps
     .sort((a, b) => new Date(b.dataUltimaEdicao).getTime() - new Date(a.dataUltimaEdicao).getTime())
     .slice(0, 3);
 
@@ -212,7 +165,7 @@ const ETPDashboard = ({
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card 
+        <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={onViewCompleted}
         >
@@ -228,7 +181,7 @@ const ETPDashboard = ({
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
           onClick={onViewInProgress}
         >

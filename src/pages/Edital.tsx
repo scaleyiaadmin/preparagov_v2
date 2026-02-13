@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Plus, 
-  FileText, 
-  Edit, 
-  Clock, 
-  CheckCircle, 
+import {
+  Plus,
+  FileText,
+  Edit,
+  Clock,
+  CheckCircle,
   Globe,
   Eye,
   Download,
@@ -51,68 +51,15 @@ const Edital = () => {
     }
   }, []);
 
-  const editaisData = [
-    {
-      id: 1,
-      numero: 'ED-001/2024',
-      objeto: 'Aquisição de Gêneros Alimentícios para Merenda Escolar',
-      secretaria: 'Secretaria de Educação',
-      modalidade: 'Pregão Eletrônico',
-      valorEstimado: 150000,
-      status: 'Em Elaboração',
-      dataCriacao: '2024-01-15',
-      dataPublicacao: null,
-      prazoEntrega: '30 dias',
-      ano: '2024'
-    },
-    {
-      id: 2,
-      numero: 'ED-002/2024',
-      objeto: 'Contratação de Serviços de Limpeza Urbana',
-      secretaria: 'Secretaria de Obras',
-      modalidade: 'Concorrência',
-      valorEstimado: 500000,
-      status: 'Concluído',
-      dataCriacao: '2024-01-10',
-      dataPublicacao: null,
-      prazoEntrega: '45 dias',
-      ano: '2024'
-    },
-    {
-      id: 3,
-      numero: 'ED-003/2024',
-      objeto: 'Aquisição de Medicamentos Básicos',
-      secretaria: 'Secretaria de Saúde',
-      modalidade: 'Pregão Eletrônico',
-      valorEstimado: 300000,
-      status: 'Publicado no PNCP',
-      dataCriacao: '2024-01-05',
-      dataPublicacao: '2024-01-20',
-      prazoEntrega: '15 dias',
-      ano: '2024'
-    },
-    {
-      id: 4,
-      numero: 'ED-004/2024',
-      objeto: 'Reforma do Centro de Saúde Municipal',
-      secretaria: 'Secretaria de Saúde',
-      modalidade: 'Tomada de Preços',
-      valorEstimado: 800000,
-      status: 'Em Elaboração',
-      dataCriacao: '2024-01-20',
-      dataPublicacao: null,
-      prazoEntrega: '60 dias',
-      ano: '2024'
-    }
-  ];
-  
+  const editaisData: any[] = [];
+
   const secretarias = Array.from(new Set(editaisData.map(edital => edital.secretaria)));
 
   const filteredEditais = editaisData.filter(edital => {
     const matchesSecretaria = filters.secretaria === 'all' || edital.secretaria === filters.secretaria;
     const matchesStatus = filters.status === 'all' || edital.status === filters.status;
     const matchesAno = filters.ano === 'all' || edital.ano === filters.ano;
-    
+
     return matchesSecretaria && matchesStatus && matchesAno;
   });
 
@@ -246,10 +193,9 @@ const Edital = () => {
 
       {/* Statistics Cards - Now clickable filters */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'all' ? 'ring-2 ring-blue-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'all' ? 'ring-2 ring-blue-500' : ''
+            }`}
           onClick={() => handleFilterChange('all')}
         >
           <CardContent className="p-4">
@@ -265,10 +211,9 @@ const Edital = () => {
           </CardContent>
         </Card>
 
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'em-elaboracao' ? 'ring-2 ring-yellow-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'em-elaboracao' ? 'ring-2 ring-yellow-500' : ''
+            }`}
           onClick={() => handleFilterChange('em-elaboracao')}
         >
           <CardContent className="p-4">
@@ -286,10 +231,9 @@ const Edital = () => {
           </CardContent>
         </Card>
 
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'concluidos' ? 'ring-2 ring-green-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'concluidos' ? 'ring-2 ring-green-500' : ''
+            }`}
           onClick={() => handleFilterChange('concluidos')}
         >
           <CardContent className="p-4">
@@ -307,10 +251,9 @@ const Edital = () => {
           </CardContent>
         </Card>
 
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'publicados' ? 'ring-2 ring-purple-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'publicados' ? 'ring-2 ring-purple-500' : ''
+            }`}
           onClick={() => handleFilterChange('publicados')}
         >
           <CardContent className="p-4">
@@ -357,7 +300,7 @@ const Edital = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">
                 Status
@@ -402,9 +345,9 @@ const Edital = () => {
             Lista de Editais
             {currentFilter !== 'all' && (
               <span className="text-sm font-normal text-gray-600 ml-2">
-                - {currentFilter === 'em-elaboracao' ? 'Em Elaboração' : 
-                   currentFilter === 'concluidos' ? 'Concluídos' : 
-                   'Publicados'}
+                - {currentFilter === 'em-elaboracao' ? 'Em Elaboração' :
+                  currentFilter === 'concluidos' ? 'Concluídos' :
+                    'Publicados'}
               </span>
             )}
           </CardTitle>
@@ -414,11 +357,11 @@ const Edital = () => {
             <div className="text-center py-8">
               <FileText size={48} className="mx-auto text-gray-400 mb-4" />
               <p className="text-gray-500">
-                {currentFilter === 'all' 
-                  ? 'Nenhum edital encontrado para os filtros selecionados.' 
-                  : `Nenhum edital ${currentFilter === 'em-elaboracao' ? 'em elaboração' : 
-                                   currentFilter === 'concluidos' ? 'concluído' : 
-                                   'publicado'} encontrado.`}
+                {currentFilter === 'all'
+                  ? 'Nenhum edital encontrado para os filtros selecionados.'
+                  : `Nenhum edital ${currentFilter === 'em-elaboracao' ? 'em elaboração' :
+                    currentFilter === 'concluidos' ? 'concluído' :
+                      'publicado'} encontrado.`}
               </p>
             </div>
           ) : (
@@ -528,12 +471,12 @@ const Edital = () => {
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
-                        <PaginationPrevious 
+                        <PaginationPrevious
                           onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                           className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />
                       </PaginationItem>
-                      
+
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                         <PaginationItem key={page}>
                           <PaginationLink
@@ -545,9 +488,9 @@ const Edital = () => {
                           </PaginationLink>
                         </PaginationItem>
                       ))}
-                      
+
                       <PaginationItem>
-                        <PaginationNext 
+                        <PaginationNext
                           onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                           className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />
@@ -562,7 +505,7 @@ const Edital = () => {
       </Card>
 
       {showSelectionModal && (
-        <TRSelectionModal 
+        <TRSelectionModal
           onClose={handleCloseSelectionModal}
           onSelect={handleTRSelect}
         />

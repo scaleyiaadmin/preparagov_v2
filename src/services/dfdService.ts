@@ -1,0 +1,109 @@
+import { supabase } from '@/lib/supabase';
+import { DbDFD, DbDFDItem } from '@/types/database';
+
+export const dfdService = {
+    async getAll(filters?: { status?: string; ano?: number }) {
+        let query = supabase
+            .from('dfd')
+            .select('*, dfd_items(*)')
+            .order('created_at', { ascending: false });
+
+        if (filters?.status && filters.status !== 'all') {
+            query = query.eq('status', filters.status);
+        }
+
+        if (filters?.ano) {
+            query = query.eq('ano_contratacao', filters.ano);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+    },
+
+    async getById(id: string) {
+        const { data, error } = await supabase
+            .from('dfd')
+            .select('*, dfd_items(*)')
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async create(dfd: Omit<DbDFD, 'id' | 'created_at'>, items: Omit<DbDFDItem, 'id' | 'dfd_id'>[]) {
+        // 1. Create DFD Header
+        const { data: dfdData, error: dfdError } = await supabase
+            .from('dfd')
+            .insert([dfd])
+            .select()
+            .single();
+
+        if (dfdError) throw dfdError;
+
+        // 2. Create Items
+        if (items.length > 0) {
+            const itemsWithId = items.map(item => ({
+                ...item,
+                dfd_id: dfdData.id
+            }));
+
+            const { error: itemsError } = await supabase
+                .from('dfd_items')
+                .insert(itemsWithId);
+
+            if (itemsError) {
+                // Rollback (delete header if items fail) - optional but good practice
+                await supabase.from('dfd').delete().eq('id', dfdData.id);
+                throw itemsError;
+            }
+        }
+
+        return dfdData;
+    },
+
+    async update(id: string, dfdUpdates: Partial<DbDFD>, items?: Omit<DbDFDItem, 'id' | 'dfd_id'>[]) {
+        // 1. Update Header
+        const { error: dfdError } = await supabase
+            .from('dfd')
+            .update(dfdUpdates)
+            .eq('id', id);
+
+        if (dfdError) throw dfdError;
+
+        // 2. Update Items (Strategy: Delete all and recreate)
+        // This is simple but effective for this scale. 
+        // Ideally we would diff, but 'replace all' ensures consistency easily.
+        if (items) {
+            const { error: deleteError } = await supabase
+                .from('dfd_items')
+                .delete()
+                .eq('dfd_id', id);
+
+            if (deleteError) throw deleteError;
+
+            if (items.length > 0) {
+                const itemsWithId = items.map(item => ({
+                    ...item,
+                    dfd_id: id
+                }));
+
+                const { error: insertError } = await supabase
+                    .from('dfd_items')
+                    .insert(itemsWithId);
+
+                if (insertError) throw insertError;
+            }
+        }
+    },
+
+    async delete(id: string) {
+        const { error } = await supabase
+            .from('dfd')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+    }
+};

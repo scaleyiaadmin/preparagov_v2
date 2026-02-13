@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+
 interface SelectedDFD {
-  id: number;
+  id: string; // Changed to string for UUID
   objeto: string;
   valorEstimado: string;
   tipoDFD: string;
@@ -56,122 +59,53 @@ export const useETPCreation = () => {
     conclusaoTecnica: ''
   });
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [availableDFDs, setAvailableDFDs] = useState<SelectedDFD[]>([]);
 
-  // Enhanced mock DFDs with additional fields for filtering
-  const availableDFDs = [
-    {
-      id: 1,
-      objeto: 'Aquisição de Computadores',
-      valorEstimado: 'R$ 150.000,00',
-      tipoDFD: 'Materiais Permanentes',
-      secretaria: 'Secretaria de Educação',
-      prioridade: 'Alta',
-      dataContratacao: '2024-03-15',
-      numeroDFD: 'DFD-001/2024',
-      status: 'Aprovado',
-      usedInETP: false,
-      secretario: 'João Silva',
-      responsavelDemanda: 'Maria Oliveira'
-    },
-    {
-      id: 2,
-      objeto: 'Contratação de Consultoria TI',
-      valorEstimado: 'R$ 300.000,00',
-      tipoDFD: 'Serviço Não Continuado',
-      secretaria: 'Secretaria de Administração',
-      prioridade: 'Média',
-      dataContratacao: '2024-04-20',
-      numeroDFD: 'DFD-002/2024',
-      status: 'Aprovado',
-      usedInETP: false,
-      secretario: 'Fernanda Souza',
-      responsavelDemanda: 'Rodrigo Lima'
-    },
-    {
-      id: 3,
-      objeto: 'Reforma do Prédio',
-      valorEstimado: 'R$ 2.500.000,00',
-      tipoDFD: 'Serviço de Engenharia',
-      secretaria: 'Secretaria de Obras',
-      prioridade: 'Alta',
-      dataContratacao: '2024-02-10',
-      numeroDFD: 'DFD-003/2024',
-      status: 'Aprovado',
-      usedInETP: false,
-      secretario: 'Carlos Pereira',
-      responsavelDemanda: 'Luciana Costa'
-    },
-    {
-      id: 4,
-      objeto: 'Aquisição de Veículos',
-      valorEstimado: 'R$ 800.000,00',
-      tipoDFD: 'Materiais Permanentes',
-      secretaria: 'Secretaria de Saúde',
-      prioridade: 'Alta',
-      dataContratacao: '2024-05-30',
-      numeroDFD: 'DFD-004/2024',
-      status: 'Aprovado',
-      usedInETP: true,
-      secretario: 'Ana Paula Santos',
-      responsavelDemanda: 'José Roberto'
-    },
-    {
-      id: 5,
-      objeto: 'Contratação de Limpeza',
-      valorEstimado: 'R$ 120.000,00',
-      tipoDFD: 'Serviço Continuado',
-      secretaria: 'Secretaria de Administração',
-      prioridade: 'Baixa',
-      dataContratacao: '2024-06-15',
-      numeroDFD: 'DFD-005/2024',
-      status: 'Aprovado',
-      usedInETP: false,
-      secretario: 'Fernanda Souza',
-      responsavelDemanda: 'Pedro Henrique'
-    },
-    {
-      id: 6,
-      objeto: 'Sistema de Gestão Escolar',
-      valorEstimado: 'R$ 450.000,00',
-      tipoDFD: 'Serviço Não Continuado',
-      secretaria: 'Secretaria de Educação',
-      prioridade: 'Média',
-      dataContratacao: '2024-07-10',
-      numeroDFD: 'DFD-006/2024',
-      status: 'Aprovado',
-      usedInETP: false,
-      secretario: 'João Silva',
-      responsavelDemanda: 'Carolina Ferreira'
-    },
-    {
-      id: 7,
-      objeto: 'Equipamentos Médicos',
-      valorEstimado: 'R$ 1.200.000,00',
-      tipoDFD: 'Materiais Permanentes',
-      secretaria: 'Secretaria de Saúde',
-      prioridade: 'Alta',
-      dataContratacao: '2024-01-25',
-      numeroDFD: 'DFD-007/2024',
-      status: 'Aprovado',
-      usedInETP: false,
-      secretario: 'Ana Paula Santos',
-      responsavelDemanda: 'Dr. Ricardo Moura'
-    },
-    {
-      id: 8,
-      objeto: 'Pavimentação de Ruas',
-      valorEstimado: 'R$ 3.200.000,00',
-      tipoDFD: 'Serviço de Engenharia',
-      secretaria: 'Secretaria de Obras',
-      prioridade: 'Média',
-      dataContratacao: '2024-08-05',
-      numeroDFD: 'DFD-008/2024',
-      status: 'Aprovado',
-      usedInETP: true,
-      secretario: 'Carlos Pereira',
-      responsavelDemanda: 'Eng. Marcos Silva'
-    }
-  ];
+  useEffect(() => {
+    const fetchDFDs = async () => {
+      try {
+        // 1. Fetch Approved DFDs
+        const { data, error } = await supabase
+          .from('dfd')
+          .select('*')
+          .eq('status', 'Aprovado');
+
+        if (error) throw error;
+
+        // 2. Fetch Users & Secretarias for details
+        const { data: usersData } = await supabase.from('usuarios_acesso').select('id, nome');
+        const { data: secretariasData } = await supabase.from('secretarias').select('id, nome');
+        const { data: usedData } = await supabase.from('etp_dfd').select('dfd_id');
+
+        const usedIds = new Set(usedData?.map((u: any) => u.dfd_id));
+
+        const formatted: SelectedDFD[] = data.map((d: any) => {
+          const user = usersData?.find((u: any) => u.id === d.created_by);
+          const secretaria = secretariasData?.find((s: any) => s.id === d.secretaria_id);
+
+          return {
+            id: d.id,
+            objeto: d.objeto,
+            valorEstimado: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(d.valor_estimado_total || 0),
+            tipoDFD: d.tipo_dfd,
+            status: d.status,
+            prioridade: d.prioridade || 'Média',
+            numeroDFD: d.numero_dfd || 'N/A',
+            dataContratacao: d.data_prevista_contratacao,
+            secretaria: secretaria?.nome || 'Não informada',
+            secretario: 'Não informado',
+            responsavelDemanda: user?.nome || 'Não informado',
+            usedInETP: usedIds.has(d.id)
+          };
+        });
+        setAvailableDFDs(formatted);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchDFDs();
+  }, []);
 
   const steps = [
     { id: 0, title: 'Seleção de DFDs', description: 'Selecione os DFDs vinculados' },
@@ -211,6 +145,68 @@ export const useETPCreation = () => {
     }));
   };
 
+  const loadETP = async (etpId: string) => {
+    try {
+      // Fetch ETP details
+      const { data: etp, error } = await supabase
+        .from('etp')
+        .select(`
+          *,
+          etp_dfd (
+            dfd (
+              *
+            )
+          )
+        `)
+        .eq('id', etpId)
+        .single();
+
+      if (error) throw error;
+
+      // Map to form data
+      const selectedDFDs = etp.etp_dfd.map((item: any) => ({
+        id: item.dfd.id,
+        objeto: item.dfd.objeto,
+        valorEstimado: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.dfd.valor_estimado_total || 0),
+        tipoDFD: item.dfd.tipo_dfd,
+        status: item.dfd.status,
+        prioridade: item.dfd.prioridade,
+        numeroDFD: item.dfd.numero_dfd,
+        dataContratacao: item.dfd.data_prevista_contratacao,
+        secretaria: 'Carregando...', // We can improve this if needed by fetching secretarias
+        responsavelDemanda: 'Carregando...'
+      }));
+
+      setFormData({
+        selectedDFDs,
+        descricaoDemanda: etp.descricao_demanda || '',
+        requisitosContratacao: etp.requisitos_contratacao || '',
+        alternativasExistem: etp.alternativas_existem || false,
+        alternativasDescricao: etp.alternativas_descricao || '',
+        descricaoSolucao: etp.descricao_solucao || '',
+        justificativaParcelamento: etp.justificativa_parcelamento || '',
+        resultadosPretendidos: etp.resultados_pretendidos || '',
+        providenciasExistem: etp.providencias_existem || false,
+        providenciasDescricao: etp.providencias_descricao || '',
+        contratacoesCorrelatas: etp.contratacoes_correlatas || false,
+        contratacoesDescricao: etp.contratacoes_descricao || '',
+        impactosAmbientais: etp.impactos_ambientais || false,
+        impactosDescricao: etp.impactos_descricao || '',
+        observacoesGerais: etp.observacoes_gerais || '',
+        conclusaoTecnica: etp.conclusao_tecnica || ''
+      });
+
+      setCurrentStep(0); // Start at beginning or determine step
+    } catch (error) {
+      console.error('Error loading ETP:', error);
+      toast({
+        title: "Erro ao carregar",
+        description: "Não foi possível carregar os dados do ETP.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const generateDemandDescription = (dfds: SelectedDFD[]) => {
     if (dfds.length === 0) return '';
 
@@ -227,7 +223,7 @@ export const useETPCreation = () => {
       }).format(value);
     };
 
-    const dfdDescriptions = dfds.map(dfd => 
+    const dfdDescriptions = dfds.map(dfd =>
       `DFD nº ${dfd.numeroDFD} – ${dfd.objeto} (${dfd.tipoDFD})
 Secretário: ${dfd.secretario || 'Não informado'} | Responsável pela Demanda: ${dfd.responsavelDemanda || 'Não informado'}
 Valor estimado: ${dfd.valorEstimado}`
@@ -244,34 +240,76 @@ ${dfdDescriptions}
 
   const selectDFDs = (dfds: SelectedDFD[]) => {
     updateFormData('selectedDFDs', dfds);
-    
+
     // Auto-generate enhanced demand description
     const description = generateDemandDescription(dfds);
     updateFormData('descricaoDemanda', description);
   };
 
   const generateWithAI = async (field: keyof ETPFormData) => {
-    const aiContent: Record<string, string> = {
-      descricaoDemanda: 'A administração pública necessita modernizar sua infraestrutura e otimizar seus serviços para melhor atender aos cidadãos. Esta demanda surge da necessidade de adequação tecnológica e melhoria dos processos administrativos.',
-      requisitosContratacao: 'A contratação deve atender aos seguintes requisitos: conformidade com a legislação vigente, adequação técnica às necessidades da administração, sustentabilidade ambiental, economicidade e eficiência na execução.',
-      alternativasDescricao: 'Foram analisadas as seguintes alternativas: contratação direta com fornecedor especializado, terceirização completa dos serviços, aquisição gradual dos itens, parcerias público-privadas e utilização de recursos próprios.',
-      descricaoSolucao: 'A solução proposta consiste na implementação de um conjunto integrado de ações que contempla a aquisição de equipamentos, contratação de serviços especializados e adequação da infraestrutura necessária para atender plenamente às demandas identificadas.',
-      justificativaParcelamento: 'O parcelamento da contratação se justifica pela necessidade de distribuir os recursos orçamentários ao longo do exercício, permitir melhor controle da execução e possibilitar a participação de um maior número de fornecedores.',
-      resultadosPretendidos: 'Espera-se como resultados: melhoria na qualidade dos serviços prestados, aumento da eficiência operacional, redução de custos, modernização tecnológica e maior satisfação dos usuários dos serviços públicos.',
-      providenciasDescricao: 'Deverão ser tomadas as seguintes providências: aprovação orçamentária, elaboração do termo de referência, definição da equipe técnica responsável, adequação do espaço físico e treinamento dos usuários.',
-      contratacoesDescricao: 'Existem contratações correlatas relacionadas à infraestrutura de rede, suporte técnico especializado e treinamento de usuários que deverão ser coordenadas para garantir a efetividade da solução proposta.',
-      impactosDescricao: 'Os impactos ambientais são mínimos, limitando-se ao descarte adequado de equipamentos obsoletos. Serão adotadas medidas de destinação ambientalmente correta e preferência por fornecedores com certificação ambiental.',
-      observacoesGerais: 'É importante observar que a execução desta contratação deve ser coordenada com outras ações da administração para garantir sinergia e otimização dos recursos públicos disponíveis.',
-      conclusaoTecnica: 'Tecnicamente, a contratação é viável e necessária para atender às demandas identificadas. Os benefícios esperados justificam o investimento, e os riscos são controláveis mediante adoção das medidas preventivas adequadas.'
+    // Generate context from selected DFDs
+    const dfdContext = formData.selectedDFDs.map(d =>
+      `${d.objeto} (Valor: ${d.valorEstimado}, Prioridade: ${d.prioridade})`
+    ).join(', ');
+
+    const totalValue = formData.selectedDFDs.reduce((acc, d) => {
+      const val = parseFloat(d.valorEstimado.replace(/[R$\.,]/g, '')) / 100;
+      return acc + (isNaN(val) ? 0 : val);
+    }, 0);
+
+    const isHighValue = totalValue > 50000; // Exemplo de regra de negócio simples
+
+    const aiContent: Record<string, () => string> = {
+      descricaoDemanda: () => `A administração pública necessita realizar a contratação de ${dfdContext} para garantir a continuidade e eficiência dos serviços prestados. Esta demanda surge da necessidade de adequação às atividades finalísticas do órgão, visando otimizar recursos e atender ao interesse público.`,
+
+      requisitosContratacao: () => `A contratação deve atender aos seguintes requisitos técnicos e operacionais: conformidade com as normas técnicas vigentes (ABNT/ISO), garantia mínima de 12 meses, sustentabilidade ambiental com preferência por materiais recicláveis ou de baixo impacto, e compatibilidade com a infraestrutura existente.`,
+
+      alternativasDescricao: () => `Foram analisadas as seguintes alternativas para atender à demanda: 
+1. Utilização de recursos humanos e materiais próprios (inviável por insuficiência de estoque/quadro);
+2. Contratação de serviço contínuo (não aplicável ao objeto);
+3. Aquisição parcelada conforme necessidade (mais vantajosa);
+A alternativa escolhida foi a aquisição por meio de licitação pública, garantindo ampla concorrência e melhor preço.`,
+
+      descricaoSolucao: () => `A solução proposta consiste na aquisição de ${formData.selectedDFDs.length} item(ns) conforme especificado nos DFDs, com entrega parcelada. Esta solução foi definida considerando o histórico de consumo e a projeção de demanda para o próximo exercício financeiro.`,
+
+      justificativaParcelamento: () => `O parcelamento da contratação se justifica técnica e economicamente, pois permite a ampliação da competividade e o melhor gerenciamento de estoques, evitando deterioração de materiais e custos desnecessários de armazenamento, conforme preconiza a legislação vigente.`,
+
+      resultadosPretendidos: () => `Espera-se com esta contratação: 
+- Atendimento integral da demanda das secretarias solicitantes;
+- Redução de custos operacionais através de equipamentos/materiais mais eficientes;
+- Melhoria na qualidade do serviço público prestado ao cidadão;
+- Execução de 100% do orçamento planejado para esta rubrica.`,
+
+      providenciasDescricao: () => `Deverão ser tomadas as seguintes providências prévias:
+- Verificação de disponibilidade orçamentária;
+- Designação de equipe de fiscalização do contrato;
+- Adequação do espaço físico para recebimento dos itens;
+- Elaboração de minuta de edital e termo de referência.`,
+
+      contratacoesDescricao: () => `Não existem contratações correlatas ou interdependentes diretas que impeçam ou condicionem o início desta execução. Entretanto, esta aquisição complementa os contratos de manutenção preventiva já vigentes.`,
+
+      impactosDescricao: () => `Os impactos ambientais são considerados baixos. A contratada deverá responsabilizar-se pela logística reversa de embalagens e resíduos gerados durante o fornecimento, conforme Política Nacional de Resíduos Sólidos.`,
+
+      observacoesGerais: () => `A estimativa de preços foi baseada em pesquisa de mercado realizada no Banco de Preços e Painel de Preços do Governo Federal, garantindo a vantajosidade da contratação.`,
+
+      conclusaoTecnica: () => `Diante do exposto, conclui-se que a contratação é viável tecnica e economicamente, necessária para o funcionamento do órgão e está em conformidade com o planejamento estratégico da administração. Recomenda-se o prosseguimento do feito.`
     };
 
-    const content = aiContent[field] || '';
-    updateFormData(field, content);
-    
-    toast({
-      title: "Conteúdo Gerado por IA",
-      description: "Campo preenchido automaticamente com base em melhores práticas.",
-    });
+    const generator = aiContent[field];
+    if (generator) {
+      updateFormData(field, generator());
+
+      toast({
+        title: "Conteúdo Gerado por IA",
+        description: "Conteúdo sugerido com base nos DFDs selecionados.",
+      });
+    } else {
+      toast({
+        title: "Erro na Geração",
+        description: "Campo não suportado para geração automática.",
+        variant: "destructive"
+      });
+    }
   };
 
   const nextStep = () => {
@@ -317,12 +355,85 @@ ${dfdDescriptions}
     }
   };
 
-  const saveETP = () => {
-    toast({
-      title: "ETP Salvo",
-      description: "Estudo Técnico Preliminar salvo com sucesso no sistema.",
-    });
-    localStorage.removeItem('etp-creation-progress');
+  const generateETPNumber = async () => {
+    const year = new Date().getFullYear();
+
+    // Get count of ETPs for current year
+    const { count, error } = await supabase
+      .from('etp')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', `${year}-01-01`)
+      .lte('created_at', `${year}-12-31`);
+
+    if (error) {
+      console.error('Error generating ETP number:', error);
+      return `001/${year}`; // Fallback
+    }
+
+    const nextNumber = (count || 0) + 1;
+    return `${String(nextNumber).padStart(3, '0')}/${year}`;
+  };
+
+  const saveETP = async () => {
+    try {
+      const numeroETP = await generateETPNumber();
+
+      // 1. Create ETP Record
+      const { data: etpData, error: etpError } = await supabase
+        .from('etp')
+        .insert([{
+          numero_etp: numeroETP, // Added number generation
+          status: 'Em Elaboração',
+          descricao_demanda: formData.descricaoDemanda,
+          requisitos_contratacao: formData.requisitosContratacao,
+          alternativas_existem: formData.alternativasExistem,
+          alternativas_descricao: formData.alternativasDescricao,
+          descricao_solucao: formData.descricaoSolucao,
+          justificativa_parcelamento: formData.justificativaParcelamento,
+          resultados_pretendidos: formData.resultadosPretendidos,
+          providencias_existem: formData.providenciasExistem,
+          providencias_descricao: formData.providenciasDescricao,
+          contratacoes_correlatas: formData.contratacoesCorrelatas,
+          contratacoes_descricao: formData.contratacoesDescricao,
+          impactos_ambientais: formData.impactosAmbientais,
+          impactos_descricao: formData.impactosDescricao,
+          observacoes_gerais: formData.observacoesGerais,
+          conclusao_tecnica: formData.conclusaoTecnica,
+          created_by: user?.id,
+          prefeitura_id: user?.prefeituraId
+        }])
+        .select()
+        .single();
+
+      if (etpError) throw etpError;
+
+      // 2. Link DFDs
+      if (formData.selectedDFDs.length > 0) {
+        const links = formData.selectedDFDs.map(dfd => ({
+          etp_id: etpData.id,
+          dfd_id: dfd.id
+        }));
+
+        const { error: linkError } = await supabase
+          .from('etp_dfd')
+          .insert(links);
+
+        if (linkError) throw linkError;
+      }
+
+      toast({
+        title: "ETP Salvo",
+        description: "Estudo Técnico Preliminar salvo com sucesso no sistema.",
+      });
+      localStorage.removeItem('etp-creation-progress');
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar o ETP.",
+        variant: "destructive"
+      });
+    }
   };
 
   const generatePDF = () => {
@@ -358,6 +469,7 @@ ${dfdDescriptions}
     prevStep,
     canProceed,
     saveETP,
-    generatePDF
+    generatePDF,
+    loadETP
   };
 };

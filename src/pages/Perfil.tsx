@@ -172,7 +172,7 @@ const Perfil = () => {
             <User size={16} />
             <span>Meus Dados</span>
           </TabsTrigger>
-          {userData.isGestor && (
+          {(userData.isGestor || user?.role === 'admin') && (
             <>
               <TabsTrigger value="usuarios" className="flex items-center space-x-2">
                 <Users size={16} />
@@ -460,7 +460,7 @@ const Perfil = () => {
           </div>
         </TabsContent>
 
-        {userData.isGestor && (
+        {(userData.isGestor || user?.role === 'admin' || user?.role === 'super_admin') && (
           <>
             <TabsContent value="usuarios">
               <UserManagement />

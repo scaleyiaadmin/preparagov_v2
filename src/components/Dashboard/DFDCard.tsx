@@ -7,29 +7,41 @@ import { useNavigate } from 'react-router-dom';
 
 const DFDCard = () => {
   const navigate = useNavigate();
-  
-  const dfdStats = {
-    total: 24,
-    status: {
-      'Pendente Aprovação': 8,
-      'Em Elaboração': 5,
-      'Aprovado': 9,
-      'Cancelado': 2
-    },
-    tipos: {
-      'Materiais de Consumo': 6,
-      'Materiais Permanentes': 4,
-      'Serviço Continuado': 7,
-      'Serviço Não Continuado': 3,
-      'Serviço de Engenharia': 3,
-      'Termo Aditivo': 1
-    },
-    prioridades: {
-      'Alta': 5,
-      'Média': 12,
-      'Baixa': 7
-    }
-  };
+
+  const [dfdStats, setDfdStats] = React.useState({
+    total: 0,
+    status: {} as Record<string, number>,
+    tipos: {} as Record<string, number>,
+    prioridades: {} as Record<string, number>
+  });
+
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      const { supabase } = await import('@/lib/supabase');
+      const { data } = await supabase.from('dfd').select('*');
+
+      if (data) {
+        const stats = {
+          total: data.length,
+          status: {} as Record<string, number>,
+          tipos: {} as Record<string, number>,
+          prioridades: {} as Record<string, number>
+        };
+
+        data.forEach((dfd: any) => {
+          // Status
+          stats.status[dfd.status] = (stats.status[dfd.status] || 0) + 1;
+          // Tips
+          stats.tipos[dfd.tipo_dfd] = (stats.tipos[dfd.tipo_dfd] || 0) + 1;
+          // Prioridade
+          stats.prioridades[dfd.prioridade] = (stats.prioridades[dfd.prioridade] || 0) + 1;
+        });
+
+        setDfdStats(stats);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -55,7 +67,7 @@ const DFDCard = () => {
   };
 
   return (
-    <Card 
+    <Card
       className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105"
       onClick={handleClick}
     >
@@ -72,7 +84,7 @@ const DFDCard = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-3xl font-bold text-gray-900">{dfdStats.total}</div>
-        
+
         <div className="space-y-3">
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-2">Por Status</h4>

@@ -6,16 +6,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Save, 
-  Sparkles, 
-  Send, 
-  ArrowLeft, 
+import {
+  Save,
+  Sparkles,
+  Send,
+  ArrowLeft,
   Plus,
   Eye,
   FileText,
   Loader2,
-  Lightbulb
+  Lightbulb,
+  Edit
 } from 'lucide-react';
 import ItemSearchModal from './ItemSearchModal';
 import DFDPreview from './DFDPreview';
@@ -23,6 +24,9 @@ import ItemsTable from './ItemsTable';
 import AISuggestionsModal from './AISuggestionsModal';
 import ItemEditModal from './ItemEditModal';
 import ItemJustificationForm from './ItemJustificationForm';
+import { dfdService } from '@/services/dfdService';
+import { useAuth } from '@/contexts/AuthContext';
+import { DbDFDItem } from '@/types/database';
 
 interface DFDItem {
   id: string;
@@ -59,6 +63,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
   const [editingItem, setEditingItem] = useState<DFDItem | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
+  const [isEditingAI, setIsEditingAI] = useState(false);
   const [globalQuantityJustification, setGlobalQuantityJustification] = useState('');
   const [formData, setFormData] = useState<DFDFormData>({
     objeto: editingDFD?.objeto || '',
@@ -71,21 +76,35 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
     justificativaPrioridade: editingDFD?.justificativaPrioridade || '',
     itens: editingDFD?.itens || []
   });
+
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const objetoOptions = [
     'Aquisição de Gêneros Alimentícios',
     'Aquisição de Material de Limpeza',
     'Aquisição de Medicamentos',
-    'Aquisição de Material Hospitalar'
+    'Aquisição de Material Hospitalar',
+    'Aquisição de Material de Expediente',
+    'Aquisição de Equipamentos de Informática',
+    'Aquisição de Mobiliário',
+    'Aquisição de Veículos',
+    'Aquisição de Uniformes e EPIs',
+    'Contratação de Serviços de Manutenção Predial',
+    'Contratação de Serviços de Limpeza e Conservação',
+    'Contratação de Serviços de Tecnologia',
+    'Contratação de Obras e Engenharia'
   ];
 
   const tipoDFDOptions = [
     'MATERIAIS DE CONSUMO',
-    'MATERIAIS PERMANENTES', 
+    'MATERIAIS PERMANENTES',
     'SERVIÇO CONTINUADO',
     'SERVIÇO NÃO CONTINUADO',
     'SERVIÇO DE ENGENHARIA',
+    'OBRAS',
+    'SOLUÇÕES DE TIC',
     'TERMO ADITIVO'
   ];
 
@@ -99,12 +118,12 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
   };
 
   const isAIButtonEnabled = () => {
-    return formData.objeto && formData.prioridade && formData.dataPrevista;
+    return formData.objeto && formData.prioridade && formData.dataPrevista && formData.tipoDFD;
   };
 
   const generateWithAI = async () => {
     setLoadingAI(true);
-    
+
     // Simular delay da IA
     setTimeout(() => {
       const suggestions: Record<string, any> = {
@@ -123,22 +142,59 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         'Aquisição de Material Hospitalar': {
           descricaoDemanda: 'Garantir o funcionamento adequado das unidades de saúde municipais com materiais hospitalares de qualidade, assegurando a continuidade dos serviços de saúde e o atendimento digno à população usuária do Sistema Único de Saúde.',
           justificativa: 'A aquisição de material hospitalar é indispensável para o funcionamento das unidades de saúde, garantindo a qualidade e segurança dos procedimentos médicos realizados. A contratação visa manter o estoque adequado conforme padrões técnicos da ANVISA e Ministério da Saúde, assegurando a continuidade dos serviços de saúde pública. A demanda foi estimada com base no histórico de consumo e na capacidade de atendimento das unidades.'
+        },
+        'Aquisição de Material de Expediente': {
+          descricaoDemanda: 'Suprir as necessidades administrativas das secretarias e demais órgãos municipais com materiais de expediente adequados, garantindo o fluxo normal dos trabalhos burocráticos e o atendimento ao cidadão.',
+          justificativa: 'A aquisição de material de expediente é essencial para a manutenção das atividades administrativas do município. A falta destes itens pode comprometer a eficiência do serviço público e o atendimento à população. A estimativa quantitativa baseou-se no consumo médio dos últimos exercícios.'
+        },
+        'Aquisição de Equipamentos de Informática': {
+          descricaoDemanda: 'Modernizar o parque tecnológico da administração municipal através da aquisição de equipamentos de informática, visando aumentar a produtividade dos servidores e a qualidade dos serviços digitais oferecidos aos cidadãos.',
+          justificativa: 'A atualização dos equipamentos de informática é necessária devido à obsolescência natural dos dispositivos atuais e à necessidade de suportar sistemas mais modernos. A contratação trará ganhos de eficiência e agilidade nos processos administrativos.'
+        },
+        'Aquisição de Mobiliário': {
+          descricaoDemanda: 'Prover as repartições públicas de mobiliário adequado e ergonômico, proporcionando condições dignas de trabalho aos servidores e conforto ao atendimento do público externo.',
+          justificativa: 'A aquisição de mobiliário visa substituir itens danificados e mobiliar novos espaços, atendendo às normas de ergonomia (NR-17) e garantindo um ambiente de trabalho adequado. A demanda foi levantada através de inventário físico realizado nas unidades.'
+        },
+        'Aquisição de Veículos': {
+          descricaoDemanda: 'Renovar e ampliar a frota municipal para atender às demandas de transporte de servidores, materiais e fiscalização, reduzindo custos com manutenção e garantindo a eficiência logística.',
+          justificativa: 'A aquisição de novos veículos justifica-se pelo alto custo de manutenção da frota antiga e pela necessidade de expansão dos serviços. A compra de veículos próprios demonstra-se economicamente vantajosa em comparação à locação a longo prazo para este perfil de utilização.'
+        },
+        'Aquisição de Uniformes e EPIs': {
+          descricaoDemanda: 'Fornecer uniformes e Equipamentos de Proteção Individual (EPIs) aos servidores, garantindo sua identificação, segurança e conformidade com as normas regulamentadoras de segurança do trabalho.',
+          justificativa: 'A aquisição é obrigatória conforme legislação trabalhista e normas de segurança. Visa proteger a integridade física dos servidores no exercício de suas funções, bem como padronizar a identificação visual das equipes municipais.'
+        },
+        'Contratação de Serviços de Manutenção Predial': {
+          descricaoDemanda: 'Garantir a conservação e o funcionamento adequado dos prédios públicos municipais através de serviços de manutenção preventiva e corretiva, preservando o patrimônio público e a segurança dos usuários.',
+          justificativa: 'A contratação de serviços de manutenção é imprescindível para evitar a deterioração dos imóveis públicos, garantindo sua vida útil e a segurança de servidores e cidadãos. A terceirização destes serviços permite maior agilidade e especialização técnica nas intervenções necessárias.'
+        },
+        'Contratação de Serviços de Limpeza e Conservação': {
+          descricaoDemanda: 'Assegurar a limpeza, conservação e higienização das áreas internas e externas das unidades municipais, proporcionando um ambiente salubre e agradável para o desenvolvimento das atividades públicas.',
+          justificativa: 'A terceirização dos serviços de limpeza visa garantir a continuidade e qualidade da higienização dos espaços públicos, atividade meio essencial para o funcionamento da administração. A demanda foi dimensionada com base na área física e frequência de utilização dos espaços.'
+        },
+        'Contratação de Serviços de Tecnologia': {
+          descricaoDemanda: 'Contratar serviços especializados em Tecnologia da Informação para suporte, desenvolvimento e manutenção de sistemas, garantindo a disponibilidade e segurança das informações municipais.',
+          justificativa: 'A contratação justifica-se pela necessidade de conhecimento técnico especializado e pela criticidade dos sistemas de governo. Visa assegurar a continuidade dos serviços digitais, a segurança de dados e a modernização administrativa.'
+        },
+        'Contratação de Obras e Engenharia': {
+          descricaoDemanda: 'Executar obras de construção, reforma ou ampliação de infraestrutura pública, visando atender às demandas da população por melhores equipamentos urbanos e sociais.',
+          justificativa: 'A realização da obra é necessária para atender ao interesse público, melhorando a infraestrutura municipal. O projeto básico e o orçamento estimativo demonstram a viabilidade técnica e econômica da intervenção, que trará benefícios diretos à comunidade.'
         }
       };
 
       const suggestion = suggestions[formData.objeto];
-      
+
       setFormData(prev => ({
         ...prev,
         descricaoDemanda: suggestion?.descricaoDemanda || '',
         justificativa: suggestion?.justificativa || '',
-        justificativaPrioridade: formData.prioridade === 'Alto' ? 
+        justificativaPrioridade: formData.prioridade === 'Alto' ?
           'Esta demanda possui caráter urgente devido à natureza essencial do serviço público prestado, podendo causar descontinuidade nas atividades caso não seja atendida tempestivamente. O não atendimento pode comprometer a qualidade dos serviços oferecidos à população.' : ''
       }));
-      
+
       setAiGenerated(true);
+      setIsEditingAI(false); // Reseta para modo de visualização caso já tenha gerado antes
       setLoadingAI(false);
-      
+
       toast({
         title: "Conteúdo gerado por IA",
         description: "Os campos foram preenchidos automaticamente com sugestões inteligentes.",
@@ -163,7 +219,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
       ...prev,
       itens: prev.itens.filter(item => item.id !== itemId)
     }));
-    
+
     toast({
       title: "Item removido",
       description: "Item removido da demanda.",
@@ -178,7 +234,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
   const handleSaveEditedItem = (updatedItem: DFDItem) => {
     setFormData(prev => ({
       ...prev,
-      itens: prev.itens.map(item => 
+      itens: prev.itens.map(item =>
         item.id === updatedItem.id ? updatedItem : item
       )
     }));
@@ -188,11 +244,61 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
     });
   };
 
-  const handleSave = () => {
-    toast({
-      title: "DFD Salvo",
-      description: "Documento salvo como rascunho com sucesso.",
-    });
+  const handleSave = async () => {
+    try {
+      setIsSubmitting(true);
+      const dfdData = {
+        objeto: formData.objeto,
+        tipo_dfd: formData.tipoDFD,
+        descricao_sucinta: formData.descricaoSucinta,
+        descricao_demanda: formData.descricaoDemanda,
+        justificativa: formData.justificativa,
+        justificativa_quantidade: globalQuantityJustification,
+        data_prevista_contratacao: formData.dataPrevista,
+        prioridade: formData.prioridade as 'Baixo' | 'Médio' | 'Alto',
+        justificativa_prioridade: formData.justificativaPrioridade,
+        status: 'Rascunho' as const,
+        ano_contratacao: new Date().getFullYear(),
+        valor_estimado_total: formData.itens.reduce((acc, item) => acc + (Number(item.quantidade) * Number(item.valorReferencia)), 0),
+        created_by: user?.id,
+        prefeitura_id: user?.prefeituraId,
+        secretaria_id: user?.secretariaId
+      };
+
+      const itemsData = formData.itens.map(item => ({
+        descricao_item: item.descricao,
+        codigo_item: item.codigo,
+        unidade: item.unidade,
+        quantidade: Number(item.quantidade),
+        valor_unitario: Number(item.valorReferencia),
+        // valor_total é gerado automaticamente no banco
+        tabela_referencia: item.tabelaReferencia
+      }));
+
+      if (editingDFD) {
+        await dfdService.update(editingDFD.id, dfdData, itemsData);
+        toast({
+          title: "Rasunho Atualizado",
+          description: "As alterações foram salvas como rascunho.",
+        });
+      } else {
+        await dfdService.create(dfdData, itemsData);
+        toast({
+          title: "Rascunho Salvo",
+          description: "Documento salvo como rascunho com sucesso.",
+        });
+      }
+      onBack();
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Erro ao salvar",
+        description: error.message || "Não foi possível salvar o DFD. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const validateGlobalJustification = () => {
@@ -218,11 +324,64 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
       return;
     }
 
-    toast({
-      title: editingDFD ? "DFD Atualizado" : "DFD Enviado",
-      description: editingDFD ? "DFD atualizado com sucesso." : "Documento enviado para aprovação com sucesso.",
-    });
-    onBack();
+    const submitDFD = async () => {
+      try {
+        setIsSubmitting(true);
+        const dfdData = {
+          objeto: formData.objeto,
+          tipo_dfd: formData.tipoDFD,
+          descricao_sucinta: formData.descricaoSucinta,
+          descricao_demanda: formData.descricaoDemanda,
+          justificativa: formData.justificativa,
+          justificativa_quantidade: globalQuantityJustification,
+          data_prevista_contratacao: formData.dataPrevista,
+          prioridade: formData.prioridade as 'Baixo' | 'Médio' | 'Alto',
+          justificativa_prioridade: formData.justificativaPrioridade,
+          status: 'Pendente' as const, // Envia como Pendente para aprovação
+          ano_contratacao: new Date().getFullYear(),
+          valor_estimado_total: formData.itens.reduce((acc, item) => acc + (Number(item.quantidade) * Number(item.valorReferencia)), 0),
+          created_by: user?.id,
+          prefeitura_id: user?.prefeituraId,
+          secretaria_id: user?.secretariaId
+        };
+
+        const itemsData = formData.itens.map(item => ({
+          descricao_item: item.descricao,
+          codigo_item: item.codigo,
+          unidade: item.unidade,
+          quantidade: Number(item.quantidade),
+          valor_unitario: Number(item.valorReferencia),
+          // valor_total é coluna gerada automaticamente no banco
+          tabela_referencia: item.tabelaReferencia
+        }));
+
+        if (editingDFD) {
+          await dfdService.update(editingDFD.id, dfdData, itemsData);
+          toast({
+            title: "DFD Atualizado",
+            description: "DFD enviado para aprovação com sucesso.",
+          });
+        } else {
+          await dfdService.create(dfdData, itemsData);
+          toast({
+            title: "DFD Enviado",
+            description: "Documento enviado para aprovação com sucesso.",
+          });
+        }
+        onBack();
+      } catch (error: any) {
+        console.error(error);
+        toast({
+          title: "Erro ao enviar",
+          description: error.message || "Não foi possível enviar o DFD. Tente novamente.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    submitDFD();
   };
 
   const handleGeneratePDF = () => {
@@ -286,7 +445,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button 
+              <Button
                 onClick={generateWithAI}
                 disabled={!isAIButtonEnabled() || loadingAI}
                 className="bg-orange-500 hover:bg-orange-600"
@@ -299,7 +458,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
                 Gerar com IA
               </Button>
               {aiGenerated && (
-                <Button 
+                <Button
                   variant="outline"
                   onClick={() => setShowAISuggestions(true)}
                   className="border-orange-300 text-orange-700 hover:bg-orange-50"
@@ -385,7 +544,20 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
             )}
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="descricaoDemanda">Descrição da Demanda *</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="descricaoDemanda">Descrição da Demanda *</Label>
+                {aiGenerated && !isEditingAI && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditingAI(true)}
+                    className="h-6 px-2 text-xs text-orange-600 hover:text-orange-700"
+                  >
+                    <Edit size={12} className="mr-1" />
+                    Editar Conteúdo da IA
+                  </Button>
+                )}
+              </div>
               <div className="relative">
                 <Textarea
                   id="descricaoDemanda"
@@ -393,6 +565,8 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
                   onChange={(e) => handleInputChange('descricaoDemanda', e.target.value)}
                   placeholder="Descreva a demanda que motiva a contratação..."
                   rows={4}
+                  readOnly={aiGenerated && !isEditingAI}
+                  className={aiGenerated && !isEditingAI ? "bg-orange-50/50" : ""}
                 />
                 {loadingAI && (
                   <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
@@ -411,6 +585,8 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
               onChange={(e) => handleInputChange('justificativa', e.target.value)}
               placeholder="Descreva a justificativa legal e técnica para a contratação..."
               rows={6}
+              readOnly={aiGenerated && !isEditingAI}
+              className={aiGenerated && !isEditingAI ? "bg-orange-50/50" : ""}
             />
           </div>
         </CardContent>
@@ -427,8 +603,8 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
           </div>
         </CardHeader>
         <CardContent>
-          <ItemsTable 
-            items={formData.itens} 
+          <ItemsTable
+            items={formData.itens}
             onRemoveItem={handleRemoveItem}
             onEditItem={handleEditItem}
           />

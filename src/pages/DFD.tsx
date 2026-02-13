@@ -7,10 +7,11 @@ import DFDForm from '../components/DFD/DFDForm';
 import DFDList from '../components/DFD/DFDList';
 import ActionConfirmModal from '../components/DFD/ActionConfirmModal';
 import DFDViewModal from '../components/DFD/DFDViewModal';
+import { dfdService } from '@/services/dfdService';
 
 const DFD = () => {
   console.log('DFD component rendering...');
-  
+
   const [showForm, setShowForm] = useState(false);
   const [editingDFD, setEditingDFD] = useState<any>(null);
   const [filters, setFilters] = useState({
@@ -39,73 +40,66 @@ const DFD = () => {
 
   console.log('DFD state:', { showForm, filters, currentPage });
 
-  // Mock data para calcular estatísticas
-  const allDFDs = [
-    {
-      id: 1,
-      objeto: 'Aquisição de Gêneros Alimentícios',
-      tipoDFD: 'MATERIAIS DE CONSUMO',
-      valor: 'R$ 150.000,00',
-      status: 'Pendente Aprovação',
-      data: '2024-01-10',
-      prioridade: 'Alto',
-      anoContratacao: '2024'
-    },
-    {
-      id: 2,
-      objeto: 'Contratação de Consultoria em TI',
-      tipoDFD: 'SERVIÇO NÃO CONTINUADO',
-      valor: 'R$ 300.000,00',
-      status: 'Em Elaboração',
-      data: '2024-01-08',
-      prioridade: 'Médio',
-      anoContratacao: '2024'
-    },
-    {
-      id: 3,
-      objeto: 'Reforma do Prédio Administrativo',
-      tipoDFD: 'SERVIÇO DE ENGENHARIA',
-      valor: 'R$ 2.500.000,00',
-      status: 'Aprovado',
-      data: '2024-01-05',
-      prioridade: 'Alto',
-      anoContratacao: '2024'
-    },
-    {
-      id: 4,
-      objeto: 'Aquisição de Material de Limpeza',
-      tipoDFD: 'MATERIAIS DE CONSUMO',
-      valor: 'R$ 85.000,00',
-      status: 'Cancelado',
-      data: '2024-01-03',
-      prioridade: 'Baixo',
-      anoContratacao: '2024'
-    },
-    {
-      id: 5,
-      objeto: 'Contratação de Segurança Patrimonial',
-      tipoDFD: 'SERVIÇO CONTINUADO',
-      valor: 'R$ 450.000,00',
-      status: 'Aprovado',
-      data: '2023-12-20',
-      prioridade: 'Alto',
-      anoContratacao: '2024'
-    },
-    {
-      id: 6,
-      objeto: 'Aquisição de Computadores',
-      tipoDFD: 'MATERIAIS PERMANENTES',
-      valor: 'R$ 120.000,00',
-      status: 'Em Elaboração',
-      data: '2024-01-12',
-      prioridade: 'Médio',
-      anoContratacao: '2024'
+  // State for DFDs
+  const [dfds, setDfds] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch DFDs
+  const fetchDFDs = async () => {
+    try {
+      setLoading(true);
+      const data = await dfdService.getAll();
+      if (data) {
+        // Map DB to Frontend Model
+        const mappedData = data.map((d: any) => ({
+          id: d.id,
+          objeto: d.objeto,
+          tipoDFD: d.tipo_dfd,
+          valor: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(d.valor_estimado_total || 0),
+          status: d.status,
+          data: new Date(d.created_at).toLocaleDateString(),
+          prioridade: d.prioridade,
+          anoContratacao: d.ano_contratacao?.toString(),
+          descricaoDemanda: d.descricao_demanda,
+          justificativa: d.justificativa,
+          dataPrevista: d.data_prevista_contratacao,
+          justificativaPrioridade: d.justificativa_prioridade,
+          descricaoSucinta: d.descricao_sucinta,
+          // Map Items
+          itens: d.dfd_items?.map((i: any) => ({
+            id: i.id,
+            codigo: i.codigo_item,
+            descricao: i.descricao_item,
+            unidade: i.unidade,
+            quantidade: Number(i.quantidade),
+            valorReferencia: Number(i.valor_unitario),
+            tabelaReferencia: i.tabela_referencia
+          })) || []
+        }));
+        setDfds(mappedData);
+      }
+    } catch (error) {
+      console.error('Error fetching DFDs:', error);
+      toast({
+        title: "Erro ao carregar DFDs",
+        description: "Não foi possível carregar as demandas. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchDFDs();
+  }, []);
+
+  // Filter logic applied to fetched data
+  const allDFDs = dfds; // Remapping to keep existing logic working with minimal changes
 
   const handleAction = (dfd: any, action: 'cancel' | 'delete' | 'remove-pca' | 'view' | 'edit') => {
     console.log('handleAction called:', dfd, action);
-    
+
     switch (action) {
       case 'view':
         setSelectedDFD(dfd);
@@ -175,10 +169,9 @@ const DFD = () => {
 
       {/* Statistics Cards - Now clickable filters */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'all' ? 'ring-2 ring-blue-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'all' ? 'ring-2 ring-blue-500' : ''
+            }`}
           onClick={() => handleFilterChange('all')}
         >
           <CardContent className="p-4">
@@ -194,10 +187,9 @@ const DFD = () => {
           </CardContent>
         </Card>
 
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'em-elaboracao' ? 'ring-2 ring-yellow-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'em-elaboracao' ? 'ring-2 ring-yellow-500' : ''
+            }`}
           onClick={() => handleFilterChange('em-elaboracao')}
         >
           <CardContent className="p-4">
@@ -215,10 +207,9 @@ const DFD = () => {
           </CardContent>
         </Card>
 
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'aprovados' ? 'ring-2 ring-green-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'aprovados' ? 'ring-2 ring-green-500' : ''
+            }`}
           onClick={() => handleFilterChange('aprovados')}
         >
           <CardContent className="p-4">
@@ -236,10 +227,9 @@ const DFD = () => {
           </CardContent>
         </Card>
 
-        <Card 
-          className={`cursor-pointer transition-all hover:shadow-md ${
-            currentFilter === 'pendentes' ? 'ring-2 ring-orange-500' : ''
-          }`}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'pendentes' ? 'ring-2 ring-orange-500' : ''
+            }`}
           onClick={() => handleFilterChange('pendentes')}
         >
           <CardContent className="p-4">
@@ -265,6 +255,7 @@ const DFD = () => {
         onPageChange={setCurrentPage}
         onAction={handleAction}
         currentFilter={currentFilter}
+        dfds={allDFDs}
       />
 
       <ActionConfirmModal

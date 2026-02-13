@@ -29,6 +29,12 @@ interface DFDData {
   dataPrevista?: string;
   justificativaPrioridade?: string;
   itens?: DFDItem[];
+  requisitante?: {
+    nome: string;
+    email: string;
+    cargo: string;
+    secretaria: string;
+  };
 }
 
 interface DFDViewModalProps {
@@ -64,7 +70,7 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
             </Button>
           </div>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-y-auto space-y-6 p-1">
           <div className="text-center border-b pb-4">
             <h1 className="text-2xl font-bold text-gray-900">
@@ -94,25 +100,23 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
                   }</p>
                 </div>
                 <div>
-                  <p><strong>Status:</strong> 
-                    <Badge className={`ml-2 ${
-                      dfd.status === 'Pendente Aprovação' ? 'bg-orange-100 text-orange-800' :
+                  <p><strong>Status:</strong>
+                    <Badge className={`ml-2 ${dfd.status === 'Pendente Aprovação' ? 'bg-orange-100 text-orange-800' :
                       dfd.status === 'Em Elaboração' ? 'bg-blue-100 text-blue-800' :
-                      dfd.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
+                        dfd.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                      }`}>
                       {dfd.status}
                     </Badge>
                   </p>
                 </div>
                 {dfd.prioridade && (
                   <div>
-                    <p><strong>Prioridade:</strong> 
-                      <Badge className={`ml-2 ${
-                        dfd.prioridade === 'Alto' ? 'bg-red-100 text-red-800' :
+                    <p><strong>Prioridade:</strong>
+                      <Badge className={`ml-2 ${dfd.prioridade === 'Alto' ? 'bg-red-100 text-red-800' :
                         dfd.prioridade === 'Médio' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
+                          'bg-green-100 text-green-800'
+                        }`}>
                         {dfd.prioridade}
                       </Badge>
                     </p>
@@ -199,24 +203,24 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-semibold text-gray-900 mb-2">Solicitante</h3>
-                <p><strong>Nome:</strong> João Silva</p>
-                <p><strong>Cargo:</strong> Coordenador de Compras</p>
-                <p><strong>Secretaria:</strong> Secretaria de Administração</p>
-                <p><strong>Email:</strong> joao.silva@prefeitura.gov.br</p>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-2">Dados da Criação</h3>
-                <p><strong>Data de Criação:</strong> {new Date(dfd.data).toLocaleDateString('pt-BR')}</p>
-                <p><strong>Sistema:</strong> PreparaGov v1.0</p>
-                <p><strong>Número do DFD:</strong> {dfdNumber}</p>
+                <p><strong>Nome:</strong> {dfd.requisitante?.nome || 'Não informado'}</p>
+                <p><strong>Cargo:</strong> {dfd.requisitante?.cargo || 'Não informado'}</p>
+                <p><strong>Secretaria:</strong> {dfd.requisitante?.secretaria || 'Não informada'}</p>
+                <p><strong>Email:</strong> {dfd.requisitante?.email || 'Não informado'}</p>
               </div>
             </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-gray-900 mb-2">Dados da Criação</h3>
+              <p><strong>Data de Criação:</strong> {new Date(dfd.data).toLocaleDateString('pt-BR')}</p>
+              <p><strong>Sistema:</strong> PreparaGov v1.0</p>
+              <p><strong>Número do DFD:</strong> {dfdNumber}</p>
+            </div>
           </div>
+        </div>
 
-          <div className="text-center text-sm text-gray-500 mt-8 pt-4 border-t">
-            <p>Documento visualizado pelo Sistema PreparaGov</p>
-            <p className="font-semibold">{dfdNumber}</p>
-          </div>
+        <div className="text-center text-sm text-gray-500 mt-8 pt-4 border-t">
+          <p>Documento visualizado pelo Sistema PreparaGov</p>
+          <p className="font-semibold">{dfdNumber}</p>
         </div>
 
         <div className="flex justify-end pt-4 border-t flex-shrink-0">
@@ -225,7 +229,7 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
           </Button>
         </div>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };
 

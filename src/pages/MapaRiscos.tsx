@@ -7,11 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Plus, 
-  Sparkles, 
-  Save, 
-  Trash2, 
+import {
+  Plus,
+  Sparkles,
+  Save,
+  Trash2,
   Edit,
   AlertTriangle,
   Shield,
@@ -81,10 +81,10 @@ const MapaRiscos = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [aiSuggestionsOpen, setAiSuggestionsOpen] = useState(false);
   const [currentMapaId, setCurrentMapaId] = useState<string | null>(null);
-  
+
   // Mock DFDs vinculados ao ETP selecionado
   const [etpDFDs, setEtpDFDs] = useState<DFD[]>([]);
-  
+
   const [riscos, setRiscos] = useState<Risco[]>([]);
 
   const [showForm, setShowForm] = useState(false);
@@ -160,26 +160,11 @@ const MapaRiscos = () => {
 
   const handleSelectETP = (etp: ETP) => {
     setSelectedETP(etp);
-    
+
     // Mock: buscar DFDs vinculados ao ETP
-    const mockDFDs: DFD[] = [
-      {
-        id: '1',
-        numero: 'DFD-2024-001',
-        nome: 'Aquisição de equipamentos de informática',
-        valor: 'R$ 450.000,00',
-        tipo: 'Material'
-      },
-      {
-        id: '2',
-        numero: 'DFD-2024-002',
-        nome: 'Serviços de implementação e treinamento',
-        valor: 'R$ 120.000,00',
-        tipo: 'Serviço'
-      }
-    ];
+    const mockDFDs: DFD[] = [];
     setEtpDFDs(mockDFDs);
-    
+
     setStep('create-risks');
     setEtpSelectionOpen(false);
     toast({
@@ -241,9 +226,9 @@ const MapaRiscos = () => {
 
   const handleSubmit = () => {
     const nivel = calcularNivel(formData.probabilidade, formData.impacto);
-    
+
     if (editingRisk) {
-      setRiscos(prev => prev.map(risk => 
+      setRiscos(prev => prev.map(risk =>
         risk.id === editingRisk.id
           ? { ...editingRisk, ...formData, nivel }
           : risk
@@ -351,8 +336,8 @@ const MapaRiscos = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={handleBackToOverview}
               className="mb-2 p-0 h-auto text-orange-600 hover:text-orange-700"
             >
@@ -362,7 +347,7 @@ const MapaRiscos = () => {
             <h1 className="text-2xl font-bold text-gray-900">Mapas Concluídos</h1>
             <p className="text-gray-600">Visualize e gerencie mapas de riscos finalizados</p>
           </div>
-          <Button 
+          <Button
             onClick={handleStartNewMap}
             className="bg-orange-500 hover:bg-orange-600"
           >
@@ -389,14 +374,14 @@ const MapaRiscos = () => {
           isOpen={previewOpen}
           onClose={() => setPreviewOpen(false)}
           etp={selectedETP || {
-            id: '1',
-            titulo: 'ETP Exemplo',
-            numeroETP: 'ETP-2024-001',
-            secretaria: 'Secretaria Exemplo',
-            dataCriacao: '2024-01-01',
-            valorTotal: 'R$ 1.000.000,00',
-            descricaoDemanda: 'Descrição de exemplo',
-            status: 'Concluído'
+            id: '',
+            titulo: '',
+            numeroETP: '',
+            secretaria: '',
+            dataCriacao: '',
+            valorTotal: '',
+            descricaoDemanda: '',
+            status: ''
           }}
           riscos={riscos}
           onExportPDF={() => handleExportPDF()}
@@ -410,8 +395,8 @@ const MapaRiscos = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={handleBackToOverview}
               className="mb-2 p-0 h-auto text-orange-600 hover:text-orange-700"
             >
@@ -421,7 +406,7 @@ const MapaRiscos = () => {
             <h1 className="text-2xl font-bold text-gray-900">Mapas em Elaboração</h1>
             <p className="text-gray-600">Continue editando mapas de riscos em desenvolvimento</p>
           </div>
-          <Button 
+          <Button
             onClick={handleStartNewMap}
             className="bg-orange-500 hover:bg-orange-600"
           >
@@ -448,14 +433,14 @@ const MapaRiscos = () => {
           isOpen={previewOpen}
           onClose={() => setPreviewOpen(false)}
           etp={selectedETP || {
-            id: '1',
-            titulo: 'ETP Exemplo',
-            numeroETP: 'ETP-2024-001',
-            secretaria: 'Secretaria Exemplo',
-            dataCriacao: '2024-01-01',
-            valorTotal: 'R$ 1.000.000,00',
-            descricaoDemanda: 'Descrição de exemplo',
-            status: 'Concluído'
+            id: '',
+            titulo: '',
+            numeroETP: '',
+            secretaria: '',
+            dataCriacao: '',
+            valorTotal: '',
+            descricaoDemanda: '',
+            status: ''
           }}
           riscos={riscos}
           onExportPDF={() => handleExportPDF()}
@@ -469,8 +454,8 @@ const MapaRiscos = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={handleBackToOverview}
               className="mb-2 p-0 h-auto text-orange-600 hover:text-orange-700"
             >
@@ -496,7 +481,7 @@ const MapaRiscos = () => {
                   Para criar um mapa de riscos, você precisa primeiro selecionar um ETP concluído.
                   O mapa será baseado nas informações e características do ETP escolhido.
                 </p>
-                <Button 
+                <Button
                   onClick={() => setEtpSelectionOpen(true)}
                   className="bg-orange-500 hover:bg-orange-600"
                 >
@@ -522,8 +507,8 @@ const MapaRiscos = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={handleBackToOverview}
             className="mb-2 p-0 h-auto text-orange-600 hover:text-orange-700"
           >
@@ -603,14 +588,14 @@ const MapaRiscos = () => {
                   Comece adicionando riscos manualmente ou use nossa IA para sugerir riscos baseados no ETP selecionado.
                 </p>
                 <div className="flex items-center justify-center space-x-4">
-                  <Button 
+                  <Button
                     onClick={() => setShowForm(true)}
                     className="bg-orange-500 hover:bg-orange-600"
                   >
                     <Plus size={16} className="mr-2" />
                     Adicionar Risco Manualmente
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={() => setAiSuggestionsOpen(true)}
                   >
@@ -644,7 +629,7 @@ const MapaRiscos = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="probabilidade">Probabilidade</Label>
                 <Select value={formData.probabilidade} onValueChange={(value) => handleInputChange('probabilidade', value)}>

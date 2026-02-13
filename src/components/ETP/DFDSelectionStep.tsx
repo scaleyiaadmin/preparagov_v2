@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/pagination';
 
 interface DFD {
-  id: number;
+  id: string;
   objeto: string;
   valorEstimado: string;
   tipoDFD: string;
@@ -58,12 +58,12 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
   const itemsPerPage = 5;
 
   // Get unique values for filter options
-  const secretarias = useMemo(() => 
+  const secretarias = useMemo(() =>
     [...new Set(availableDFDs.map(dfd => dfd.secretaria).filter(Boolean))],
     [availableDFDs]
   );
 
-  const prioridades = useMemo(() => 
+  const prioridades = useMemo(() =>
     [...new Set(availableDFDs.map(dfd => dfd.prioridade))],
     [availableDFDs]
   );
@@ -74,12 +74,12 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
       // Search term filter
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
-        const matchesSearch = 
+        const matchesSearch =
           dfd.objeto.toLowerCase().includes(searchLower) ||
           dfd.secretaria?.toLowerCase().includes(searchLower) ||
           dfd.numeroDFD?.toLowerCase().includes(searchLower) ||
           dfd.tipoDFD.toLowerCase().includes(searchLower);
-        
+
         if (!matchesSearch) return false;
       }
 
@@ -142,10 +142,10 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
     }
   };
 
-  const hasActiveFilters = filters.searchTerm !== '' || 
-    filters.dataContratacao !== 'none' || 
-    filters.prioridade !== 'all' || 
-    filters.numeroDFD !== 'none' || 
+  const hasActiveFilters = filters.searchTerm !== '' ||
+    filters.dataContratacao !== 'none' ||
+    filters.prioridade !== 'all' ||
+    filters.numeroDFD !== 'none' ||
     filters.secretaria !== 'all';
 
   return (
@@ -266,13 +266,12 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
           {paginatedDFDs.map((dfd) => (
             <div
               key={dfd.id}
-              className={`border rounded-lg p-4 transition-colors ${
-                selectedDFDs.some(selected => selected.id === dfd.id)
+              className={`border rounded-lg p-4 transition-colors ${selectedDFDs.some(selected => selected.id === dfd.id)
                   ? 'border-orange-500 bg-orange-50'
                   : dfd.usedInETP
-                  ? 'border-gray-300 bg-gray-50'
-                  : 'border-gray-200 hover:bg-gray-50'
-              }`}
+                    ? 'border-gray-300 bg-gray-50'
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}
             >
               <div className="flex items-start space-x-3">
                 <Checkbox
@@ -294,14 +293,14 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
                       </Badge>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center space-x-4 mt-2">
                     <Badge variant="outline">{dfd.tipoDFD}</Badge>
                     <Badge className={getPriorityColor(dfd.prioridade)}>
                       {dfd.prioridade}
                     </Badge>
                   </div>
-                  
+
                   <div className="mt-3 space-y-1">
                     <p className="text-sm font-semibold text-gray-900">
                       {dfd.valorEstimado}
@@ -344,12 +343,12 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
           <Pagination>
             <PaginationContent>
               <PaginationItem>
-                <PaginationPrevious 
+                <PaginationPrevious
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                 />
               </PaginationItem>
-              
+
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 const pageNum = i + 1;
                 return (
@@ -364,15 +363,15 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
                   </PaginationItem>
                 );
               })}
-              
+
               {totalPages > 5 && (
                 <PaginationItem>
                   <span className="px-4 py-2">...</span>
                 </PaginationItem>
               )}
-              
+
               <PaginationItem>
-                <PaginationNext 
+                <PaginationNext
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                 />

@@ -7,45 +7,83 @@ import { useNavigate } from 'react-router-dom';
 const DocumentsCard = () => {
   const navigate = useNavigate();
 
+  const [counts, setCounts] = React.useState({
+    dfd: 0,
+    etp: 0,
+    riscos: 0,
+    termo: 0,
+    edital: 0
+  });
+
+  React.useEffect(() => {
+    const fetchCounts = async () => {
+      const { supabase } = await import('@/lib/supabase');
+
+      const { count: dfdCount } = await supabase
+        .from('dfd')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Em Elaboração');
+
+      const { count: etpCount } = await supabase
+        .from('etp')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Em Elaboração');
+
+      setCounts({
+        dfd: dfdCount || 0,
+        etp: etpCount || 0,
+        riscos: 0,
+        termo: 0,
+        edital: 0
+      });
+    };
+    fetchCounts();
+  }, []);
+
   const documentsStats = {
-    total: 18,
-    tipos: {
-      'DFDs em elaboração': { 
-        count: 5, 
-        icon: FileText, 
+    total: counts.dfd + counts.etp + counts.riscos + counts.termo + counts.edital,
+    tipos: [
+      {
+        name: 'DFDs em elaboração',
+        count: counts.dfd,
+        icon: FileText,
         color: 'text-orange-600',
         route: '/dfd',
         filter: 'em-elaboracao'
       },
-      'ETPs em elaboração': { 
-        count: 3, 
-        icon: Search, 
+      {
+        name: 'ETPs em elaboração',
+        count: counts.etp,
+        icon: Search,
         color: 'text-blue-600',
         route: '/etp',
         filter: 'em-elaboracao'
       },
-      'Mapas de Risco em elaboração': { 
-        count: 2, 
-        icon: Shield, 
+      {
+        name: 'Mapas de Risco em elaboração',
+        count: counts.riscos,
+        icon: Shield,
         color: 'text-red-600',
         route: '/riscos',
         filter: 'em-elaboracao'
       },
-      'Termos de Referência em elaboração': { 
-        count: 4, 
-        icon: BookOpen, 
+      {
+        name: 'Termos de Referência em elaboração',
+        count: counts.termo,
+        icon: BookOpen,
         color: 'text-green-600',
         route: '/termo',
         filter: 'em-elaboracao'
       },
-      'Editais em elaboração': { 
-        count: 4, 
-        icon: Gavel, 
+      {
+        name: 'Editais em elaboração',
+        count: counts.edital,
+        icon: Gavel,
         color: 'text-purple-600',
         route: '/edital',
         filter: 'em-elaboracao'
       }
-    }
+    ]
   };
 
   const handleItemClick = (route: string, filter: string) => {
@@ -66,17 +104,17 @@ const DocumentsCard = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-3xl font-bold text-gray-900">{documentsStats.total}</div>
-        
+
         <div className="space-y-3">
-          {Object.entries(documentsStats.tipos).map(([tipo, info]) => (
-            <div 
-              key={tipo} 
+          {documentsStats.tipos.map((info) => (
+            <div
+              key={info.name}
               className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200"
               onClick={() => handleItemClick(info.route, info.filter)}
             >
               <div className="flex items-center space-x-2">
                 <info.icon size={16} className={info.color} />
-                <span className="text-sm text-gray-700 hover:text-gray-900">{tipo}</span>
+                <span className="text-sm text-gray-700 hover:text-gray-900">{info.name}</span>
               </div>
               <div className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium">
                 {info.count}

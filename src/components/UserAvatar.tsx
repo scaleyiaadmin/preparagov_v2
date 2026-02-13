@@ -21,17 +21,7 @@ const UserAvatar = () => {
   const navigate = useNavigate();
 
   const handleProfileClick = () => {
-    toast({
-      title: "Perfil",
-      description: "Redirecionando para o perfil do usuário.",
-    });
-  };
-
-  const handlePasswordChange = () => {
-    toast({
-      title: "Alterar Senha",
-      description: "Funcionalidade em desenvolvimento.",
-    });
+    navigate('/perfil');
   };
 
   const handleLogout = () => {
@@ -68,6 +58,11 @@ const UserAvatar = () => {
             </p>
           </div>
         </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={handleProfileClick} className="cursor-pointer">
+          <User className="mr-2 h-4 w-4" />
+          <span>Meu Perfil</span>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={handleLogout} className="text-red-600 focus:text-red-700 cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />

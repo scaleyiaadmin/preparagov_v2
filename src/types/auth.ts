@@ -23,6 +23,10 @@ export interface Prefeitura {
   uf: string;
   municipio: string;
   logoUrl?: string;
+  gestorPrincipal?: string;
+  email?: string;
+  telefone?: string;
+  cargo?: string;
   dataCadastro: string;
   status: 'ativa' | 'inativa';
 }

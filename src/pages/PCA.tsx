@@ -37,7 +37,7 @@ const PCA = () => {
     approvedDFDs,
     pendingDFDs,
     cancellationRequests,
-    mockConsolidatedItems,
+    consolidatedItems,
     totalItens,
     valorTotal,
     handleViewDFD,
@@ -50,7 +50,7 @@ const PCA = () => {
     handlePublishPNCP
   } = usePCAData();
 
-  const consolidatedItemsByType = consolidateItemsByType(mockConsolidatedItems);
+  const consolidatedItemsByType = consolidateItemsByType(consolidatedItems);
 
   return (
     <div className="space-y-6">

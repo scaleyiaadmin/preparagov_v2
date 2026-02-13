@@ -1,9 +1,10 @@
-
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
+import { DbDFD } from '@/types/database';
 
 export const usePCAData = () => {
-  const [selectedYear, setSelectedYear] = useState('2024');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [showPendingModal, setShowPendingModal] = useState(false);
   const [showCancellationModal, setShowCancellationModal] = useState(false);
   const [showPCAModal, setShowPCAModal] = useState(false);
@@ -17,142 +18,179 @@ export const usePCAData = () => {
   const [scheduleFilters, setScheduleFilters] = useState<any>(null);
   const { toast } = useToast();
 
-  // Mock data - em produção viria de uma API
-  const approvedDFDs = [
-    {
-      id: 1,
-      objeto: 'Aquisição de Computadores',
-      valorEstimado: 'R$ 150.000,00',
-      tipoDFD: 'Materiais Permanentes',
-      trimestre: 'Q1',
-      status: 'Aprovado',
-      prioridade: 'Alta',
-      anoContratacao: '2024',
-      previsao: '2024-03-15'
-    },
-    {
-      id: 2,
-      objeto: 'Contratação de Consultoria TI',
-      valorEstimado: 'R$ 300.000,00',
-      tipoDFD: 'Serviço Não Continuado',
-      trimestre: 'Q2',
-      status: 'Aprovado',
-      prioridade: 'Média',
-      anoContratacao: '2024',
-      previsao: '2024-06-20'
-    },
-    {
-      id: 3,
-      objeto: 'Reforma do Prédio',
-      valorEstimado: 'R$ 2.500.000,00',
-      tipoDFD: 'Serviço de Engenharia',
-      trimestre: 'Q3',
-      status: 'Aprovado',
-      prioridade: 'Alta',
-      anoContratacao: '2024',
-      previsao: '2024-09-10'
-    }
-  ];
+  const [approvedDFDs, setApprovedDFDs] = useState<DbDFD[]>([]);
+  const [pendingDFDs, setPendingDFDs] = useState<DbDFD[]>([]);
+  const [cancellationRequests, setCancellationRequests] = useState<any[]>([]);
+  const [consolidatedItems, setConsolidatedItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const pendingDFDs = [
-    {
-      id: 4,
-      objeto: 'Serviços de Limpeza',
-      valorEstimado: 'R$ 180.000,00',
-      tipoDFD: 'Serviço Continuado',
-      status: 'Pendente Aprovação',
-      prioridade: 'Média',
-      anoContratacao: '2024'
-    }
-  ];
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
 
-  const cancellationRequests = [
-    {
-      id: 5,
-      objeto: 'Aquisição de Veículos',
-      valorEstimado: 'R$ 200.000,00',
-      tipoDFD: 'Materiais Permanentes',
-      status: 'Aprovado',
-      justificativaCancelamento: 'Mudança de prioridades orçamentárias',
-      solicitadoPor: 'João Silva',
-      dataSolicitacao: '2024-01-15'
-    }
-  ];
+      // Fetch Approved DFDs with Items and Secretaria
+      const { data: approved, error: approvedError } = await supabase
+        .from('dfd')
+        .select(`
+          *,
+          dfd_items (*),
+          secretarias ( nome )
+        `)
+        .eq('status', 'Aprovado')
+        .eq('ano_contratacao', parseInt(selectedYear));
 
-  const mockConsolidatedItems = [
-    {
-      id: '1',
-      descricao: 'Arroz Tipo 1 - 5kg',
-      quantidade: 50,
-      valor: 500,
-      unidadeMedida: 'Pacote',
-      detalhamentoTecnico: 'Arroz branco, tipo 1, pacote de 5kg',
-      secretaria: 'Secretaria de Educação',
-      prioridade: 'Alta' as const,
-      dataContratacao: '2024-03-15',
-      dfdId: 'dfd-1',
-      tipoDFD: 'Materiais de Consumo'
-    },
-    {
-      id: '2',
-      descricao: 'Arroz Tipo 1 - 5kg',
-      quantidade: 30,
-      valor: 300,
-      unidadeMedida: 'Pacote',
-      detalhamentoTecnico: 'Arroz branco, tipo 1, pacote de 5kg',
-      secretaria: 'Secretaria de Assistência Social',
-      prioridade: 'Média' as const,
-      dataContratacao: '2024-04-20',
-      dfdId: 'dfd-2',
-      tipoDFD: 'Materiais de Consumo'
-    },
-    {
-      id: '3',
-      descricao: 'Papel A4 - 75g',
-      quantidade: 100,
-      valor: 1500,
-      unidadeMedida: 'Resma',
-      detalhamentoTecnico: 'Papel sulfite A4, 75g/m², 500 folhas por resma',
-      secretaria: 'Secretaria de Educação',
-      prioridade: 'Baixa' as const,
-      dataContratacao: '2024-02-10',
-      dfdId: 'dfd-1',
-      tipoDFD: 'Materiais de Consumo'
-    },
-    {
-      id: '4',
-      descricao: 'Computador Desktop',
-      quantidade: 10,
-      valor: 25000,
-      unidadeMedida: 'Unidade',
-      detalhamentoTecnico: 'Computador desktop completo com monitor',
-      secretaria: 'Secretaria de Educação', 
-      prioridade: 'Alta' as const,
-      dataContratacao: '2024-03-15',
-      dfdId: 'dfd-3',
-      tipoDFD: 'Materiais Permanentes'
+      if (approvedError) throw approvedError;
+
+      setApprovedDFDs(approved || []);
+
+      // Process consolidated items
+      if (approved) {
+        const allItems: any[] = [];
+        approved.forEach((dfd: any) => {
+          if (dfd.dfd_items && Array.isArray(dfd.dfd_items)) {
+            dfd.dfd_items.forEach((item: any) => {
+              allItems.push({
+                id: item.id,
+                descricao: item.descricao_item,
+                quantidade: Number(item.quantidade),
+                valor: Number(item.valor_unitario),
+                unidadeMedida: item.unidade,
+                detalhamentoTecnico: item.codigo_item,
+                secretaria: dfd.secretarias?.nome || 'Secretaria não informada',
+                prioridade: dfd.prioridade || 'Média',
+                dataContratacao: dfd.data_prevista_contratacao,
+                dfdId: dfd.id,
+                tipoDFD: dfd.tipo_dfd || 'Outros'
+              });
+            });
+          }
+        });
+        setConsolidatedItems(allItems);
+      }
+
+      // Fetch Pending DFDs
+      const { data: pending, error: pendingError } = await supabase
+        .from('dfd')
+        .select('*')
+        .eq('status', 'Pendente')
+        .eq('ano_contratacao', parseInt(selectedYear));
+
+      if (pendingError) throw pendingError;
+
+      // Fetch Users detailed info
+      const { data: usersData } = await supabase
+        .from('usuarios_acesso')
+        .select('*'); // Select all to get cargo, secretaria_id etc
+
+      // Fetch Secretarias
+      const { data: secretariasData } = await supabase
+        .from('secretarias')
+        .select('id, nome');
+
+      const mappedPending = (pending || []).map((dfd: any) => {
+        const user = usersData?.find((u: any) => u.id === dfd.created_by);
+        const secretaria = secretariasData?.find((s: any) => s.id === user?.secretaria_id);
+
+        return {
+          ...dfd,
+          tipoDFD: dfd.tipo_dfd,
+          valorEstimado: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dfd.valor_estimado_total || 0),
+          anoContratacao: dfd.ano_contratacao,
+          userName: user?.nome || 'Usuário Desconhecido',
+          requisitante: {
+            nome: user?.nome || 'Não informado',
+            email: user?.email || 'Não informado',
+            cargo: user?.cargo || 'Não informado',
+            secretaria: secretaria?.nome || 'Não informada'
+          }
+        };
+      });
+
+      setPendingDFDs(mappedPending);
+
+      // Check PCA Config
+      const { data: pcaConfig, error: pcaError } = await supabase
+        .from('pca_config')
+        .select('*')
+        .eq('ano', parseInt(selectedYear))
+        .maybeSingle();
+
+      if (pcaError && pcaError.code !== 'PGRST116') throw pcaError;
+      setPcaPublished(pcaConfig?.status === 'Publicado');
+
+    } catch (error) {
+      console.error('Error fetching PCA data:', error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: "Não foi possível carregar os dados do PCA.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  }, [selectedYear, toast]);
+
+  useEffect(() => {
+    fetchData(); // Initial fetch
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, 3000); // 3 seconds auto-refresh
+
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   const handleViewDFD = (dfd: any) => {
     setSelectedDFD(dfd);
     setShowDFDViewModal(true);
   };
 
-  const handleApproveDFD = (dfd: any) => {
-    toast({
-      title: "DFD Aprovado",
-      description: `O DFD "${dfd.objeto}" foi aprovado e incluído no PCA.`,
-    });
-    setShowPendingModal(false);
+  const handleApproveDFD = async (dfd: any) => {
+    try {
+      const { error } = await supabase
+        .from('dfd')
+        .update({ status: 'Aprovado' })
+        .eq('id', dfd.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "DFD Aprovado",
+        description: `O DFD "${dfd.objeto}" foi aprovado e incluído no PCA.`,
+      });
+      setShowPendingModal(false);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "Erro ao aprovar",
+        description: "Não foi possível aprovar o DFD.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleRejectDFD = (dfd: any, justification: string) => {
-    toast({
-      title: "DFD Recusado",
-      description: `O DFD "${dfd.objeto}" foi recusado e devolvido para correção.`,
-    });
-    setShowPendingModal(false);
+  const handleRejectDFD = async (dfd: any, justification: string) => {
+    try {
+      const { error } = await supabase
+        .from('dfd')
+        .update({ status: 'Reprovado', justificativa: justification }) // Add justificativa rejection logic if needed field
+        .eq('id', dfd.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "DFD Recusado",
+        description: `O DFD "${dfd.objeto}" foi recusado e devolvido.`,
+      });
+      setShowPendingModal(false);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "Erro ao reprovar",
+        description: "Não foi possível reprovar o DFD.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleApproveCancellation = (dfd: any) => {
@@ -201,23 +239,54 @@ export const usePCAData = () => {
     });
   };
 
-  const handlePublishPNCP = () => {
-    if (pcaPublished) {
-      toast({
-        title: "PCA Atualizado",
-        description: "O PCA foi atualizado no Portal Nacional de Contratações Públicas.",
-      });
-    } else {
+  const handlePublishPNCP = async () => {
+    try {
+      const { error } = await supabase
+        .from('pca_config')
+        .upsert({
+          ano: parseInt(selectedYear),
+          status: 'Publicado',
+          data_publicacao: new Date().toISOString()
+        }, { onConflict: 'ano' }); // Add prefeitura_id constraint if needed
+
+      if (error) throw error;
+
       toast({
         title: "PCA Publicado",
-        description: "O PCA foi publicado no Portal Nacional de Contratações Públicas.",
+        description: "O PCA foi publicado/atualizado no Portal Nacional de Contratações Públicas.",
       });
       setPcaPublished(true);
+    } catch (error) {
+      toast({
+        title: "Erro ao publicar",
+        description: "Não foi possível publicar o PCA.",
+        variant: "destructive"
+      });
     }
   };
 
   const totalItens = approvedDFDs.reduce((acc, dfd) => acc + 1, 0);
-  const valorTotal = 'R$ 2.950.000,00';
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const calculateTotalValue = () => {
+    let total = 0;
+    approvedDFDs.forEach(dfd => {
+      if (dfd.dfd_items && Array.isArray(dfd.dfd_items)) {
+        dfd.dfd_items.forEach((item: any) => {
+          total += (Number(item.quantidade) * Number(item.valor_unitario));
+        });
+      }
+    });
+    return formatCurrency(total);
+  };
+
+  const valorTotal = calculateTotalValue();
 
   return {
     selectedYear,
@@ -247,7 +316,7 @@ export const usePCAData = () => {
     approvedDFDs,
     pendingDFDs,
     cancellationRequests,
-    mockConsolidatedItems,
+    consolidatedItems,
     totalItens,
     valorTotal,
     handleViewDFD,

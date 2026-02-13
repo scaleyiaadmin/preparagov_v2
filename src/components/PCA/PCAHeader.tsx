@@ -35,7 +35,13 @@ const PCAHeader = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2023">2023</SelectItem>
+              {Array.from({ length: 6 }, (_, i) => {
+                const year = (new Date().getFullYear() + i).toString();
+                return (
+                  <SelectItem key={year} value={year}>{year}</SelectItem>
+                );
+              })}
+              {/* Mantém 2024 e 2025 para histórico se necessário, ou ajusta o range acima */}
               <SelectItem value="2024">2024</SelectItem>
               <SelectItem value="2025">2025</SelectItem>
             </SelectContent>
@@ -49,7 +55,7 @@ const PCAHeader = ({
           <Eye size={16} className="mr-2" />
           Visualizar PCA
         </Button>
-        <Button 
+        <Button
           className="bg-orange-500 hover:bg-orange-600"
           onClick={onPublishClick}
         >

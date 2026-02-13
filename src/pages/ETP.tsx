@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Save, 
-  Download, 
+import {
+  Save,
+  Download,
   ArrowRight,
   ArrowLeft,
   FileText
@@ -29,6 +30,63 @@ const ETP = () => {
   const [inProgressPage, setInProgressPage] = useState(1);
   const { toast } = useToast();
 
+  const [etps, setEtps] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchETPs = async () => {
+      try {
+        // 1. Fetch ETPs with related DFDs
+        const { data, error } = await supabase
+          .from('etp')
+          .select(`
+            *,
+            etp_dfd (
+              dfd (
+                valor_estimado_total
+              )
+            )
+          `);
+
+        if (error) throw error;
+
+        // 2. Fetch Users for "Responsável"
+        const { data: usersData } = await supabase
+          .from('usuarios_acesso')
+          .select('id, nome');
+
+        const formatted = data.map((etp: any) => {
+          const totalValue = etp.etp_dfd?.reduce((acc: number, item: any) => {
+            return acc + (item.dfd?.valor_estimado_total || 0);
+          }, 0) || 0;
+
+          const responsavel = usersData?.find((u: any) => u.id === etp.created_by)?.nome || 'Não identificado';
+
+          return {
+            id: etp.id,
+            titulo: `ETP ${etp.numero_etp || 'Sem Número'}`,
+            numeroETP: etp.numero_etp || 'Rascunho',
+            status: etp.status,
+            totalDFDs: etp.etp_dfd?.length || 0,
+            valorTotal: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue),
+            currentStep: etp.status === 'Em Elaboração' ? 12 : 12,
+            responsavel: responsavel,
+            dataCriacao: etp.created_at,
+            dataUltimaEdicao: etp.created_at
+          };
+        });
+        setEtps(formatted);
+      } catch (error) {
+        console.error('Error fetching ETPs:', error);
+        toast({
+          title: "Erro ao carregar ETPs",
+          description: "Não foi possível carregar a lista de ETPs.",
+          variant: "destructive"
+        });
+      }
+    };
+    fetchETPs();
+  }, [viewMode]);
+
   const {
     currentStep,
     setCurrentStep,
@@ -42,7 +100,8 @@ const ETP = () => {
     prevStep,
     canProceed,
     saveETP,
-    generatePDF
+    generatePDF,
+    loadETP
   } = useETPCreation();
 
   const handleCreateNew = () => {
@@ -70,18 +129,18 @@ const ETP = () => {
 
   const handleContinueETP = (etp: any) => {
     setSelectedETP(etp);
-    setCurrentStep(etp.currentStep || 0);
+    loadETP(etp.id); // Load data
     setViewMode('creation');
-    
+
     toast({
       title: "ETP Carregado",
-      description: `Continuando o preenchimento do ${etp.numeroETP} na etapa ${(etp.currentStep || 0) + 1}.`,
+      description: `Continuando o preenchimento do ${etp.numeroETP}.`,
     });
   };
 
   const handleGeneratePDF = (etp: any) => {
     const fileName = `${etp.numeroETP.replace('-', '_')}.pdf`;
-    
+
     toast({
       title: "PDF Gerado com Sucesso",
       description: `Documento ${fileName} foi gerado e está pronto para download.`,
@@ -241,7 +300,7 @@ const ETP = () => {
     const itemsPerPage = 5;
     const currentPage = isCompleted ? completedPage : inProgressPage;
     const setCurrentPage = isCompleted ? setCompletedPage : setInProgressPage;
-    
+
     const totalPages = Math.ceil(etps.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const paginatedETPs = etps.slice(startIndex, startIndex + itemsPerPage);
@@ -355,6 +414,7 @@ const ETP = () => {
   if (viewMode === 'dashboard') {
     return (
       <ETPDashboard
+        etps={etps}
         onCreateNew={handleCreateNew}
         onViewETP={handleViewETP}
         onViewCompleted={handleViewCompleted}
@@ -365,46 +425,13 @@ const ETP = () => {
     );
   }
 
-  // List views
   if (viewMode === 'completed') {
-    const completedETPs = [
-      {
-        id: '1',
-        titulo: 'ETP Modernização Tecnológica',
-        numeroETP: 'ETP-2024-001',
-        totalDFDs: 3,
-        valorTotal: 'R$ 2.950.000,00',
-      },
-      {
-        id: '3',
-        titulo: 'ETP Equipamentos de Saúde',
-        numeroETP: 'ETP-2024-003',
-        totalDFDs: 4,
-        valorTotal: 'R$ 3.200.000,00',
-      }
-    ];
+    const completedETPs = etps.filter(e => e.status === 'Concluído');
     return renderListView('ETPs Concluídos', completedETPs, true);
   }
 
   if (viewMode === 'inProgress') {
-    const inProgressETPs = [
-      {
-        id: '2',
-        titulo: 'ETP Infraestrutura Escolar',
-        numeroETP: 'ETP-2024-002',
-        totalDFDs: 2,
-        valorTotal: 'R$ 1.800.000,00',
-        currentStep: 5
-      },
-      {
-        id: '4',
-        titulo: 'ETP Serviços Administrativos',
-        numeroETP: 'ETP-2024-004',
-        totalDFDs: 1,
-        valorTotal: 'R$ 450.000,00',
-        currentStep: 3
-      }
-    ];
+    const inProgressETPs = etps.filter(e => e.status === 'Em Elaboração');
     return renderListView('ETPs em Andamento', inProgressETPs, false);
   }
 
@@ -496,13 +523,12 @@ const ETP = () => {
               <button
                 key={step.id}
                 onClick={() => setCurrentStep(step.id)}
-                className={`p-3 text-sm rounded-lg border transition-colors ${
-                  currentStep === step.id
-                    ? 'bg-orange-500 text-white border-orange-500'
-                    : step.id < currentStep
+                className={`p-3 text-sm rounded-lg border transition-colors ${currentStep === step.id
+                  ? 'bg-orange-500 text-white border-orange-500'
+                  : step.id < currentStep
                     ? 'bg-green-50 text-green-700 border-green-200'
                     : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 <div className="font-medium">{step.id + 1}</div>
                 <div className="text-xs mt-1">{step.title}</div>
@@ -526,12 +552,24 @@ const ETP = () => {
           Anterior
         </Button>
         <Button
-          onClick={nextStep}
-          disabled={currentStep === steps.length - 1 || !canProceed()}
+          onClick={currentStep === steps.length - 1 ? async () => {
+            await saveETP();
+            setViewMode('dashboard');
+          } : nextStep}
+          disabled={!canProceed()}
           className="bg-orange-500 hover:bg-orange-600"
         >
-          Próximo
-          <ArrowRight size={16} className="ml-2" />
+          {currentStep === steps.length - 1 ? (
+            <>
+              <Save size={16} className="mr-2" />
+              Concluir
+            </>
+          ) : (
+            <>
+              Próximo
+              <ArrowRight size={16} className="ml-2" />
+            </>
+          )}
         </Button>
       </div>
     </div>

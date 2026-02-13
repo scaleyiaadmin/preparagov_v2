@@ -104,6 +104,9 @@ const DFDApprovalModal = ({
                     <div>Prioridade: {dfd.prioridade}</div>
                     <div>Valor: {dfd.valorEstimado}</div>
                     <div>Ano: {dfd.anoContratacao}</div>
+                    <div className="col-span-2 mt-1 font-medium text-gray-800">
+                      Requisitante: {dfd.userName}
+                    </div>
                   </div>
                   <div className="flex space-x-2">
                     <Button
