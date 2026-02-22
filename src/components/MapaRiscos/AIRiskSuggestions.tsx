@@ -1,29 +1,20 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Sparkles, 
-  Check, 
-  Edit, 
-  X, 
+import {
+  Sparkles,
+  Check,
+  Edit,
+  X,
   Loader2,
-  AlertTriangle 
+  AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { DbMapaRiscosItem } from '@/types/database';
 
-interface RiskSuggestion {
-  id: string;
-  categoria: string;
-  descricao: string;
-  causaProvavel: string;
-  consequencia: string;
-  probabilidade: string;
-  impacto: string;
-  nivel: string;
-  mitigacao: string;
-  responsavel: string;
+interface SuggestionItem extends Omit<DbMapaRiscosItem, 'id' | 'mapa_riscos_id'> {
+  tempId: string;
 }
 
 interface ETP {
@@ -31,115 +22,78 @@ interface ETP {
   titulo: string;
   numeroETP: string;
   secretaria: string;
-  valorTotal: string;
-  descricaoDemanda: string;
-}
-
-interface DFD {
-  id: string;
-  numero: string;
-  nome: string;
-  valor: string;
-  tipo: string;
+  valorTotal?: string;
+  descricaoDemanda?: string;
 }
 
 interface AIRiskSuggestionsProps {
-  etp: ETP;
-  dfds: DFD[];
-  onAcceptRisk: (risk: Omit<RiskSuggestion, 'id'>) => void;
+  isOpen: boolean;
   onClose: () => void;
+  etp: ETP | null;
+  onAcceptRisk: (risk: Omit<DbMapaRiscosItem, 'id' | 'mapa_riscos_id'>) => Promise<void>;
 }
 
-const AIRiskSuggestions = ({ etp, dfds, onAcceptRisk, onClose }: AIRiskSuggestionsProps) => {
+const AIRiskSuggestions = ({ isOpen, onClose, etp, onAcceptRisk }: AIRiskSuggestionsProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [suggestions, setSuggestions] = useState<RiskSuggestion[]>([]);
-  const [editingRisk, setEditingRisk] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const { toast } = useToast();
 
   const generateSuggestions = async () => {
+    if (!etp) return;
     setIsGenerating(true);
-    
-    // Simular geração por IA baseada no ETP e DFDs
+
+    // Simular geração por IA baseada no ETP
     setTimeout(() => {
-      const mockSuggestions: RiskSuggestion[] = [
+      const mockSuggestions: SuggestionItem[] = [
         {
-          id: '1',
+          tempId: '1',
           categoria: 'Orçamentário',
           descricao: `Insuficiência de recursos para conclusão do projeto ${etp.numeroETP}`,
-          causaProvavel: 'Estimativa inicial inadequada dos custos do projeto',
+          causa_provavel: 'Estimativa inicial inadequada dos custos do projeto',
           consequencia: 'Paralisação ou atraso significativo na execução',
           probabilidade: 'Média',
           impacto: 'Alto',
           nivel: 'Alto',
           mitigacao: 'Elaborar cronograma detalhado de desembolso e reserva de contingência',
-          responsavel: 'Setor Financeiro'
+          responsavel: 'Setor Financeiro',
+          plano_contingencia: 'Remanejamento de dotação orçamentária'
         },
         {
-          id: '2',
+          tempId: '2',
           categoria: 'Técnico',
           descricao: `Incompatibilidade técnica dos itens do ${etp.numeroETP}`,
-          causaProvavel: 'Especificações técnicas inadequadas ou obsoletas',
+          causa_provavel: 'Especificações técnicas inadequadas ou obsoletas',
           consequencia: 'Necessidade de adequações custosas e atrasos',
           probabilidade: 'Baixa',
           impacto: 'Alto',
           nivel: 'Médio',
           mitigacao: 'Realizar análise técnica prévia e testes de compatibilidade',
-          responsavel: 'Equipe Técnica'
-        },
-        {
-          id: '3',
-          categoria: 'Cronograma',
-          descricao: `Atraso na entrega dos itens especificados nos DFDs`,
-          causaProvavel: 'Problemas na cadeia de fornecimento ou logística',
-          consequencia: 'Impacto direto no cronograma do projeto',
-          probabilidade: 'Média',
-          impacto: 'Médio',
-          nivel: 'Médio',
-          mitigacao: 'Estabelecer múltiplos fornecedores e prazos escalonados',
-          responsavel: 'Coordenação do Projeto'
+          responsavel: 'Equipe Técnica',
+          plano_contingencia: 'Substituição por itens equivalentes de nova geração'
         }
       ];
-      
+
       setSuggestions(mockSuggestions);
       setIsGenerating(false);
-      
+
       toast({
         title: "Sugestões geradas",
         description: `${mockSuggestions.length} riscos identificados pela IA`,
       });
-    }, 2000);
+    }, 1500);
   };
 
-  const handleAccept = (suggestion: RiskSuggestion) => {
-    onAcceptRisk({
-      categoria: suggestion.categoria,
-      descricao: suggestion.descricao,
-      causaProvavel: suggestion.causaProvavel,
-      consequencia: suggestion.consequencia,
-      probabilidade: suggestion.probabilidade,
-      impacto: suggestion.impacto,
-      nivel: suggestion.nivel,
-      mitigacao: suggestion.mitigacao,
-      responsavel: suggestion.responsavel
-    });
-    
-    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
-    
-    toast({
-      title: "Risco aceito",
-      description: "Risco adicionado ao mapa com sucesso",
-    });
+  const handleAccept = async (suggestion: SuggestionItem) => {
+    const { tempId, ...riskData } = suggestion;
+    await onAcceptRisk(riskData);
+    setSuggestions(prev => prev.filter(s => s.tempId !== tempId));
   };
 
-  const handleReject = (suggestionId: string) => {
-    setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
-    toast({
-      title: "Risco rejeitado",
-      description: "Sugestão removida da lista",
-    });
+  const handleReject = (tempId: string) => {
+    setSuggestions(prev => prev.filter(s => s.tempId !== tempId));
   };
 
-  const getNivelColor = (nivel: string) => {
+  const getNivelColor = (nivel: string | null) => {
     switch (nivel) {
       case 'Alto':
         return 'bg-red-100 text-red-800 border-red-200';
@@ -153,11 +107,15 @@ const AIRiskSuggestions = ({ etp, dfds, onAcceptRisk, onClose }: AIRiskSuggestio
   };
 
   React.useEffect(() => {
-    generateSuggestions();
-  }, []);
+    if (isOpen && suggestions.length === 0) {
+      generateSuggestions();
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl h-[90vh] flex flex-col">
         <div className="p-6 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -165,7 +123,7 @@ const AIRiskSuggestions = ({ etp, dfds, onAcceptRisk, onClose }: AIRiskSuggestio
               <Sparkles className="w-6 h-6 text-purple-600" />
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Sugestões de Riscos por IA</h2>
-                <p className="text-gray-600">Baseado no {etp.numeroETP} e seus DFDs vinculados</p>
+                <p className="text-gray-600">Baseado no {etp?.numeroETP || 'ETP'}</p>
               </div>
             </div>
             <Button variant="ghost" onClick={onClose}>
@@ -174,13 +132,13 @@ const AIRiskSuggestions = ({ etp, dfds, onAcceptRisk, onClose }: AIRiskSuggestio
           </div>
         </div>
 
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-6 overflow-auto bg-gray-50">
           {isGenerating ? (
-            <div className="flex items-center justify-center h-64">
+            <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-600" />
+                <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-purple-600" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Analisando ETP e DFDs...
+                  Analisando ETP...
                 </h3>
                 <p className="text-gray-600">
                   Nossa IA está identificando riscos potenciais
@@ -190,80 +148,67 @@ const AIRiskSuggestions = ({ etp, dfds, onAcceptRisk, onClose }: AIRiskSuggestio
           ) : suggestions.length > 0 ? (
             <div className="space-y-4">
               {suggestions.map((suggestion) => (
-                <Card key={suggestion.id} className="border-l-4 border-l-purple-500">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
+                <Card key={suggestion.tempId} className="border-l-4 border-l-purple-500 overflow-hidden">
+                  <CardHeader className="pb-3 bg-white">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
                       <div className="flex items-center space-x-2">
-                        <Badge variant="outline">{suggestion.categoria}</Badge>
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700">{suggestion.categoria}</Badge>
                         <Badge className={getNivelColor(suggestion.nivel)}>
                           <AlertTriangle size={12} className="mr-1" />
                           {suggestion.nivel}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => setEditingRisk(suggestion.id)}
-                        >
-                          <Edit size={14} className="mr-1" />
-                          Editar
-                        </Button>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           onClick={() => handleAccept(suggestion)}
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 text-xs"
                         >
                           <Check size={14} className="mr-1" />
                           Aceitar
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleReject(suggestion.id)}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleReject(suggestion.tempId)}
+                          className="text-gray-500 hover:text-red-600 text-xs"
                         >
                           <X size={14} className="mr-1" />
-                          Recusar
+                          Dispensar
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
+                  <CardContent className="pt-2 bg-white">
+                    <div className="space-y-4">
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-1">Descrição do Risco</h4>
-                        <p className="text-gray-700">{suggestion.descricao}</p>
+                        <h4 className="text-sm font-semibold text-gray-900">Descrição</h4>
+                        <p className="text-sm text-gray-700">{suggestion.descricao}</p>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <h5 className="font-medium text-gray-900 mb-1">Causa Provável</h5>
-                          <p className="text-sm text-gray-600">{suggestion.causaProvavel}</p>
+                        <div className="p-3 bg-gray-50 rounded-md">
+                          <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Causa Provável</h5>
+                          <p className="text-sm text-gray-600">{suggestion.causa_provavel}</p>
                         </div>
-                        <div>
-                          <h5 className="font-medium text-gray-900 mb-1">Consequência</h5>
+                        <div className="p-3 bg-gray-50 rounded-md">
+                          <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Consequência</h5>
                           <p className="text-sm text-gray-600">{suggestion.consequencia}</p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium text-gray-700">Probabilidade:</span>
-                          <span className="ml-2">{suggestion.probabilidade}</span>
+                      <div className="border-t pt-3">
+                        <h5 className="text-sm font-semibold text-gray-900 mb-2">Medidas de Controle</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <span className="text-xs text-gray-500 block">Mitigação</span>
+                            <p className="text-sm text-gray-600">{suggestion.mitigacao}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-gray-500 block">Responsável</span>
+                            <p className="text-sm text-gray-600">{suggestion.responsavel}</p>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium text-gray-700">Impacto:</span>
-                          <span className="ml-2">{suggestion.impacto}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700">Responsável:</span>
-                          <span className="ml-2">{suggestion.responsavel}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h5 className="font-medium text-gray-900 mb-1">Estratégia de Mitigação</h5>
-                        <p className="text-sm text-gray-600">{suggestion.mitigacao}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -271,27 +216,29 @@ const AIRiskSuggestions = ({ etp, dfds, onAcceptRisk, onClose }: AIRiskSuggestio
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Sparkles className="w-8 h-8 text-gray-400" />
+              </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Todas as sugestões foram processadas
+                Nenhuma sugestão nova
               </h3>
-              <p className="text-gray-600">
-                Você pode adicionar mais riscos manualmente se necessário
+              <p className="text-gray-600 max-w-xs mx-auto">
+                Todas as sugestões foram processadas ou não há mais riscos a identificar.
               </p>
+              <Button variant="outline" className="mt-6" onClick={onClose}>
+                Voltar ao Mapa
+              </Button>
             </div>
           )}
         </div>
 
-        <div className="p-6 border-t bg-gray-50 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              {suggestions.length > 0 
-                ? `${suggestions.length} sugestão${suggestions.length !== 1 ? 'ões' : ''} pendente${suggestions.length !== 1 ? 's' : ''}`
-                : 'Todas as sugestões foram processadas'
-              }
+        <div className="p-4 border-t bg-white flex-shrink-0">
+          <div className="flex items-center justify-between max-w-4xl mx-auto w-full">
+            <div className="text-xs text-gray-500 italic">
+              * Verifique sempre as sugestões da IA antes de aceitá-las.
             </div>
-            <Button onClick={onClose}>
+            <Button variant="outline" onClick={onClose}>
               Fechar
             </Button>
           </div>

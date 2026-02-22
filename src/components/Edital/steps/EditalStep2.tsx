@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Sparkles } from 'lucide-react';
-import { TermoReferencia } from '@/utils/termoReferenciaData';
+import { DbTermoReferencia } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 
 interface EditalStep2Props {
   data: any;
   onUpdate: (field: string, value: any) => void;
-  selectedTR: TermoReferencia;
+  selectedTR: DbTermoReferencia;
 }
 
 const EditalStep2 = ({ data, onUpdate, selectedTR }: EditalStep2Props) => {
@@ -24,10 +24,10 @@ const EditalStep2 = ({ data, onUpdate, selectedTR }: EditalStep2Props) => {
       title: "IA Ativada",
       description: "Gerando conteúdo com base no TR e dados do sistema...",
     });
-    
+
     setTimeout(() => {
       let aiContent = '';
-      
+
       switch (field) {
         case 'justificativaCriterio':
           aiContent = `O critério de menor preço é adequado para este tipo de contratação, considerando que o objeto possui especificações técnicas padronizadas e bem definidas no Termo de Referência, não havendo necessidade de avaliação técnica diferenciada entre as propostas.`;
@@ -36,9 +36,9 @@ const EditalStep2 = ({ data, onUpdate, selectedTR }: EditalStep2Props) => {
           aiContent = `A adoção do Sistema de Registro de Preços se justifica pela necessidade de aquisições de forma parcelada, conforme demanda da Administração, durante o período de vigência da Ata de Registro de Preços, proporcionando economia de recursos públicos e maior eficiência na gestão dos contratos.`;
           break;
       }
-      
+
       onUpdate(field, aiContent);
-      
+
       toast({
         title: "Conteúdo Gerado",
         description: "Texto gerado com sucesso. Você pode editá-lo se necessário.",

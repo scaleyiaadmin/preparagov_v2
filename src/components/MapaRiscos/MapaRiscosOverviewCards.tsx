@@ -2,27 +2,33 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
+import {
+  FileText,
   Edit,
   AlertTriangle,
   ChevronRight
 } from 'lucide-react';
-import { getMapasConcluidos, getMapasElaboracao } from '@/utils/mapaRiscosData';
+interface MapaRiscosOverview {
+  concluidos: number;
+  elaboracao: number;
+  total: number;
+  totalRiscosConcluidos?: number;
+  riscosAltoConcluidos?: number;
+  totalRiscosElaboracao?: number;
+  riscosAltoElaboracao?: number;
+}
 
 interface MapaRiscosOverviewCardsProps {
   onViewConcluidos: () => void;
   onViewElaboracao: () => void;
+  counts: MapaRiscosOverview;
 }
 
-const MapaRiscosOverviewCards = ({ onViewConcluidos, onViewElaboracao }: MapaRiscosOverviewCardsProps) => {
-  const mapasConcluidos = getMapasConcluidos();
-  const mapasEmElaboracao = getMapasElaboracao();
-
+const MapaRiscosOverviewCards = ({ onViewConcluidos, onViewElaboracao, counts }: MapaRiscosOverviewCardsProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Card Mapas Concluídos */}
-      <Card 
+      <Card
         className="cursor-pointer hover:bg-gray-50 transition-colors border-2 hover:border-green-200"
         onClick={onViewConcluidos}
       >
@@ -39,19 +45,19 @@ const MapaRiscosOverviewCards = ({ onViewConcluidos, onViewElaboracao }: MapaRis
           <div className="space-y-4">
             <div className="text-center">
               <div className="text-4xl font-bold text-green-600">
-                {mapasConcluidos.length}
+                {counts.concluidos}
               </div>
               <p className="text-sm text-gray-600">
-                {mapasConcluidos.length === 1 ? 'mapa concluído' : 'mapas concluídos'}
+                {counts.concluidos === 1 ? 'mapa concluído' : 'mapas concluídos'}
               </p>
             </div>
-            
-            {mapasConcluidos.length > 0 && (
+
+            {(counts.totalRiscosConcluidos || 0) > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Total de Riscos:</span>
                   <Badge variant="outline">
-                    {mapasConcluidos.reduce((total, mapa) => total + mapa.totalRiscos, 0)}
+                    {counts.totalRiscosConcluidos}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -59,13 +65,13 @@ const MapaRiscosOverviewCards = ({ onViewConcluidos, onViewElaboracao }: MapaRis
                   <div className="flex items-center space-x-1">
                     <AlertTriangle size={14} className="text-red-500" />
                     <Badge variant="destructive">
-                      {mapasConcluidos.reduce((total, mapa) => total + mapa.riscosAlto, 0)}
+                      {counts.riscosAltoConcluidos}
                     </Badge>
                   </div>
                 </div>
               </div>
             )}
-            
+
             <div className="pt-2 border-t">
               <p className="text-xs text-gray-500 text-center">
                 Clique para ver todos os mapas concluídos
@@ -76,7 +82,7 @@ const MapaRiscosOverviewCards = ({ onViewConcluidos, onViewElaboracao }: MapaRis
       </Card>
 
       {/* Card Mapas em Elaboração */}
-      <Card 
+      <Card
         className="cursor-pointer hover:bg-gray-50 transition-colors border-2 hover:border-orange-200"
         onClick={onViewElaboracao}
       >
@@ -93,19 +99,19 @@ const MapaRiscosOverviewCards = ({ onViewConcluidos, onViewElaboracao }: MapaRis
           <div className="space-y-4">
             <div className="text-center">
               <div className="text-4xl font-bold text-orange-600">
-                {mapasEmElaboracao.length}
+                {counts.elaboracao}
               </div>
               <p className="text-sm text-gray-600">
-                {mapasEmElaboracao.length === 1 ? 'mapa em elaboração' : 'mapas em elaboração'}
+                {counts.elaboracao === 1 ? 'mapa em elaboração' : 'mapas em elaboração'}
               </p>
             </div>
-            
-            {mapasEmElaboracao.length > 0 && (
+
+            {(counts.totalRiscosElaboracao || 0) > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Total de Riscos:</span>
                   <Badge variant="outline">
-                    {mapasEmElaboracao.reduce((total, mapa) => total + mapa.totalRiscos, 0)}
+                    {counts.totalRiscosElaboracao}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -113,13 +119,13 @@ const MapaRiscosOverviewCards = ({ onViewConcluidos, onViewElaboracao }: MapaRis
                   <div className="flex items-center space-x-1">
                     <AlertTriangle size={14} className="text-red-500" />
                     <Badge variant="destructive">
-                      {mapasEmElaboracao.reduce((total, mapa) => total + mapa.riscosAlto, 0)}
+                      {counts.riscosAltoElaboracao}
                     </Badge>
                   </div>
                 </div>
               </div>
             )}
-            
+
             <div className="pt-2 border-t">
               <p className="text-xs text-gray-500 text-center">
                 Clique para ver todos os mapas em elaboração

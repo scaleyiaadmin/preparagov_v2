@@ -2,42 +2,48 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  Eye, 
+import {
+  FileText,
+  Eye,
   Download,
   Edit,
   Calendar,
   Building,
-  DollarSign,
   AlertTriangle,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { allMapasRiscos, type MapaRisco } from '@/utils/mapaRiscosData';
+import { DbMapaRiscos } from '@/types/database';
+
+interface MapaRisco extends DbMapaRiscos {
+  totalRiscos?: number;
+  riscosAlto?: number;
+}
 
 interface MapaRiscosCardsProps {
   statusFilter?: 'concluido' | 'elaboracao';
+  mapas: MapaRisco[];
   onViewPreview: (mapa: MapaRisco) => void;
   onContinueEditing: (mapa: MapaRisco) => void;
   onExportPDF: (mapa: MapaRisco) => void;
 }
 
-const MapaRiscosCards = ({ statusFilter, onViewPreview, onContinueEditing, onExportPDF }: MapaRiscosCardsProps) => {
+const MapaRiscosCards = ({ statusFilter, mapas, onViewPreview, onContinueEditing, onExportPDF }: MapaRiscosCardsProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Filtrar mapas por status usando os dados centralizados
-  const filteredMapas = statusFilter 
-    ? allMapasRiscos.filter(mapa => mapa.status === statusFilter)
-    : allMapasRiscos;
+  // Filtrar mapas por status
+  const filteredMapas = statusFilter
+    ? mapas.filter(mapa => mapa.status === statusFilter)
+    : mapas;
 
   // Paginação
   const totalPages = Math.ceil(filteredMapas.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentMapas = filteredMapas.slice(startIndex, startIndex + itemsPerPage);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
@@ -56,12 +62,12 @@ const MapaRiscosCards = ({ statusFilter, onViewPreview, onContinueEditing, onExp
               {mapa.status === 'concluido' ? 'Concluído' : 'Em Elaboração'}
             </Badge>
           </div>
-          
+
           <div className="space-y-1 text-sm text-gray-600 mb-3">
             <div className="flex items-center space-x-2">
-              <span className="font-medium text-blue-600">{mapa.etpNumero}</span>
+              <span className="font-medium text-blue-600">{mapa.etp_numero}</span>
               <span>-</span>
-              <span>{mapa.etpTitulo}</span>
+              <span>{mapa.etp_titulo}</span>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-1">
@@ -71,24 +77,18 @@ const MapaRiscosCards = ({ statusFilter, onViewPreview, onContinueEditing, onExp
               <div className="flex items-center space-x-1">
                 <Calendar size={14} />
                 <span>
-                  {mapa.status === 'concluido' ? 'Concluído' : 'Criado'}: {formatDate(mapa.dataCriacao)}
+                  {mapa.status === 'concluido' ? 'Concluído' : 'Criado'}: {formatDate(mapa.created_at)}
                 </span>
               </div>
-              {mapa.dataUltimaEdicao && mapa.status === 'elaboracao' && (
-                <div className="flex items-center space-x-1">
-                  <Edit size={14} />
-                  <span>Editado: {formatDate(mapa.dataUltimaEdicao)}</span>
-                </div>
-              )}
             </div>
           </div>
 
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center space-x-1">
               <span className="font-medium">Total de Riscos:</span>
-              <span className="bg-gray-100 px-2 py-1 rounded">{mapa.totalRiscos}</span>
+              <span className="bg-gray-100 px-2 py-1 rounded">{mapa.totalRiscos || 0}</span>
             </div>
-            {mapa.riscosAlto > 0 && (
+            {(mapa.riscosAlto || 0) > 0 && (
               <div className="flex items-center space-x-1 text-red-600">
                 <AlertTriangle size={14} />
                 <span className="font-medium">{mapa.riscosAlto} Alto(s)</span>
@@ -133,7 +133,7 @@ const MapaRiscosCards = ({ statusFilter, onViewPreview, onContinueEditing, onExp
         >
           <ChevronLeft size={16} />
         </Button>
-        
+
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
           <Button
             key={page}
@@ -144,7 +144,7 @@ const MapaRiscosCards = ({ statusFilter, onViewPreview, onContinueEditing, onExp
             {page}
           </Button>
         ))}
-        
+
         <Button
           variant="outline"
           size="sm"
@@ -164,7 +164,7 @@ const MapaRiscosCards = ({ statusFilter, onViewPreview, onContinueEditing, onExp
 
   const getIcon = () => {
     if (!statusFilter) return <FileText className="w-5 h-5 text-blue-600" />;
-    return statusFilter === 'concluido' 
+    return statusFilter === 'concluido'
       ? <FileText className="w-5 h-5 text-green-600" />
       : <Edit className="w-5 h-5 text-orange-600" />;
   };

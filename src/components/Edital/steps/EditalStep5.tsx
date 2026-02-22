@@ -9,12 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Plus, X } from 'lucide-react';
-import { TermoReferencia } from '@/utils/termoReferenciaData';
+import { DbTermoReferencia } from '@/types/database';
 
 interface EditalStep5Props {
   data: any;
   onUpdate: (field: string, value: any) => void;
-  selectedTR: TermoReferencia;
+  selectedTR: DbTermoReferencia;
 }
 
 const EditalStep5 = ({ data, onUpdate, selectedTR }: EditalStep5Props) => {
@@ -194,9 +194,9 @@ const EditalStep5 = ({ data, onUpdate, selectedTR }: EditalStep5Props) => {
           <CardHeader>
             <CardTitle className="text-base text-gray-800 flex items-center justify-between">
               Gestores do Contrato
-              <Button 
+              <Button
                 type="button"
-                variant="outline" 
+                variant="outline"
                 size="sm"
                 onClick={addGestor}
               >
@@ -232,9 +232,9 @@ const EditalStep5 = ({ data, onUpdate, selectedTR }: EditalStep5Props) => {
           <CardHeader>
             <CardTitle className="text-base text-gray-800 flex items-center justify-between">
               Fiscais do Contrato
-              <Button 
+              <Button
                 type="button"
-                variant="outline" 
+                variant="outline"
                 size="sm"
                 onClick={addFiscal}
               >

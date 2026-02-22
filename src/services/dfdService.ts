@@ -105,5 +105,30 @@ export const dfdService = {
             .eq('id', id);
 
         if (error) throw error;
+    },
+
+    async requestCancellation(id: string, justification: string) {
+        const { error } = await supabase
+            .from('dfd')
+            .update({
+                solicitacao_cancelamento: true,
+                justificativa_cancelamento: justification
+            })
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
+    async cancel(id: string, justification: string) {
+        const { error } = await supabase
+            .from('dfd')
+            .update({
+                status: 'Cancelado',
+                justificativa_cancelamento: justification,
+                solicitacao_cancelamento: false
+            })
+            .eq('id', id);
+
+        if (error) throw error;
     }
 };

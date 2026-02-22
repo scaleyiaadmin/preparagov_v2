@@ -8,13 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Sparkles } from 'lucide-react';
-import { TermoReferencia } from '@/utils/termoReferenciaData';
+import { DbTermoReferencia } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 
 interface EditalStep3Props {
   data: any;
   onUpdate: (field: string, value: any) => void;
-  selectedTR: TermoReferencia;
+  selectedTR: DbTermoReferencia;
 }
 
 const EditalStep3 = ({ data, onUpdate, selectedTR }: EditalStep3Props) => {
@@ -25,10 +25,10 @@ const EditalStep3 = ({ data, onUpdate, selectedTR }: EditalStep3Props) => {
       title: "IA Ativada",
       description: "Gerando conteúdo com base no TR e dados do sistema...",
     });
-    
+
     setTimeout(() => {
       let aiContent = '';
-      
+
       switch (field) {
         case 'justificativaConsorcios':
           aiContent = `A não participação de consórcios se fundamenta na natureza e complexidade do objeto, que não exige conjugação de especialidades ou capacidades técnicas distintas, podendo ser executado por empresas individualmente, conforme art. 35 da Lei 14.133/2021.`;
@@ -40,9 +40,9 @@ const EditalStep3 = ({ data, onUpdate, selectedTR }: EditalStep3Props) => {
           aiContent = `Em caso de empate, será aplicado o critério de desempate previsto no art. 60 da Lei 14.133/2021, com preferência para bens e serviços produzidos no País, seguindo-se os demais critérios legais estabelecidos.`;
           break;
       }
-      
+
       onUpdate(field, aiContent);
-      
+
       toast({
         title: "Conteúdo Gerado",
         description: "Texto gerado com sucesso. Você pode editá-lo se necessário.",
@@ -52,7 +52,7 @@ const EditalStep3 = ({ data, onUpdate, selectedTR }: EditalStep3Props) => {
 
   const documentosHabilitacao = [
     'Habilitação Jurídica - Pessoa Física',
-    'Habilitação Jurídica - Pessoa Jurídica', 
+    'Habilitação Jurídica - Pessoa Jurídica',
     'Regularidade Fiscal Federal',
     'Regularidade com FGTS',
     'Regularidade Trabalhista',
@@ -220,7 +220,7 @@ const EditalStep3 = ({ data, onUpdate, selectedTR }: EditalStep3Props) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {documentosHabilitacao.map((doc, index) => (
               <div key={index} className="flex items-center space-x-2">
-                <Checkbox 
+                <Checkbox
                   id={`doc-${index}`}
                   checked={true}
                   disabled

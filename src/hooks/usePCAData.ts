@@ -107,6 +107,19 @@ export const usePCAData = () => {
       });
 
       setPendingDFDs(mappedPending);
+      b
+      // Fetch Cancellation Requests
+      const { data: cancellations, error: cancellationsError } = await supabase
+        .from('dfd')
+        .select(`
+          *,
+          secretarias ( nome )
+        `)
+        .eq('solicitacao_cancelamento', true)
+        .eq('ano_contratacao', parseInt(selectedYear));
+
+      if (cancellationsError) throw cancellationsError;
+      setCancellationRequests(cancellations || []);
 
       // Check PCA Config
       const { data: pcaConfig, error: pcaError } = await supabase
@@ -193,20 +206,58 @@ export const usePCAData = () => {
     }
   };
 
-  const handleApproveCancellation = (dfd: any) => {
-    toast({
-      title: "Cancelamento Aprovado",
-      description: `O DFD "${dfd.objeto}" foi retirado do PCA.`,
-    });
-    setShowCancellationModal(false);
+  const handleApproveCancellation = async (dfd: any) => {
+    try {
+      const { error } = await supabase
+        .from('dfd')
+        .update({
+          status: 'Cancelado',
+          solicitacao_cancelamento: false
+        })
+        .eq('id', dfd.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Cancelamento Aprovado",
+        description: `O DFD "${dfd.objeto}" foi retirado do PCA.`,
+      });
+      setShowCancellationModal(false);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "Erro ao aprovar cancelamento",
+        description: "Não foi possível processar a solicitação.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDenyCancellation = (dfd: any, justification: string) => {
-    toast({
-      title: "Cancelamento Negado",
-      description: `A solicitação de cancelamento do DFD "${dfd.objeto}" foi negada.`,
-    });
-    setShowCancellationModal(false);
+  const handleDenyCancellation = async (dfd: any, justification: string) => {
+    try {
+      const { error } = await supabase
+        .from('dfd')
+        .update({
+          solicitacao_cancelamento: false,
+          justificativa: justification // Opcional: salvar por que foi negado
+        })
+        .eq('id', dfd.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Cancelamento Negado",
+        description: `A solicitação de cancelamento do DFD "${dfd.objeto}" foi negada.`,
+      });
+      setShowCancellationModal(false);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "Erro ao negar cancelamento",
+        description: "Não foi possível processar a solicitação.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleRemoveFromPCA = (dfd: any) => {
@@ -214,12 +265,31 @@ export const usePCAData = () => {
     setShowRemoveModal(true);
   };
 
-  const handleConfirmRemoval = (dfd: any, justification: string) => {
-    toast({
-      title: "DFD Retirado do PCA",
-      description: `O DFD "${dfd.objeto}" foi retirado do PCA com a justificativa fornecida.`,
-    });
-    console.log('Removing DFD:', dfd, 'Justification:', justification);
+  const handleConfirmRemoval = async (dfd: any, justification: string) => {
+    try {
+      const { error } = await supabase
+        .from('dfd')
+        .update({
+          status: 'Cancelado',
+          justificativa_cancelamento: justification
+        })
+        .eq('id', dfd.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "DFD Retirado do PCA",
+        description: `O DFD "${dfd.objeto}" foi retirado do PCA com a justificativa fornecida.`,
+      });
+      setShowRemoveModal(false);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "Erro ao retirar do PCA",
+        description: "Não foi possível processar a solicitação.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleGenerateSchedule = (filters: any) => {

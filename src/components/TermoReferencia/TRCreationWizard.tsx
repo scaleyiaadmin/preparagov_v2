@@ -10,12 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  X, 
-  Save, 
-  Sparkles, 
-  FileText, 
-  Building, 
+import {
+  X,
+  Save,
+  Sparkles,
+  FileText,
+  Building,
   DollarSign,
   Calendar,
   CheckCircle,
@@ -26,8 +26,12 @@ import {
   EyeOff,
   Plus,
   Minus,
-  Info
+  Info,
+  Loader2
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { termoReferenciaService } from '@/services/termoReferenciaService';
+import { DbTermoReferencia } from '@/types/database';
 
 interface TRCreationWizardProps {
   origin: 'cronograma' | 'dfds-livres' | 'itens-especificos';
@@ -47,12 +51,12 @@ interface FormData {
   numero: string;
   origem: string;
   etpsSelecionados: string[];
-  
+
   // Etapa 2 - Objeto e Natureza
   objeto: string;
   naturezaObjeto: string;
   naturezaOutra: string;
-  
+
   // Etapa 3 - Modalidade e Registro de Preços
   modalidade: string;
   justificativaLegal: string;
@@ -60,7 +64,7 @@ interface FormData {
   sistemaRegistroPrecos: boolean;
   justificativaRegistroPrecos: string;
   justificativaComplementar: string;
-  
+
   // Etapa 4 - Tratamento Diferenciado
   tratamentoMEEPP: string;
   participacaoConsorcio: boolean;
@@ -68,7 +72,7 @@ interface FormData {
   participacaoCooperativas: boolean;
   subcontratacao: boolean;
   detalhesSubcontratacao: string;
-  
+
   // Etapa 5 - Vistoria e Amostras
   vistoriaTecnica: string;
   justificativaVistoria: string;
@@ -78,14 +82,14 @@ interface FormData {
   prazoAmostras: string;
   unidadeTecnicaAmostras: string;
   localAmostras: string;
-  
+
   // Etapa 6 - Documentação
   habilitacaoJuridica: string[];
   habilitacaoFiscal: string[];
   qualificacaoEconomica: string[];
   qualificacaoTecnica: string[];
   documentosAdicionais: string;
-  
+
   // Etapa 7 - Condições de Execução
   prazoEntrega: string;
   ordemFornecimento: string;
@@ -94,18 +98,18 @@ interface FormData {
   condicoesGarantia: string;
   fornecimentoContinuo: boolean;
   justificativaFornecimento: string;
-  
+
   // Etapa 8 - Vigência e Pagamento
   prazoVigencia: string;
   prazoSubstituicao: string;
   prazoRecebimento: string;
   prazoLiquidacao: string;
   prazoPagamento: string;
-  
+
   // Etapa 9 - Gestão e Fiscalização
   gestores: GestorFiscal[];
   fiscais: GestorFiscal[];
-  
+
   // Etapa 10 - Itens e Valor
   mostrarValores: boolean;
   observacoes: string;
@@ -117,18 +121,20 @@ const generateTRNumber = () => {
 };
 
 const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationWizardProps) => {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     // Etapa 1
     numero: generateTRNumber(),
     origem: origin,
     etpsSelecionados: [],
-    
+
     // Etapa 2
     objeto: '',
     naturezaObjeto: '',
     naturezaOutra: '',
-    
+
     // Etapa 3
     modalidade: '',
     justificativaLegal: '',
@@ -136,7 +142,7 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
     sistemaRegistroPrecos: false,
     justificativaRegistroPrecos: '',
     justificativaComplementar: '',
-    
+
     // Etapa 4
     tratamentoMEEPP: '',
     participacaoConsorcio: false,
@@ -144,7 +150,7 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
     participacaoCooperativas: false,
     subcontratacao: false,
     detalhesSubcontratacao: '',
-    
+
     // Etapa 5
     vistoriaTecnica: 'nao',
     justificativaVistoria: '',
@@ -154,14 +160,14 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
     prazoAmostras: '',
     unidadeTecnicaAmostras: '',
     localAmostras: '',
-    
+
     // Etapa 6
     habilitacaoJuridica: [],
     habilitacaoFiscal: [],
     qualificacaoEconomica: [],
     qualificacaoTecnica: [],
     documentosAdicionais: '',
-    
+
     // Etapa 7
     prazoEntrega: '30',
     ordemFornecimento: 'unica',
@@ -170,18 +176,18 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
     condicoesGarantia: '',
     fornecimentoContinuo: false,
     justificativaFornecimento: '',
-    
+
     // Etapa 8
     prazoVigencia: '12',
     prazoSubstituicao: '5',
     prazoRecebimento: '5',
     prazoLiquidacao: '5',
     prazoPagamento: '30',
-    
+
     // Etapa 9
     gestores: [{ nome: '', cargo: '', matricula: '' }],
     fiscais: [{ nome: '', cargo: '', matricula: '' }],
-    
+
     // Etapa 10
     mostrarValores: true,
     observacoes: ''
@@ -193,17 +199,17 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
   useEffect(() => {
     if (selectedData && !formData.naturezaObjeto) {
       let natureza = '';
-      
+
       if (origin === 'cronograma' && selectedData?.tipoDFD) {
         natureza = mapDFDTypeToNatureza(selectedData.tipoDFD);
       } else if (origin === 'dfds-livres' && Array.isArray(selectedData)) {
         const tipos = selectedData.map(dfd => dfd.tipoDFD);
-        const tipoMaisComum = tipos.sort((a, b) => 
+        const tipoMaisComum = tipos.sort((a, b) =>
           tipos.filter(v => v === a).length - tipos.filter(v => v === b).length
         ).pop();
         natureza = mapDFDTypeToNatureza(tipoMaisComum);
       }
-      
+
       if (natureza) {
         setFormData(prev => ({ ...prev, naturezaObjeto: natureza }));
       }
@@ -300,7 +306,7 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
   const handleGestorFiscalChange = (type: 'gestores' | 'fiscais', index: number, field: keyof GestorFiscal, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [type]: prev[type].map((item, i) => 
+      [type]: prev[type].map((item, i) =>
         i === index ? { ...item, [field]: value } : item
       )
     }));
@@ -395,41 +401,68 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
     }
   };
 
-  const handleSave = () => {
-    const trData = {
-      ...formData,
-      id: Date.now().toString(),
-      origem: origin,
-      dadosOrigem: selectedData,
-      status: 'Em Elaboração',
-      dataCriacao: new Date().toISOString().split('T')[0],
-      responsavel: 'Usuário Atual',
-      titulo: formData.objeto || 'Termo de Referência',
-      secretaria: getSecretariaInfo(),
-      valorTotal: calculateTotalValue(),
-      dfdsVinculados: getDFDCount()
-    };
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      const valorEstimado = parseFloat(calculateTotalValue().replace(/[^\d,]/g, '').replace(',', '.')) || 0;
 
-    onSave(trData);
+      const trData: Omit<DbTermoReferencia, 'id' | 'created_at' | 'updated_at'> = {
+        numero_tr: formData.numero,
+        etp_id: null, // Pode ser preenchido se vier de um ETP
+        objeto: formData.objeto,
+        status: 'Em Elaboração',
+        tipo: formData.naturezaObjeto,
+        valor_estimado: valorEstimado,
+        secretaria_id: user?.secretaria_id || null,
+        prefeitura_id: user?.prefeituraId || null,
+        dados_json: formData,
+        created_by: user?.id || null,
+      };
+
+      const result = await termoReferenciaService.createTermoReferencia(trData);
+      onSave(result);
+    } catch (error) {
+      console.error('Erro ao salvar TR:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar o rascunho do TR.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleFinalize = () => {
-    const trData = {
-      ...formData,
-      id: Date.now().toString(),
-      origem: origin,
-      dadosOrigem: selectedData,
-      status: 'Concluído',
-      dataCriacao: new Date().toISOString().split('T')[0],
-      dataConclusao: new Date().toISOString().split('T')[0],
-      responsavel: 'Usuário Atual',
-      titulo: formData.objeto || 'Termo de Referência',
-      secretaria: getSecretariaInfo(),
-      valorTotal: calculateTotalValue(),
-      dfdsVinculados: getDFDCount()
-    };
+  const handleFinalize = async () => {
+    try {
+      setLoading(true);
+      const valorEstimado = parseFloat(calculateTotalValue().replace(/[^\d,]/g, '').replace(',', '.')) || 0;
 
-    onSave(trData);
+      const trData: Omit<DbTermoReferencia, 'id' | 'created_at' | 'updated_at'> = {
+        numero_tr: formData.numero,
+        etp_id: null,
+        objeto: formData.objeto,
+        status: 'Concluído',
+        tipo: formData.naturezaObjeto,
+        valor_estimado: valorEstimado,
+        secretaria_id: user?.secretaria_id || null,
+        prefeitura_id: user?.prefeituraId || null,
+        dados_json: formData,
+        created_by: user?.id || null,
+      };
+
+      const result = await termoReferenciaService.createTermoReferencia(trData);
+      onSave(result);
+    } catch (error) {
+      console.error('Erro ao finalizar TR:', error);
+      toast({
+        title: "Erro ao finalizar",
+        description: "Não foi possível finalizar o TR.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getSecretariaInfo = () => {
@@ -473,8 +506,8 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
               <div className="space-y-2">
                 <Label>Origem</Label>
                 <Input
-                  value={origin === 'cronograma' ? 'Cronograma de Licitações' : 
-                         origin === 'dfds-livres' ? 'DFDs Livres' : 'Itens Específicos'}
+                  value={origin === 'cronograma' ? 'Cronograma de Licitações' :
+                    origin === 'dfds-livres' ? 'DFDs Livres' : 'Itens Específicos'}
                   disabled
                 />
               </div>
@@ -1399,27 +1432,25 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
               <X size={20} />
             </Button>
           </div>
-          
+
           {/* Progress Steps */}
           <div className="mt-4">
             <div className="flex items-center justify-between">
               {steps.map((step, index) => (
                 <div key={index} className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    index <= currentStep ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-                  }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${index <= currentStep ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+                    }`}>
                     {index < currentStep ? <CheckCircle size={16} /> : index + 1}
                   </div>
-                  <div className={`mt-1 text-xs text-center ${
-                    index <= currentStep ? 'text-blue-600' : 'text-gray-500'
-                  }`}>
+                  <div className={`mt-1 text-xs text-center ${index <= currentStep ? 'text-blue-600' : 'text-gray-500'
+                    }`}>
                     {step.title}
                   </div>
                 </div>
               ))}
             </div>
             <div className="mt-2 bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
               />
@@ -1436,15 +1467,15 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
         <div className="p-6 border-t bg-gray-50 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={prevStep}
                 disabled={currentStep === 0}
               >
                 <ArrowLeft size={16} className="mr-2" />
                 Anterior
               </Button>
-              
+
               {currentStep < steps.length - 1 ? (
                 <Button onClick={nextStep}>
                   Próximo
@@ -1463,7 +1494,7 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
                 </div>
               )}
             </div>
-            
+
             <Button variant="outline" onClick={onClose}>
               Fechar
             </Button>

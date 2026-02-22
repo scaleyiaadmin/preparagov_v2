@@ -8,11 +8,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  FileText, 
-  Upload, 
-  Wand2, 
-  Eye, 
+import {
+  FileText,
+  Upload,
+  Wand2,
+  Eye,
   Info,
   Paperclip,
   Download,
@@ -22,15 +22,17 @@ import {
   Building,
   UserCheck,
   Scale,
-  FileCheck
+  FileCheck,
+  Loader2
 } from 'lucide-react';
+import { DbTermoReferencia } from '@/types/database';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface EditalStep8Props {
   data: any;
   onUpdate: (field: string, value: any) => void;
-  selectedTR: any;
+  selectedTR: DbTermoReferencia;
   onFinalize: () => void;
 }
 
@@ -241,13 +243,13 @@ __________________________________
 
   const openEditModal = (modelKey: string, isOptional: boolean = false) => {
     let model: { title: string; tooltip: string; content: string } | undefined;
-    
+
     if (isOptional) {
       model = optionalModels[modelKey as keyof typeof optionalModels];
     } else {
       model = obligatoryModels[modelKey as keyof typeof obligatoryModels];
     }
-    
+
     if (model) {
       setEditingModel(modelKey);
       setEditingText(model.content);
@@ -264,16 +266,16 @@ __________________________________
     navigator.clipboard.writeText(text);
   };
 
-  const DeclarationCard = ({ 
-    declaration, 
-    model, 
-    checked, 
-    onChange, 
-    isOptional = false 
-  }: { 
-    declaration: string; 
-    model: any; 
-    checked: boolean; 
+  const DeclarationCard = ({
+    declaration,
+    model,
+    checked,
+    onChange,
+    isOptional = false
+  }: {
+    declaration: string;
+    model: any;
+    checked: boolean;
     onChange: (declaration: string, checked: boolean) => void;
     isOptional?: boolean;
   }) => (
@@ -495,14 +497,14 @@ __________________________________
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingModel && (obligatoryModels[editingModel as keyof typeof obligatoryModels]?.title || 
-              optionalModels[editingModel as keyof typeof optionalModels]?.title)}
+              {editingModel && (obligatoryModels[editingModel as keyof typeof obligatoryModels]?.title ||
+                optionalModels[editingModel as keyof typeof optionalModels]?.title)}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
               <p className="text-sm text-yellow-800">
-                <strong>Atenção:</strong> Você pode editar apenas o corpo da declaração. 
+                <strong>Atenção:</strong> Você pode editar apenas o corpo da declaração.
                 A estrutura básica (título, campos de assinatura) deve ser mantida.
               </p>
             </div>
@@ -523,7 +525,7 @@ __________________________________
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => {/* Função para download do PDF */}}
+                  onClick={() => {/* Função para download do PDF */ }}
                 >
                   <Download className="h-4 w-4 mr-1" />
                   Exportar PDF
@@ -618,8 +620,8 @@ __________________________________
           <p>• Conformidade com Lei 14.133/2021 verificada</p>
           <p>• Pronto para finalização e publicação</p>
         </div>
-        
-        <Button 
+
+        <Button
           onClick={onFinalize}
           size="lg"
           className="bg-green-600 hover:bg-green-700 px-8 animate-scale-in"

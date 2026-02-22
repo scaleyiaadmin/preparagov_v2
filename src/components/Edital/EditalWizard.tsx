@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  X, 
+import {
+  X,
   Save,
   ArrowLeft,
   ArrowRight,
@@ -21,9 +21,12 @@ import {
   Users,
   Clipboard,
   DollarSign,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react';
-import { TermoReferencia } from '@/utils/termoReferenciaData';
+import { useAuth } from '@/contexts/AuthContext';
+import { editalService } from '@/services/editalService';
+import { DbEdital, DbTermoReferencia } from '@/types/database';
 import EditalStep1 from './steps/EditalStep1';
 import EditalStep2 from './steps/EditalStep2';
 import EditalStep3 from './steps/EditalStep3';
@@ -34,7 +37,7 @@ import EditalStep7 from './steps/EditalStep7';
 import EditalStep8 from './steps/EditalStep8';
 
 interface EditalWizardProps {
-  selectedTR: TermoReferencia;
+  selectedTR: DbTermoReferencia;
   onClose: () => void;
   onSave: (editalData: any) => void;
 }
@@ -48,7 +51,7 @@ interface EditalData {
   cargoResponsavel: string;
   modalidadeLicitacao: string;
   objetoLicitacao: string;
-  
+
   // Step 2 - Critérios e Julgamento
   criterioJulgamento: string;
   justificativaCriterio: string;
@@ -57,7 +60,7 @@ interface EditalData {
   formaFornecimento: string;
   registroPrecos: boolean;
   justificativaRegistroPrecos: string;
-  
+
   // Step 3 - Condições de Participação
   permiteMEEPP: boolean;
   permiteConsorcios: boolean;
@@ -67,12 +70,12 @@ interface EditalData {
   justificativaVistoria: string;
   criteriosDesempate: string;
   documentacaoExigida: string[];
-  
+
   // Step 4 - Recursos e Penalidades
   procedimentosRecursos: string;
   penalidadesPrevistas: string;
   responsavelJulgamento: string;
-  
+
   // Step 5 - Execução Contratual
   formaPagamento: string;
   prazoPagamento: string;
@@ -84,18 +87,18 @@ interface EditalData {
   detalhesSubcontratacao: string;
   gestores: string[];
   fiscais: string[];
-  
+
   // Step 6 - Itens da Licitação
   itensLicitacao: any[];
   exibirValorEstimado: boolean;
-  
+
   // Step 7 - Cronograma
   dataAbertura: string;
   prazoPropostas: string;
   prazoJulgamento: string;
   prazoImpugnacao: string;
   validadePropostas: string;
-  
+
   // Step 8 - Anexos do Edital (Modelos)
   declaracoes: {
     impedimentos: boolean;
@@ -116,17 +119,19 @@ interface EditalData {
 }
 
 const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [editalData, setEditalData] = useState<EditalData>({
     // Auto-preenchimento inicial baseado no TR
     numeroEdital: `ED-${String(Math.floor(Math.random() * 999) + 1).padStart(4, '0')}/${new Date().getFullYear()}`,
-    orgaoResponsavel: selectedTR.secretaria,
-    unidadeGestora: selectedTR.secretaria,
-    responsavelTecnico: selectedTR.responsavel,
+    orgaoResponsavel: selectedTR.secretaria_id || 'Não informada',
+    unidadeGestora: selectedTR.secretaria_id || 'Não informada',
+    responsavelTecnico: 'Usuário Atual',
     cargoResponsavel: 'Responsável Técnico',
     modalidadeLicitacao: 'pregao-eletronico',
     objetoLicitacao: selectedTR.objeto,
-    
+
     criterioJulgamento: 'menor-preco',
     justificativaCriterio: '',
     tipoExecucao: 'direta',
@@ -134,7 +139,7 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
     formaFornecimento: 'sob-demanda',
     registroPrecos: false,
     justificativaRegistroPrecos: '',
-    
+
     permiteMEEPP: true,
     permiteConsorcios: false,
     permiteCooperativas: true,
@@ -143,11 +148,11 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
     justificativaVistoria: '',
     criteriosDesempate: '',
     documentacaoExigida: [],
-    
+
     procedimentosRecursos: '',
     penalidadesPrevistas: '',
     responsavelJulgamento: '',
-    
+
     formaPagamento: 'a-vista',
     prazoPagamento: '30',
     prazosExecucao: '60',
@@ -156,18 +161,18 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
     especificacaoGarantia: '',
     subcontratacao: false,
     detalhesSubcontratacao: '',
-    gestores: [selectedTR.responsavel],
+    gestores: ['Usuário Atual'],
     fiscais: [],
-    
+
     itensLicitacao: [],
     exibirValorEstimado: true,
-    
+
     dataAbertura: '',
     prazoPropostas: '8',
     prazoJulgamento: '5',
     prazoImpugnacao: '3',
     validadePropostas: '60',
-    
+
     declaracoes: {
       impedimentos: true,
       independente: true,
@@ -180,57 +185,57 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
       incluir: false
     }
   });
-  
+
   const { toast } = useToast();
 
   const steps = [
-    { 
-      number: 1, 
-      title: 'Identificação', 
-      icon: FileText, 
-      description: 'Objeto e dados básicos' 
+    {
+      number: 1,
+      title: 'Identificação',
+      icon: FileText,
+      description: 'Objeto e dados básicos'
     },
-    { 
-      number: 2, 
-      title: 'Critérios', 
-      icon: Scale, 
-      description: 'Julgamento e execução' 
+    {
+      number: 2,
+      title: 'Critérios',
+      icon: Scale,
+      description: 'Julgamento e execução'
     },
-    { 
-      number: 3, 
-      title: 'Participação', 
-      icon: Users, 
-      description: 'Condições e habilitação' 
+    {
+      number: 3,
+      title: 'Participação',
+      icon: Users,
+      description: 'Condições e habilitação'
     },
-    { 
-      number: 4, 
-      title: 'Recursos', 
-      icon: Clipboard, 
-      description: 'Recursos e penalidades' 
+    {
+      number: 4,
+      title: 'Recursos',
+      icon: Clipboard,
+      description: 'Recursos e penalidades'
     },
-    { 
-      number: 5, 
-      title: 'Execução', 
-      icon: Settings, 
-      description: 'Execução contratual' 
+    {
+      number: 5,
+      title: 'Execução',
+      icon: Settings,
+      description: 'Execução contratual'
     },
-    { 
-      number: 6, 
-      title: 'Itens', 
-      icon: DollarSign, 
-      description: 'Itens da licitação' 
+    {
+      number: 6,
+      title: 'Itens',
+      icon: DollarSign,
+      description: 'Itens da licitação'
     },
-    { 
-      number: 7, 
-      title: 'Cronograma', 
-      icon: Clock, 
-      description: 'Prazos da licitação' 
+    {
+      number: 7,
+      title: 'Cronograma',
+      icon: Clock,
+      description: 'Prazos da licitação'
     },
-    { 
-      number: 8, 
-      title: 'Anexos', 
-      icon: Paperclip, 
-      description: 'Anexos do edital' 
+    {
+      number: 8,
+      title: 'Anexos',
+      icon: Paperclip,
+      description: 'Anexos do edital'
     }
   ];
 
@@ -244,8 +249,8 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(editalData.numeroEdital && editalData.objetoLicitacao && 
-                 editalData.modalidadeLicitacao && editalData.orgaoResponsavel);
+        return !!(editalData.numeroEdital && editalData.objetoLicitacao &&
+          editalData.modalidadeLicitacao && editalData.orgaoResponsavel);
       case 2:
         return !!(editalData.criterioJulgamento && editalData.tipoExecucao);
       case 3:
@@ -285,27 +290,73 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
     }
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Edital Salvo",
-      description: "Rascunho do edital foi salvo com sucesso.",
-    });
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      const data: Omit<DbEdital, 'id' | 'created_at' | 'updated_at'> = {
+        numero_edital: editalData.numeroEdital,
+        tr_id: selectedTR.id,
+        objeto: editalData.objetoLicitacao,
+        status: 'Em Elaboração',
+        modalidade: editalData.modalidadeLicitacao,
+        tipo_licitacao: editalData.criterioJulgamento,
+        valor_estimado: selectedTR.valor_estimado,
+        data_publicacao: null,
+        prefeitura_id: user?.prefeituraId || null,
+        dados_json: editalData,
+        created_by: user?.id || null,
+      };
+
+      await editalService.createEdital(data);
+      toast({
+        title: "Edital Salvo",
+        description: "Rascunho do edital foi salvo com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao salvar edital:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar o rascunho.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleFinalize = () => {
-    const finalEdital = {
-      ...editalData,
-      id: Date.now().toString(),
-      status: 'Em Elaboração',
-      dataCriacao: new Date().toISOString(),
-      trVinculado: selectedTR.numero
-    };
-    
-    onSave(finalEdital);
-    toast({
-      title: "Edital Finalizado",
-      description: "Edital foi finalizado e está pronto para revisão.",
-    });
+  const handleFinalize = async () => {
+    try {
+      setLoading(true);
+      const data: Omit<DbEdital, 'id' | 'created_at' | 'updated_at'> = {
+        numero_edital: editalData.numeroEdital,
+        tr_id: selectedTR.id,
+        objeto: editalData.objetoLicitacao,
+        status: 'Concluído',
+        modalidade: editalData.modalidadeLicitacao,
+        tipo_licitacao: editalData.criterioJulgamento,
+        valor_estimado: selectedTR.valor_estimado,
+        data_publicacao: null,
+        prefeitura_id: user?.prefeituraId || null,
+        dados_json: editalData,
+        created_by: user?.id || null,
+      };
+
+      const result = await editalService.createEdital(data);
+      onSave(result);
+      toast({
+        title: "Edital Finalizado",
+        description: "Edital foi finalizado e está pronto para revisão.",
+      });
+    } catch (error) {
+      console.error('Erro ao finalizar edital:', error);
+      toast({
+        title: "Erro ao finalizar",
+        description: "Não foi possível finalizar o edital.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStepStatus = (stepNumber: number) => {
@@ -322,62 +373,62 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
     switch (currentStep) {
       case 1:
         return (
-          <EditalStep1 
-            data={editalData} 
+          <EditalStep1
+            data={editalData}
             onUpdate={updateEditalData}
             selectedTR={selectedTR}
           />
         );
       case 2:
         return (
-          <EditalStep2 
-            data={editalData} 
+          <EditalStep2
+            data={editalData}
             onUpdate={updateEditalData}
             selectedTR={selectedTR}
           />
         );
       case 3:
         return (
-          <EditalStep3 
-            data={editalData} 
+          <EditalStep3
+            data={editalData}
             onUpdate={updateEditalData}
             selectedTR={selectedTR}
           />
         );
       case 4:
         return (
-          <EditalStep4 
-            data={editalData} 
+          <EditalStep4
+            data={editalData}
             onUpdate={updateEditalData}
           />
         );
       case 5:
         return (
-          <EditalStep5 
-            data={editalData} 
+          <EditalStep5
+            data={editalData}
             onUpdate={updateEditalData}
             selectedTR={selectedTR}
           />
         );
       case 6:
         return (
-          <EditalStep6 
-            data={editalData} 
+          <EditalStep6
+            data={editalData}
             onUpdate={updateEditalData}
             selectedTR={selectedTR}
           />
         );
       case 7:
         return (
-          <EditalStep7 
-            data={editalData} 
+          <EditalStep7
+            data={editalData}
             onUpdate={updateEditalData}
           />
         );
       case 8:
         return (
-          <EditalStep8 
-            data={editalData} 
+          <EditalStep8
+            data={editalData}
             onUpdate={updateEditalData}
             selectedTR={selectedTR}
             onFinalize={handleFinalize}
@@ -398,11 +449,11 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-bold text-gray-900">Criação de Edital</h2>
-              <p className="text-sm text-gray-600">TR: {selectedTR.numero} - {selectedTR.etpTitulo}</p>
+              <p className="text-sm text-gray-600">TR: {selectedTR.numero_tr} - {selectedTR.objeto}</p>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" onClick={handleSave}>
-                <Save className="h-4 w-4 mr-1" />
+              <Button variant="outline" onClick={handleSave} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
                 Salvar
               </Button>
               <Button variant="ghost" onClick={onClose}>
@@ -429,20 +480,20 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
             {steps.map((step) => {
               const status = getStepStatus(step.number);
               const Icon = step.icon;
-              
+
               return (
-                <div 
+                <div
                   key={step.number}
                   className={`flex flex-col items-center cursor-pointer transition-all
-                    ${status === 'current' ? 'text-blue-600' : 
-                      status === 'completed' ? 'text-green-600' : 
-                      status === 'error' ? 'text-red-600' : 'text-gray-400'}`}
+                    ${status === 'current' ? 'text-blue-600' :
+                      status === 'completed' ? 'text-green-600' :
+                        status === 'error' ? 'text-red-600' : 'text-gray-400'}`}
                   onClick={() => setCurrentStep(step.number)}
                 >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-all
-                    ${status === 'current' ? 'bg-blue-100 border-2 border-blue-600' : 
-                      status === 'completed' ? 'bg-green-100 border-2 border-green-600' : 
-                      status === 'error' ? 'bg-red-100 border-2 border-red-600' : 'bg-gray-100 border-2 border-gray-300'}`}
+                    ${status === 'current' ? 'bg-blue-100 border-2 border-blue-600' :
+                      status === 'completed' ? 'bg-green-100 border-2 border-green-600' :
+                        status === 'error' ? 'bg-red-100 border-2 border-red-600' : 'bg-gray-100 border-2 border-gray-300'}`}
                   >
                     {status === 'completed' ? (
                       <CheckCircle className="h-5 w-5" />
@@ -470,8 +521,8 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
         {/* Footer */}
         <div className="p-6 border-t bg-gray-50 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handlePrevious}
               disabled={currentStep === 1}
             >
@@ -486,15 +537,17 @@ const EditalWizard = ({ selectedTR, onClose, onSave }: EditalWizardProps) => {
             </div>
 
             {currentStep < 8 ? (
-              <Button onClick={handleNext}>
+              <Button onClick={handleNext} disabled={loading}>
                 Próximo
                 <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             ) : (
-              <Button 
+              <Button
                 onClick={handleFinalize}
                 className="bg-green-600 hover:bg-green-700"
+                disabled={loading}
               >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Finalizar Edital
               </Button>
             )}

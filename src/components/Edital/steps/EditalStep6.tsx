@@ -5,44 +5,30 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { TermoReferencia } from '@/utils/termoReferenciaData';
+import { DbTermoReferencia } from '@/types/database';
 
 interface EditalStep6Props {
   data: any;
   onUpdate: (field: string, value: any) => void;
-  selectedTR: TermoReferencia;
+  selectedTR: DbTermoReferencia;
 }
 
 const EditalStep6 = ({ data, onUpdate, selectedTR }: EditalStep6Props) => {
-  // Mock data dos itens baseados no TR/DFD
-  const mockItens = [
+  // Carregar itens do TR (armazenados no dados_json)
+  const itemsFromTR = (selectedTR.dados_json as any)?.items || [];
+
+  const items = itemsFromTR.length > 0 ? itemsFromTR : [
     {
       id: 1,
-      item: 'Papel A4 75g',
-      unidade: 'Resma',
-      quantidade: 500,
-      valorUnitario: 12.50,
-      valorTotal: 6250.00
-    },
-    {
-      id: 2,
-      item: 'Caneta Esferográfica Azul',
-      unidade: 'Unidade',
-      quantidade: 1000,
-      valorUnitario: 1.20,
-      valorTotal: 1200.00
-    },
-    {
-      id: 3,
-      item: 'Lápis HB nº 2',
-      unidade: 'Unidade',
-      quantidade: 800,
-      valorUnitario: 0.85,
-      valorTotal: 680.00
+      descricao: 'Item não encontrado ou TR vazio',
+      unidade: 'N/A',
+      quantidade: 0,
+      valorUnitario: 0,
+      valorTotal: 0
     }
   ];
 
-  const valorTotalGeral = mockItens.reduce((acc, item) => acc + item.valorTotal, 0);
+  const valorTotalGeral = items.reduce((acc: number, item: any) => acc + (parseFloat(item.valorTotal) || 0), 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -72,7 +58,7 @@ const EditalStep6 = ({ data, onUpdate, selectedTR }: EditalStep6Props) => {
             <Label htmlFor="exibirValorEstimado">Exibir Valor Estimado no Edital</Label>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            {data.exibirValorEstimado 
+            {data.exibirValorEstimado
               ? 'Os valores estimados serão visíveis aos licitantes'
               : 'Os valores serão mantidos em sigilo (envelope lacrado)'
             }
@@ -102,19 +88,19 @@ const EditalStep6 = ({ data, onUpdate, selectedTR }: EditalStep6Props) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockItens.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.id}</TableCell>
-                    <TableCell>{item.item}</TableCell>
+                {items.map((item: any, index: number) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{index + 1}</TableCell>
+                    <TableCell>{item.descricao || item.item}</TableCell>
                     <TableCell>{item.unidade}</TableCell>
-                    <TableCell className="text-right">{item.quantidade.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{(parseFloat(item.quantidade) || 0).toLocaleString()}</TableCell>
                     {data.exibirValorEstimado && (
                       <>
                         <TableCell className="text-right">
-                          R$ {item.valorUnitario.toFixed(2).replace('.', ',')}
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(item.valorUnitario) || 0)}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          R$ {item.valorTotal.toFixed(2).replace('.', ',')}
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(item.valorTotal) || 0)}
                         </TableCell>
                       </>
                     )}
@@ -143,10 +129,10 @@ const EditalStep6 = ({ data, onUpdate, selectedTR }: EditalStep6Props) => {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h4 className="font-medium text-blue-900 mb-2">📋 Origem dos Itens</h4>
         <div className="text-sm text-blue-800 space-y-1">
-          <p>• Itens importados automaticamente do TR: {selectedTR.numero}</p>
-          <p>• Quantidades consolidadas do PCA</p>
-          <p>• Valores baseados na pesquisa de preços do DFD</p>
-          <p>• Total de {mockItens.length} itens carregados</p>
+          <p>• Itens importados automaticamente do TR: {selectedTR.numero_tr}</p>
+          <p>• Quantidades consolidadas do planejamento</p>
+          <p>• Valores baseados na pesquisa de preços do TR</p>
+          <p>• Total de {items.length} itens carregados</p>
         </div>
       </div>
     </div>

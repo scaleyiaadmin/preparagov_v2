@@ -7,13 +7,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles } from 'lucide-react';
-import { TermoReferencia } from '@/utils/termoReferenciaData';
+import { DbTermoReferencia } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 
 interface EditalStep1Props {
   data: any;
   onUpdate: (field: string, value: any) => void;
-  selectedTR: TermoReferencia;
+  selectedTR: DbTermoReferencia;
 }
 
 const EditalStep1 = ({ data, onUpdate, selectedTR }: EditalStep1Props) => {
@@ -24,14 +24,14 @@ const EditalStep1 = ({ data, onUpdate, selectedTR }: EditalStep1Props) => {
       title: "IA Ativada",
       description: "Gerando conteúdo com base no TR e dados do sistema...",
     });
-    
+
     // Simulação de geração por IA
     setTimeout(() => {
       if (field === 'objetoLicitacao') {
-        const aiContent = `${selectedTR.objeto} - conforme especificações técnicas detalhadas no Termo de Referência ${selectedTR.numero}, visando atender às necessidades da ${selectedTR.secretaria}.`;
+        const aiContent = `${selectedTR.objeto} - conforme especificações técnicas detalhadas no Termo de Referência ${selectedTR.numero_tr}, visando atender às necessidades da secretaria solicitante.`;
         onUpdate(field, aiContent);
       }
-      
+
       toast({
         title: "Conteúdo Gerado",
         description: "Texto gerado com sucesso. Você pode editá-lo se necessário.",
@@ -173,16 +173,16 @@ const EditalStep1 = ({ data, onUpdate, selectedTR }: EditalStep1Props) => {
         <h4 className="font-medium text-blue-900 mb-2">Informações do TR Vinculado</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-blue-700 font-medium">TR:</span> {selectedTR.numero}
+            <span className="text-blue-700 font-medium">TR:</span> {selectedTR.numero_tr}
           </div>
           <div>
-            <span className="text-blue-700 font-medium">ETP:</span> {selectedTR.etpNumero}
+            <span className="text-blue-700 font-medium">Data:</span> {new Date(selectedTR.created_at || '').toLocaleDateString('pt-BR')}
           </div>
           <div>
-            <span className="text-blue-700 font-medium">Secretaria:</span> {selectedTR.secretaria}
+            <span className="text-blue-700 font-medium">Secretaria:</span> {selectedTR.secretaria_id || 'Não informada'}
           </div>
           <div>
-            <span className="text-blue-700 font-medium">Responsável:</span> {selectedTR.responsavel}
+            <span className="text-blue-700 font-medium">Valor Estimado:</span> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedTR.valor_estimado)}
           </div>
         </div>
       </div>

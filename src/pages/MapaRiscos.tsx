@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,19 +27,14 @@ import MapaRiscosOverviewCards from '../components/MapaRiscos/MapaRiscosOverview
 import MapaRiscosPreview from '../components/MapaRiscos/MapaRiscosPreview';
 import AIRiskSuggestions from '../components/MapaRiscos/AIRiskSuggestions';
 import ETPSummaryCard from '../components/MapaRiscos/ETPSummaryCard';
+import { mapaRiscosService } from '@/services/mapaRiscosService';
+import { useAuth } from '@/contexts/AuthContext';
+import { DbMapaRiscos, DbMapaRiscosItem } from '@/types/database';
 
-interface Risco {
-  id: number;
-  categoria: string;
-  descricao: string;
-  causaProvavel?: string;
-  consequencia?: string;
-  probabilidade: string;
-  impacto: string;
-  nivel: string;
-  mitigacao: string;
-  planoContingencia?: string;
-  responsavel?: string;
+// Tipos auxiliares corrigidos
+interface Risco extends DbMapaRiscosItem { }
+interface MapaRisco extends DbMapaRiscos {
+  totalRiscos?: number;
 }
 
 interface ETP {
@@ -61,19 +56,6 @@ interface DFD {
   tipo: string;
 }
 
-interface MapaRisco {
-  id: string;
-  titulo: string;
-  etpNumero: string;
-  etpTitulo: string;
-  secretaria: string;
-  dataCriacao: string;
-  dataUltimaEdicao?: string;
-  totalRiscos: number;
-  riscosAlto: number;
-  status: 'concluido' | 'elaboracao';
-}
-
 const MapaRiscos = () => {
   const [step, setStep] = useState<'overview' | 'list-concluidos' | 'list-elaboracao' | 'select-etp' | 'create-risks'>('overview');
   const [selectedETP, setSelectedETP] = useState<ETP | null>(null);
@@ -82,13 +64,18 @@ const MapaRiscos = () => {
   const [aiSuggestionsOpen, setAiSuggestionsOpen] = useState(false);
   const [currentMapaId, setCurrentMapaId] = useState<string | null>(null);
 
-  // Mock DFDs vinculados ao ETP selecionado
   const [etpDFDs, setEtpDFDs] = useState<DFD[]>([]);
-
   const [riscos, setRiscos] = useState<Risco[]>([]);
+  const [mapas, setMapas] = useState<MapaRisco[]>([]);
+  const [counts, setCounts] = useState({ concluidos: 0, elaboracao: 0, total: 0 });
 
   const [showForm, setShowForm] = useState(false);
   const [editingRisk, setEditingRisk] = useState<Risco | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const { user } = useAuth();
+  const { toast } = useToast();
+
   const [formData, setFormData] = useState({
     categoria: '',
     descricao: '',
@@ -100,8 +87,6 @@ const MapaRiscos = () => {
     planoContingencia: '',
     responsavel: ''
   });
-
-  const { toast } = useToast();
 
   const categorias = ['Técnico', 'Orçamentário', 'Operacional', 'Legal', 'Ambiental', 'Cronograma', 'Jurídico', 'Logístico'];
   const niveis = ['Baixa', 'Média', 'Alta'];
@@ -142,15 +127,72 @@ const MapaRiscos = () => {
     return colors[categoria as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
+  useEffect(() => {
+    loadOverviewData();
+  }, [user?.prefeituraId]);
+
+  const loadOverviewData = async () => {
+    try {
+      const countsData = await mapaRiscosService.getCountsByStatus(user?.prefeituraId || undefined);
+      setCounts(countsData);
+    } catch (error) {
+      console.error('Erro ao carregar dashboard de riscos:', error);
+    }
+  };
+
+  const loadMapas = async (status?: 'concluido' | 'elaboracao') => {
+    try {
+      setLoading(true);
+      const data = await mapaRiscosService.fetchMapasRiscos(user?.prefeituraId || undefined);
+      if (status) {
+        setMapas(data.filter(m => m.status === status));
+      } else {
+        setMapas(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar mapas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMapaFull = async (id: string) => {
+    try {
+      setLoading(true);
+      const data = await mapaRiscosService.fetchMapaRisco(id);
+      setCurrentMapaId(data.id);
+      setRiscos(data.mapa_riscos_itens || []);
+      if (data.etp_id) {
+        setSelectedETP({
+          id: data.etp_id,
+          titulo: data.etp_titulo || '',
+          numeroETP: data.etp_numero || '',
+          secretaria: data.secretaria || '',
+          dataCriacao: '',
+          valorTotal: '',
+          descricaoDemanda: '',
+          status: 'concluido'
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar detalhes do mapa:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleViewConcluidos = () => {
+    loadMapas('concluido');
     setStep('list-concluidos');
   };
 
   const handleViewElaboracao = () => {
+    loadMapas('elaboracao');
     setStep('list-elaboracao');
   };
 
   const handleBackToOverview = () => {
+    loadOverviewData();
     setStep('overview');
     setSelectedETP(null);
     setCurrentMapaId(null);
@@ -160,11 +202,6 @@ const MapaRiscos = () => {
 
   const handleSelectETP = (etp: ETP) => {
     setSelectedETP(etp);
-
-    // Mock: buscar DFDs vinculados ao ETP
-    const mockDFDs: DFD[] = [];
-    setEtpDFDs(mockDFDs);
-
     setStep('create-risks');
     setEtpSelectionOpen(false);
     toast({
@@ -178,16 +215,13 @@ const MapaRiscos = () => {
     setEtpSelectionOpen(true);
   };
 
-  const handleViewPreview = (mapa: MapaRisco) => {
+  const handleViewPreview = async (mapa: MapaRisco) => {
+    await loadMapaFull(mapa.id!);
     setPreviewOpen(true);
-    toast({
-      title: "Visualizando Mapa",
-      description: `Abrindo preview do ${mapa.titulo}`,
-    });
   };
 
   const handleContinueEditing = (mapa: MapaRisco) => {
-    setCurrentMapaId(mapa.id);
+    loadMapaFull(mapa.id!);
     setStep('create-risks');
     toast({
       title: "Carregando Mapa",
@@ -196,25 +230,72 @@ const MapaRiscos = () => {
   };
 
   const handleExportPDF = (mapa?: MapaRisco) => {
-    toast({
-      title: "Exportando PDF",
-      description: "Gerando arquivo PDF do mapa de riscos...",
-    });
+    window.print();
   };
 
-  const handleSaveDraft = () => {
-    toast({
-      title: "Rascunho Salvo",
-      description: "Mapa de riscos salvo como rascunho.",
-    });
+  const handleSaveDraft = async () => {
+    try {
+      setLoading(true);
+      if (currentMapaId) {
+        await mapaRiscosService.updateMapaRiscos(currentMapaId, {
+          titulo: selectedETP ? `Mapa de Riscos - ${selectedETP.numeroETP}` : 'Novo Mapa de Riscos',
+          updated_at: new Date().toISOString()
+        });
+      } else {
+        const newMapa = await mapaRiscosService.createMapaRiscos({
+          titulo: selectedETP ? `Mapa de Riscos - ${selectedETP.numeroETP}` : 'Novo Mapa de Riscos',
+          etp_id: selectedETP?.id,
+          etp_numero: selectedETP?.numeroETP,
+          etp_titulo: selectedETP?.titulo,
+          secretaria: selectedETP?.secretaria,
+          status: 'elaboracao',
+          prefeitura_id: user?.prefeituraId || '',
+          created_by: user?.id || ''
+        });
+        setCurrentMapaId(newMapa.id);
+      }
+
+      toast({
+        title: "Rascunho Salvo",
+        description: "Mapa de riscos salvo como rascunho com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao salvar rascunho:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar o rascunho.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleFinalizeMapa = () => {
-    toast({
-      title: "Mapa Finalizado",
-      description: "Mapa de riscos finalizado com sucesso!",
-    });
-    setStep('overview');
+  const handleFinalizeMapa = async () => {
+    try {
+      setLoading(true);
+      if (!currentMapaId) {
+        await handleSaveDraft();
+      }
+
+      if (currentMapaId) {
+        await mapaRiscosService.finalizeMapaRiscos(currentMapaId);
+        toast({
+          title: "Mapa Finalizado",
+          description: "Mapa de riscos finalizado com sucesso!",
+        });
+        handleBackToOverview();
+      }
+    } catch (error) {
+      console.error('Erro ao finalizar mapa:', error);
+      toast({
+        title: "Erro ao finalizar",
+        description: "Não foi possível finalizar o mapa.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -224,45 +305,79 @@ const MapaRiscos = () => {
     }));
   };
 
-  const handleSubmit = () => {
-    const nivel = calcularNivel(formData.probabilidade, formData.impacto);
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      const nivel = calcularNivel(formData.probabilidade, formData.impacto);
 
-    if (editingRisk) {
-      setRiscos(prev => prev.map(risk =>
-        risk.id === editingRisk.id
-          ? { ...editingRisk, ...formData, nivel }
-          : risk
-      ));
-      toast({
-        title: "Risco Atualizado",
-        description: "Risco atualizado com sucesso.",
+      if (!currentMapaId) {
+        await handleSaveDraft();
+      }
+
+      if (editingRisk) {
+        await mapaRiscosService.updateRiscoItem(editingRisk.id!, {
+          categoria: formData.categoria,
+          descricao: formData.descricao,
+          causa_provavel: formData.causaProvavel,
+          consequencia: formData.consequencia,
+          probabilidade: formData.probabilidade,
+          impacto: formData.impacto,
+          nivel,
+          mitigacao: formData.mitigacao,
+          plano_contingencia: formData.planoContingencia,
+          responsavel: formData.responsavel
+        });
+        toast({
+          title: "Risco Atualizado",
+          description: "Risco atualizado com sucesso.",
+        });
+      } else if (currentMapaId) {
+        await mapaRiscosService.addRiscoItem(currentMapaId, {
+          categoria: formData.categoria,
+          descricao: formData.descricao,
+          causa_provavel: formData.causaProvavel,
+          consequencia: formData.consequencia,
+          probabilidade: formData.probabilidade,
+          impacto: formData.impacto,
+          nivel,
+          mitigacao: formData.mitigacao,
+          plano_contingencia: formData.planoContingencia,
+          responsavel: formData.responsavel
+        });
+        toast({
+          title: "Risco Adicionado",
+          description: "Novo risco adicionado ao mapa.",
+        });
+      }
+
+      if (currentMapaId) {
+        const mapaData = await mapaRiscosService.fetchMapaRisco(currentMapaId);
+        setRiscos(mapaData.mapa_riscos_itens || []);
+      }
+
+      setShowForm(false);
+      setEditingRisk(null);
+      setFormData({
+        categoria: '',
+        descricao: '',
+        causaProvavel: '',
+        consequencia: '',
+        probabilidade: '',
+        impacto: '',
+        mitigacao: '',
+        planoContingencia: '',
+        responsavel: ''
       });
-    } else {
-      const newRisk: Risco = {
-        id: Date.now(),
-        ...formData,
-        nivel
-      };
-      setRiscos(prev => [...prev, newRisk]);
+    } catch (error) {
+      console.error('Erro ao salvar risco:', error);
       toast({
-        title: "Risco Adicionado",
-        description: "Novo risco adicionado ao mapa.",
+        title: "Erro ao salvar risco",
+        description: "Ocorreu um erro ao salvar os dados.",
+        variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
-
-    setFormData({
-      categoria: '',
-      descricao: '',
-      causaProvavel: '',
-      consequencia: '',
-      probabilidade: '',
-      impacto: '',
-      mitigacao: '',
-      planoContingencia: '',
-      responsavel: ''
-    });
-    setShowForm(false);
-    setEditingRisk(null);
   };
 
   const handleEdit = (risk: Risco) => {
@@ -270,31 +385,59 @@ const MapaRiscos = () => {
     setFormData({
       categoria: risk.categoria,
       descricao: risk.descricao,
-      causaProvavel: risk.causaProvavel || '',
+      causaProvavel: risk.causa_provavel || '',
       consequencia: risk.consequencia || '',
       probabilidade: risk.probabilidade,
       impacto: risk.impacto,
       mitigacao: risk.mitigacao,
-      planoContingencia: risk.planoContingencia || '',
+      planoContingencia: risk.plano_contingencia || '',
       responsavel: risk.responsavel || ''
     });
     setShowForm(true);
   };
 
-  const handleDelete = (id: number) => {
-    setRiscos(prev => prev.filter(risk => risk.id !== id));
-    toast({
-      title: "Risco Removido",
-      description: "Risco removido do mapa.",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      setLoading(true);
+      await mapaRiscosService.deleteRiscoItem(id);
+      setRiscos(prev => prev.filter(risk => risk.id !== id));
+      toast({
+        title: "Risco Removido",
+        description: "Risco removido do mapa.",
+      });
+    } catch (error) {
+      console.error('Erro ao remover risco:', error);
+      toast({
+        title: "Erro ao remover",
+        description: "Não foi possível remover o risco.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAcceptAIRisk = (aiRisk: Omit<Risco, 'id'>) => {
-    const newRisk: Risco = {
-      id: Date.now(),
-      ...aiRisk
-    };
-    setRiscos(prev => [...prev, newRisk]);
+  const handleAcceptAIRisk = async (aiRisk: Omit<DbMapaRiscosItem, 'id' | 'mapa_riscos_id'>) => {
+    try {
+      setLoading(true);
+      if (!currentMapaId) {
+        await handleSaveDraft();
+      }
+
+      if (currentMapaId) {
+        await mapaRiscosService.addRiscoItem(currentMapaId, aiRisk);
+        const mapaData = await mapaRiscosService.fetchMapaRisco(currentMapaId);
+        setRiscos(mapaData.mapa_riscos_itens || []);
+        toast({
+          title: "Sugestão Aceita",
+          description: "O risco sugerido pela IA foi adicionado ao mapa.",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao aceitar risco IA:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const summary = {
@@ -331,7 +474,8 @@ const MapaRiscos = () => {
     );
   }
 
-  if (step === 'list-concluidos') {
+  if (step === 'list-concluidos' || step === 'list-elaboracao') {
+    const isConcluido = step === 'list-concluidos';
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -344,8 +488,14 @@ const MapaRiscos = () => {
               <ArrowLeft size={16} className="mr-1" />
               Voltar ao painel inicial
             </Button>
-            <h1 className="text-2xl font-bold text-gray-900">Mapas Concluídos</h1>
-            <p className="text-gray-600">Visualize e gerencie mapas de riscos finalizados</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isConcluido ? 'Mapas Concluídos' : 'Mapas em Elaboração'}
+            </h1>
+            <p className="text-gray-600">
+              {isConcluido
+                ? 'Visualize e gerencie mapas de riscos finalizados'
+                : 'Continue editando mapas de riscos em desenvolvimento'}
+            </p>
           </div>
           <Button
             onClick={handleStartNewMap}
@@ -357,17 +507,10 @@ const MapaRiscos = () => {
         </div>
 
         <MapaRiscosCards
-          statusFilter="concluido"
+          statusFilter={isConcluido ? 'concluido' : 'elaboracao'}
           onViewPreview={handleViewPreview}
           onContinueEditing={handleContinueEditing}
           onExportPDF={handleExportPDF}
-        />
-
-        <ETPSelectionModal
-          isOpen={etpSelectionOpen}
-          onClose={() => setEtpSelectionOpen(false)}
-          onSelectETP={handleSelectETP}
-          selectedETP={selectedETP}
         />
 
         <MapaRiscosPreview
@@ -386,64 +529,12 @@ const MapaRiscos = () => {
           riscos={riscos}
           onExportPDF={() => handleExportPDF()}
         />
-      </div>
-    );
-  }
-
-  if (step === 'list-elaboracao') {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <Button
-              variant="ghost"
-              onClick={handleBackToOverview}
-              className="mb-2 p-0 h-auto text-orange-600 hover:text-orange-700"
-            >
-              <ArrowLeft size={16} className="mr-1" />
-              Voltar ao painel inicial
-            </Button>
-            <h1 className="text-2xl font-bold text-gray-900">Mapas em Elaboração</h1>
-            <p className="text-gray-600">Continue editando mapas de riscos em desenvolvimento</p>
-          </div>
-          <Button
-            onClick={handleStartNewMap}
-            className="bg-orange-500 hover:bg-orange-600"
-          >
-            <Plus size={16} className="mr-2" />
-            Novo Mapa de Riscos
-          </Button>
-        </div>
-
-        <MapaRiscosCards
-          statusFilter="elaboracao"
-          onViewPreview={handleViewPreview}
-          onContinueEditing={handleContinueEditing}
-          onExportPDF={handleExportPDF}
-        />
 
         <ETPSelectionModal
           isOpen={etpSelectionOpen}
           onClose={() => setEtpSelectionOpen(false)}
           onSelectETP={handleSelectETP}
           selectedETP={selectedETP}
-        />
-
-        <MapaRiscosPreview
-          isOpen={previewOpen}
-          onClose={() => setPreviewOpen(false)}
-          etp={selectedETP || {
-            id: '',
-            titulo: '',
-            numeroETP: '',
-            secretaria: '',
-            dataCriacao: '',
-            valorTotal: '',
-            descricaoDemanda: '',
-            status: ''
-          }}
-          riscos={riscos}
-          onExportPDF={() => handleExportPDF()}
         />
       </div>
     );
@@ -539,6 +630,12 @@ const MapaRiscos = () => {
             <Plus size={16} className="mr-2" />
             Adicionar Risco Manualmente
           </Button>
+          {riscos.length > 0 && (
+            <Button onClick={handleFinalizeMapa} className="bg-green-600 hover:bg-green-700">
+              <Shield size={16} className="mr-2" />
+              Finalizar Mapa
+            </Button>
+          )}
         </div>
       </div>
 
@@ -573,7 +670,7 @@ const MapaRiscos = () => {
         </Card>
       </div>
 
-      {riscos.length === 0 && (
+      {riscos.length === 0 && !showForm && (
         <Card>
           <CardContent className="p-12 text-center">
             <div className="space-y-6">
@@ -610,227 +707,177 @@ const MapaRiscos = () => {
       )}
 
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingRisk ? 'Editar Risco' : 'Adicionar Risco Manualmente'}</CardTitle>
+        <Card className="border-orange-200 shadow-md">
+          <CardHeader className="bg-orange-50/50">
+            <CardTitle className="text-orange-800 flex items-center">
+              <Edit className="w-5 h-5 mr-2" />
+              {editingRisk ? 'Editar Risco' : 'Novo Risco Manual'}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="categoria">Categoria</Label>
-                <Select value={formData.categoria} onValueChange={(value) => handleInputChange('categoria', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
+                <Label>Categoria</Label>
+                <Select value={formData.categoria} onValueChange={(v) => handleInputChange('categoria', v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {categorias.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
+                    {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="probabilidade">Probabilidade</Label>
-                <Select value={formData.probabilidade} onValueChange={(value) => handleInputChange('probabilidade', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a probabilidade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {niveis.map(nivel => (
-                      <SelectItem key={nivel} value={nivel}>{nivel}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="impacto">Impacto</Label>
-                <Select value={formData.impacto} onValueChange={(value) => handleInputChange('impacto', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o impacto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Baixo">Baixo</SelectItem>
-                    <SelectItem value="Médio">Médio</SelectItem>
-                    <SelectItem value="Alto">Alto</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="responsavel">Responsável</Label>
-                <Input
-                  id="responsavel"
-                  value={formData.responsavel}
-                  onChange={(e) => handleInputChange('responsavel', e.target.value)}
-                  placeholder="Responsável pelo gerenciamento"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Probabilidade</Label>
+                  <Select value={formData.probabilidade} onValueChange={(v) => handleInputChange('probabilidade', v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {niveis.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Impacto</Label>
+                  <Select value={formData.impacto} onValueChange={(v) => handleInputChange('impacto', v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {['Baixo', 'Médio', 'Alto'].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição do Risco</Label>
+              <Label>Descrição do Risco</Label>
               <Textarea
-                id="descricao"
+                placeholder="Descreva o evento de risco..."
                 value={formData.descricao}
                 onChange={(e) => handleInputChange('descricao', e.target.value)}
-                placeholder="Descreva o risco identificado..."
-                rows={2}
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="causaProvavel">Causa Provável</Label>
+                <Label>Causa Provável</Label>
                 <Textarea
-                  id="causaProvavel"
                   value={formData.causaProvavel}
                   onChange={(e) => handleInputChange('causaProvavel', e.target.value)}
-                  placeholder="Descreva a causa provável..."
-                  rows={2}
                 />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="consequencia">Consequência</Label>
+                <Label>Consequência</Label>
                 <Textarea
-                  id="consequencia"
                   value={formData.consequencia}
                   onChange={(e) => handleInputChange('consequencia', e.target.value)}
-                  placeholder="Descreva as possíveis consequências..."
-                  rows={2}
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="mitigacao">Estratégia de Mitigação</Label>
-              <Textarea
-                id="mitigacao"
-                value={formData.mitigacao}
-                onChange={(e) => handleInputChange('mitigacao', e.target.value)}
-                placeholder="Descreva as medidas para mitigar o risco..."
-                rows={2}
-              />
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="font-medium text-gray-900 flex items-center">
+                <Shield className="w-4 h-4 mr-2 text-green-600" />
+                Medidas de Controle
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Ação de Mitigação</Label>
+                  <Textarea
+                    value={formData.mitigacao}
+                    onChange={(e) => handleInputChange('mitigacao', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Plano de Contingência</Label>
+                  <Textarea
+                    value={formData.planoContingencia}
+                    onChange={(e) => handleInputChange('planoContingencia', e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Responsável</Label>
+                <Input
+                  value={formData.responsavel}
+                  onChange={(e) => handleInputChange('responsavel', e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="planoContingencia">Plano de Contingência</Label>
-              <Textarea
-                id="planoContingencia"
-                value={formData.planoContingencia}
-                onChange={(e) => handleInputChange('planoContingencia', e.target.value)}
-                placeholder="Descreva o plano de contingência..."
-                rows={2}
-              />
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setShowForm(false)}>
+            <div className="flex justify-end space-x-3 pt-6">
+              <Button variant="outline" onClick={() => { setShowForm(false); setEditingRisk(null); }}>
                 Cancelar
               </Button>
               <Button onClick={handleSubmit} className="bg-orange-500 hover:bg-orange-600">
-                <Save size={16} className="mr-2" />
-                {editingRisk ? 'Atualizar' : 'Adicionar'}
+                {editingRisk ? 'Salvar Alterações' : 'Adicionar Risco'}
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {riscos.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Riscos Identificados</CardTitle>
-              <Button onClick={handleFinalizeMapa} className="bg-green-600 hover:bg-green-700">
-                <Target size={16} className="mr-2" />
-                Finalizar Mapa
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {riscos.map((risco) => (
-                <div key={risco.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Badge className={getCategoriaColor(risco.categoria)}>
-                          {risco.categoria}
-                        </Badge>
-                        <Badge className={getNivelColor(risco.nivel)}>
-                          {risco.nivel}
-                        </Badge>
-                      </div>
-                      <h3 className="font-medium text-gray-900 mb-2">{risco.descricao}</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-2">
-                        <div>
-                          <span className="font-medium">Probabilidade:</span> {risco.probabilidade}
-                        </div>
-                        <div>
-                          <span className="font-medium">Impacto:</span> {risco.impacto}
-                        </div>
-                        <div>
-                          <span className="font-medium">Responsável:</span> {risco.responsavel || '-'}
-                        </div>
-                      </div>
-                      {risco.causaProvavel && (
-                        <div className="mb-2">
-                          <span className="font-medium text-sm text-gray-700">Causa:</span>
-                          <p className="text-sm text-gray-600">{risco.causaProvavel}</p>
-                        </div>
-                      )}
-                      {risco.consequencia && (
-                        <div className="mb-2">
-                          <span className="font-medium text-sm text-gray-700">Consequência:</span>
-                          <p className="text-sm text-gray-600">{risco.consequencia}</p>
-                        </div>
-                      )}
-                      <div className="mb-2">
-                        <span className="font-medium text-sm text-gray-700">Mitigação:</span>
-                        <p className="text-sm text-gray-600 mt-1">{risco.mitigacao}</p>
-                      </div>
-                      {risco.planoContingencia && (
-                        <div>
-                          <span className="font-medium text-sm text-gray-700">Contingência:</span>
-                          <p className="text-sm text-gray-600 mt-1">{risco.planoContingencia}</p>
-                        </div>
-                      )}
+      {riscos.length > 0 && !showForm && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Riscos Identificados</h2>
+            <Badge variant="outline">{riscos.length} riscos</Badge>
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            {riscos.map(risk => (
+              <Card key={risk.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge className={getCategoriaColor(risk.categoria)}>{risk.categoria}</Badge>
+                      <Badge className={getNivelColor(risk.nivel)}>{risk.nivel}</Badge>
                     </div>
-                    <div className="flex items-center space-x-2 ml-4">
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(risco)}>
-                        <Edit size={16} />
+                    <div className="flex space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(risk)}>
+                        <Edit className="w-4 h-4 text-gray-500" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(risco.id)}>
-                        <Trash2 size={16} />
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(risk.id!)}>
+                        <Trash2 className="w-4 h-4 text-red-500" />
                       </Button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  <h3 className="font-semibold text-gray-900 mb-2">{risk.descricao}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div>
+                      <span className="font-semibold">Mitigação:</span> {risk.mitigacao}
+                    </div>
+                    <div>
+                      <span className="font-semibold">Responsável:</span> {risk.responsavel}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       )}
+
+      <AIRiskSuggestions
+        isOpen={aiSuggestionsOpen}
+        onClose={() => setAiSuggestionsOpen(false)}
+        etp={selectedETP}
+        onAcceptRisk={handleAcceptAIRisk}
+      />
 
       <MapaRiscosPreview
         isOpen={previewOpen}
         onClose={() => setPreviewOpen(false)}
-        etp={selectedETP!}
+        etp={selectedETP || {
+          id: '',
+          titulo: '',
+          numeroETP: '',
+          secretaria: '',
+          dataCriacao: '',
+          valorTotal: '',
+          descricaoDemanda: '',
+          status: ''
+        }}
         riscos={riscos}
         onExportPDF={() => handleExportPDF()}
       />
-
-      {aiSuggestionsOpen && selectedETP && (
-        <AIRiskSuggestions
-          etp={selectedETP}
-          dfds={etpDFDs}
-          onAcceptRisk={handleAcceptAIRisk}
-          onClose={() => setAiSuggestionsOpen(false)}
-        />
-      )}
     </div>
   );
 };

@@ -119,22 +119,43 @@ const DFD = () => {
     }
   };
 
-  const confirmAction = () => {
-    console.log('confirmAction called:', actionType);
-    const actionMessages = {
-      'cancel': 'DFD cancelado com sucesso',
-      'delete': 'DFD excluído permanentemente',
-      'remove-pca': 'Solicitação de retirada do PCA enviada'
-    };
+  const confirmAction = async () => {
+    if (!selectedDFD) return;
 
-    toast({
-      title: "Ação realizada",
-      description: actionMessages[actionType],
-    });
+    try {
+      console.log('confirmAction called:', actionType);
 
-    setShowActionModal(false);
-    setActionJustification('');
-    setSelectedDFD(null);
+      if (actionType === 'delete') {
+        await dfdService.delete(selectedDFD.id);
+      } else if (actionType === 'cancel') {
+        await dfdService.cancel(selectedDFD.id, actionJustification);
+      } else if (actionType === 'remove-pca') {
+        await dfdService.requestCancellation(selectedDFD.id, actionJustification);
+      }
+
+      const actionMessages = {
+        'cancel': 'DFD cancelado com sucesso',
+        'delete': 'DFD excluído permanentemente',
+        'remove-pca': 'Solicitação de retirada do PCA enviada'
+      };
+
+      toast({
+        title: "Ação realizada",
+        description: actionMessages[actionType],
+      });
+
+      setShowActionModal(false);
+      setActionJustification('');
+      setSelectedDFD(null);
+      fetchDFDs(); // Refresh list
+    } catch (error) {
+      console.error(`Error performing ${actionType}:`, error);
+      toast({
+        title: "Erro ao realizar ação",
+        description: "Ocorreu um erro no servidor. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleFormBack = () => {

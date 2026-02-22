@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Calendar, 
-  FileText, 
-  Package, 
+import {
+  Calendar,
+  FileText,
+  Package,
   Building,
   DollarSign,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import DFDsLivresModal from './DFDsLivresModal';
 import ItensEspecificosModal from './ItensEspecificosModal';
+import { etpService } from '@/services/etpService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TRSelectionModalProps {
   open: boolean;
@@ -21,38 +24,35 @@ interface TRSelectionModalProps {
 }
 
 const TRSelectionModal = ({ open, onClose, onOriginSelected }: TRSelectionModalProps) => {
+  const { user } = useAuth();
   const [selectedOrigin, setSelectedOrigin] = useState<'cronograma' | 'dfds-livres' | 'itens-especificos' | null>(null);
   const [selectedLicitacao, setSelectedLicitacao] = useState<any>(null);
+  const [etps, setEtps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [showDFDsLivresModal, setShowDFDsLivresModal] = useState(false);
   const [showItensEspecificosModal, setShowItensEspecificosModal] = useState(false);
 
-  // Mock data para licitações do cronograma
-  const mockLicitacoes = [
-    {
-      id: '1',
-      tipoDFD: 'Materiais de Consumo',
-      dataContratacao: '2024-03-15',
-      dataSugeridaAbertura: '2024-02-14',
-      prioridade: 'Alta',
-      secretariasNomes: ['Secretaria de Educação', 'Secretaria de Saúde'],
-      valorTotal: 'R$ 45.000,00',
-      dfdIds: ['DFD-001', 'DFD-002']
-    },
-    {
-      id: '2',
-      tipoDFD: 'Materiais Permanentes',
-      dataContratacao: '2024-04-20',
-      dataSugeridaAbertura: '2024-03-20',
-      prioridade: 'Média',
-      secretariasNomes: ['Secretaria de Administração'],
-      valorTotal: 'R$ 125.000,00',
-      dfdIds: ['DFD-003', 'DFD-004']
+  useEffect(() => {
+    if (open && selectedOrigin === 'cronograma') {
+      loadETPs();
     }
-  ];
+  }, [open, selectedOrigin, user?.prefeituraId]);
+
+  const loadETPs = async () => {
+    try {
+      setLoading(true);
+      const data = await etpService.fetchConcluidos(user?.prefeituraId || undefined);
+      setEtps(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar ETPs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOriginSelection = (origin: 'cronograma' | 'dfds-livres' | 'itens-especificos') => {
     setSelectedOrigin(origin);
-    
+
     if (origin === 'dfds-livres') {
       setShowDFDsLivresModal(true);
     } else if (origin === 'itens-especificos') {
@@ -80,7 +80,7 @@ const TRSelectionModal = ({ open, onClose, onOriginSelected }: TRSelectionModalP
     onOriginSelected('itens-especificos', selectedItems);
   };
 
-  const getPriorityColor = (prioridade: string) => {
+  const getPriorityColor = (prioridade: string | null) => {
     switch (prioridade) {
       case 'Alta':
         return 'bg-red-100 text-red-800';
@@ -98,74 +98,97 @@ const TRSelectionModal = ({ open, onClose, onOriginSelected }: TRSelectionModalP
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Escolha a origem do Termo de Referência</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-900 border-b pb-4">
+              Escolha a origem do Termo de Referência
+            </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-6 pt-4">
             {!selectedOrigin && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card 
-                  className="cursor-pointer hover:bg-orange-50 border-2 hover:border-orange-200 transition-colors"
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card
+                  className="cursor-pointer group hover:bg-orange-50 border-2 border-transparent hover:border-orange-200 transition-all duration-300 shadow-sm hover:shadow-md"
                   onClick={() => handleOriginSelection('cronograma')}
                 >
                   <CardHeader className="pb-3">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="text-orange-600" size={20} />
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-orange-100 rounded-lg text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                        <Calendar size={20} />
+                      </div>
                       <CardTitle className="text-lg">Cronograma de Licitações</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Crie um TR baseado em uma licitação sugerida pelo sistema no cronograma.
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      Crie um TR baseado em um ETP concluído sugerido pelo cronograma de licitações.
                     </p>
-                    <div className="text-xs text-gray-500">
-                      ✓ Itens já consolidados<br />
-                      ✓ Datas sugeridas<br />
-                      ✓ Prioridades definidas
+                    <div className="space-y-2">
+                      <div className="flex items-center text-xs text-gray-500">
+                        <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mr-2" />
+                        ETPs Consolidados
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mr-2" />
+                        Dados de Planejamento
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card 
-                  className="cursor-pointer hover:bg-blue-50 border-2 hover:border-blue-200 transition-colors"
+                <Card
+                  className="cursor-pointer group hover:bg-blue-50 border-2 border-transparent hover:border-blue-200 transition-all duration-300 shadow-sm hover:shadow-md"
                   onClick={() => handleOriginSelection('dfds-livres')}
                 >
                   <CardHeader className="pb-3">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="text-blue-600" size={20} />
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-100 rounded-lg text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <FileText size={20} />
+                      </div>
                       <CardTitle className="text-lg">DFDs Livres</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Selecione DFDs completos livremente para criar o TR.
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      Selecione um ou mais DFDs aprovados para compor seu Termo de Referência.
                     </p>
-                    <div className="text-xs text-gray-500">
-                      ✓ Flexibilidade total<br />
-                      ✓ Múltiplos DFDs<br />
-                      ✓ Diferentes secretarias
+                    <div className="space-y-2">
+                      <div className="flex items-center text-xs text-gray-500">
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2" />
+                        Múltiplas Secretarias
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2" />
+                        Agrupamento Flexível
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card 
-                  className="cursor-pointer hover:bg-green-50 border-2 hover:border-green-200 transition-colors"
+                <Card
+                  className="cursor-pointer group hover:bg-green-50 border-2 border-transparent hover:border-green-200 transition-all duration-300 shadow-sm hover:shadow-md"
                   onClick={() => handleOriginSelection('itens-especificos')}
                 >
                   <CardHeader className="pb-3">
-                    <div className="flex items-center space-x-2">
-                      <Package className="text-green-600" size={20} />
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-green-100 rounded-lg text-green-600 group-hover:bg-green-600 group-hover:text-white transition-colors">
+                        <Package size={20} />
+                      </div>
                       <CardTitle className="text-lg">Itens Específicos</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Selecione itens específicos de um ou mais DFDs.
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      Escolha itens granulares de diferentes DFDs para um TR customizado.
                     </p>
-                    <div className="text-xs text-gray-500">
-                      ✓ Controle granular<br />
-                      ✓ Itens individuais<br />
-                      ✓ Customização total
+                    <div className="space-y-2">
+                      <div className="flex items-center text-xs text-gray-500">
+                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2" />
+                        Controle de Lotes
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2" />
+                        Seleção de Itens Avulsos
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -174,72 +197,84 @@ const TRSelectionModal = ({ open, onClose, onOriginSelected }: TRSelectionModalP
 
             {selectedOrigin === 'cronograma' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Selecione uma licitação do cronograma</h3>
-                  <Button 
-                    variant="outline" 
+                <div className="flex items-center justify-between bg-orange-50 p-4 rounded-lg border border-orange-100">
+                  <div className="flex items-center">
+                    <Calendar className="text-orange-600 mr-2" size={20} />
+                    <h3 className="text-lg font-bold text-orange-900">Selecione um ETP do Cronograma</h3>
+                  </div>
+                  <Button
+                    variant="ghost"
                     onClick={() => setSelectedOrigin(null)}
+                    className="text-orange-700 hover:bg-orange-100"
                   >
-                    Voltar
+                    Trocar Origem
                   </Button>
                 </div>
 
-                <div className="space-y-3">
-                  {mockLicitacoes.map((licitacao) => (
-                    <Card 
-                      key={licitacao.id} 
-                      className={`cursor-pointer transition-all ${
-                        selectedLicitacao?.id === licitacao.id 
-                          ? 'border-2 border-orange-500 bg-orange-50' 
-                          : 'border hover:bg-gray-50'
-                      }`}
-                      onClick={() => handleLicitacaoSelection(licitacao)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <h4 className="font-semibold text-gray-900">{licitacao.tipoDFD}</h4>
-                              <Badge className={getPriorityColor(licitacao.prioridade)}>
-                                {licitacao.prioridade}
-                              </Badge>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                              <div className="flex items-center space-x-1">
-                                <Calendar size={14} />
-                                <span>{new Date(licitacao.dataContratacao).toLocaleDateString('pt-BR')}</span>
+                {loading ? (
+                  <div className="py-20 text-center">
+                    <Loader2 className="w-10 h-10 animate-spin mx-auto text-orange-500 mb-2" />
+                    <p className="text-gray-500">Buscando ETPs consolidados...</p>
+                  </div>
+                ) : etps.length === 0 ? (
+                  <div className="py-20 text-center bg-white border rounded-lg border-dashed">
+                    <Calendar size={48} className="mx-auto text-gray-200 mb-4" />
+                    <p className="text-gray-500">Nenhum ETP concluído disponível no cronograma.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-2">
+                    {etps.map((etp) => (
+                      <Card
+                        key={etp.id}
+                        className={`cursor-pointer transition-all border-l-4 ${selectedLicitacao?.id === etp.id
+                            ? 'border-orange-500 bg-orange-50 shadow-sm'
+                            : 'border-transparent hover:border-orange-200 hover:bg-gray-50'
+                          }`}
+                        onClick={() => handleLicitacaoSelection(etp)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3 mb-2">
+                                <h4 className="font-bold text-gray-900">{etp.numeroETP}</h4>
+                                <Badge variant="outline" className="text-[10px] bg-white">CONCLUÍDO</Badge>
                               </div>
-                              <div className="flex items-center space-x-1">
-                                <Building size={14} />
-                                <span>{licitacao.secretariasNomes.length} secretarias</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <FileText size={14} />
-                                <span>{licitacao.dfdIds.length} DFDs</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <DollarSign size={14} />
-                                <span className="font-semibold text-green-600">{licitacao.valorTotal}</span>
-                              </div>
-                            </div>
-                          </div>
-                          {selectedLicitacao?.id === licitacao.id && (
-                            <div className="ml-4">
-                              <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
-                                <div className="w-2 h-2 bg-white rounded-full"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                              <p className="text-sm text-gray-600 font-medium mb-3 line-clamp-1">{etp.titulo}</p>
 
-                {selectedLicitacao && (
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs text-gray-500">
+                                <div className="flex items-center space-x-2">
+                                  <Building size={14} className="text-gray-400" />
+                                  <span>{etp.secretaria}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Calendar size={14} className="text-gray-400" />
+                                  <span>{new Date(etp.dataCriacao).toLocaleDateString('pt-BR')}</span>
+                                </div>
+                                <div className="flex items-center space-x-2 font-bold text-green-700">
+                                  <DollarSign size={14} />
+                                  <span>{etp.valorTotal}</span>
+                                </div>
+                              </div>
+                            </div>
+                            {selectedLicitacao?.id === etp.id && (
+                              <div className="ml-4 flex items-center justify-center w-8 h-8 bg-orange-500 rounded-full text-white shadow-sm">
+                                <ArrowRight size={18} />
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {!loading && etps.length > 0 && selectedLicitacao && (
                   <div className="flex justify-end pt-4 border-t">
-                    <Button onClick={handleConfirmCronograma} className="bg-orange-500 hover:bg-orange-600">
-                      Continuar com esta licitação
+                    <Button
+                      onClick={handleConfirmCronograma}
+                      className="bg-orange-500 hover:bg-orange-600 shadow-md min-w-[200px]"
+                    >
+                      Continuar com este ETP
                       <ArrowRight size={16} className="ml-2" />
                     </Button>
                   </div>

@@ -6,25 +6,30 @@ export interface DbUser {
     id: string; // uuid
     created_at: string; // timestamp with time zone
     email: string;
-    senha?: string; // Tabela pode ter senha, mas nem sempre retornamos
+    senha?: string;
     nome: string;
-    tipo_perfil: UserRole; // 'super_admin' | 'admin' | 'operator'
-    prefeitura_id: string | null; // uuid
-    secretaria_id: string | null; // uuid
-    modulos_acesso: ModulePermissions; // jsonb
+    tipo_perfil: UserRole;
+    prefeitura_id: string | null;
+    secretaria_id: string | null;
+    modulos_acesso: ModulePermissions;
     status: 'ativo' | 'inativo';
+    // Novos campos
+    telefone?: string | null;
+    cpf?: string | null;
+    matricula?: string | null;
+    cargo_funcional?: string | null;
+    unidade?: string | null;
 }
 
 // Tabela: prefeituras
 export interface DbPrefeitura {
-    id: string; // uuid
+    id: string;
     created_at: string;
     nome: string;
     cnpj: string;
     uf: string;
     municipio: string;
     logo_url?: string | null;
-    // Campos legados (podem existir no banco mas não usamos mais)
     gestor_principal?: string | null;
     email?: string | null;
     telefone?: string | null;
@@ -34,13 +39,19 @@ export interface DbPrefeitura {
 
 // Tabela: secretarias
 export interface DbSecretaria {
-    id: string; // uuid
+    id: string;
     created_at?: string;
     nome: string;
-    prefeitura_id: string; // uuid
+    prefeitura_id: string;
+    // Novos campos
+    responsavel?: string | null;
+    cargo?: string | null;
+    email?: string | null;
+    telefone?: string | null;
+    status?: string | null;
 }
 
-// --- NOVAS TABELAS ---
+// --- TABELAS DFD/PCA/ETP ---
 
 // Tabela: dfd
 export interface DbDFD {
@@ -62,6 +73,8 @@ export interface DbDFD {
     created_by?: string;
     secretaria_id?: string;
     prefeitura_id?: string;
+    solicitacao_cancelamento?: boolean;
+    justificativa_cancelamento?: string;
 }
 
 // Tabela: dfd_items
@@ -117,6 +130,86 @@ export interface DbETP {
 export interface DbETPDFD {
     etp_id: string;
     dfd_id: string;
+}
+
+// --- NOVAS TABELAS ---
+
+// Tabela: mapa_riscos
+export interface DbMapaRiscos {
+    id: string;
+    etp_id?: string | null;
+    titulo: string;
+    etp_numero?: string | null;
+    etp_titulo?: string | null;
+    secretaria?: string | null;
+    status: 'elaboracao' | 'concluido';
+    created_by?: string | null;
+    prefeitura_id?: string | null;
+    created_at: string;
+    updated_at: string;
+    // Campos computados (join)
+    mapa_riscos_itens?: DbMapaRiscosItem[];
+}
+
+// Tabela: mapa_riscos_itens
+export interface DbMapaRiscosItem {
+    id: string;
+    mapa_riscos_id: string;
+    categoria: string;
+    descricao: string;
+    causa_provavel?: string | null;
+    consequencia?: string | null;
+    probabilidade: string;
+    impacto: string;
+    nivel: string;
+    mitigacao: string;
+    plano_contingencia?: string | null;
+    responsavel?: string | null;
+}
+
+// Tabela: termos_referencia
+export interface DbTermoReferencia {
+    id: string;
+    numero_tr?: string | null;
+    etp_id?: string | null;
+    objeto: string;
+    status: 'Rascunho' | 'Em Elaboração' | 'Em Revisão' | 'Concluído' | 'Publicado';
+    tipo?: string | null;
+    valor_estimado: number;
+    secretaria_id?: string | null;
+    prefeitura_id?: string | null;
+    dados_json?: any;
+    created_by?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+// Tabela: editais
+export interface DbEdital {
+    id: string;
+    numero_edital?: string | null;
+    tr_id?: string | null;
+    objeto: string;
+    status: 'Rascunho' | 'Em Elaboração' | 'Em Revisão' | 'Concluído' | 'Publicado';
+    modalidade?: string | null;
+    tipo_licitacao?: string | null;
+    valor_estimado: number;
+    data_publicacao?: string | null;
+    secretaria_id?: string | null;
+    prefeitura_id?: string | null;
+    dados_json?: any;
+    created_by?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+// Tabela: system_config
+export interface DbSystemConfig {
+    id: string;
+    chave: string;
+    valor?: string | null;
+    prefeitura_id?: string | null;
+    updated_at: string;
 }
 
 // Helper para respostas do Supabase
