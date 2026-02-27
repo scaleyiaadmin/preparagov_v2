@@ -6,10 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Download, 
-  Eye, 
-  FileText, 
+import {
+  Download,
+  Eye,
+  FileText,
   Filter,
   Calendar,
   Building,
@@ -26,7 +26,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import CronogramaItemsModal from '../components/CronogramaLicitacoes/CronogramaItemsModal';
-import { useCronogramaData } from '../hooks/useCronogramaData';
+import { useCronogramaData, CronogramaItem } from '../hooks/useCronogramaData';
 import { formatDate, getPriorityColor } from '../utils/pcaConsolidation';
 
 const CronogramaLicitacoes = () => {
@@ -39,15 +39,15 @@ const CronogramaLicitacoes = () => {
   const [currentFilter, setCurrentFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [showItemsModal, setShowItemsModal] = useState(false);
-  const [selectedLicitacao, setSelectedLicitacao] = useState<any>(null);
+  const [selectedLicitacao, setSelectedLicitacao] = useState<CronogramaItem | null>(null);
   const { toast } = useToast();
   const itemsPerPage = 5;
 
-  const { 
+  const {
     cronogramaData,
     secretarias,
     tiposDFD,
-    filteredData 
+    filteredData
   } = useCronogramaData(filters);
 
   // Apply status filter
@@ -69,12 +69,12 @@ const CronogramaLicitacoes = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedData = statusFilteredData.slice(startIndex, startIndex + itemsPerPage);
 
-  const handleViewItems = (licitacao: any) => {
+  const handleViewItems = (licitacao: CronogramaItem) => {
     setSelectedLicitacao(licitacao);
     setShowItemsModal(true);
   };
 
-  const handleCreateTR = (licitacao: any) => {
+  const handleCreateTR = (licitacao: CronogramaItem) => {
     toast({
       title: "Redirecionando para TR",
       description: `Criando Termo de Referência para: ${licitacao.tipoDFD}`,
@@ -133,10 +133,9 @@ const CronogramaLicitacoes = () => {
 
         {/* Statistics Cards - Now clickable filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card 
-            className={`cursor-pointer transition-all hover:shadow-md ${
-              currentFilter === 'all' ? 'ring-2 ring-blue-500' : ''
-            }`}
+          <Card
+            className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'all' ? 'ring-2 ring-blue-500' : ''
+              }`}
             onClick={() => handleFilterChange('all')}
           >
             <CardContent className="p-4">
@@ -152,10 +151,9 @@ const CronogramaLicitacoes = () => {
             </CardContent>
           </Card>
 
-          <Card 
-            className={`cursor-pointer transition-all hover:shadow-md ${
-              currentFilter === 'em-elaboracao' ? 'ring-2 ring-yellow-500' : ''
-            }`}
+          <Card
+            className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'em-elaboracao' ? 'ring-2 ring-yellow-500' : ''
+              }`}
             onClick={() => handleFilterChange('em-elaboracao')}
           >
             <CardContent className="p-4">
@@ -173,10 +171,9 @@ const CronogramaLicitacoes = () => {
             </CardContent>
           </Card>
 
-          <Card 
-            className={`cursor-pointer transition-all hover:shadow-md ${
-              currentFilter === 'concluidos' ? 'ring-2 ring-green-500' : ''
-            }`}
+          <Card
+            className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'concluidos' ? 'ring-2 ring-green-500' : ''
+              }`}
             onClick={() => handleFilterChange('concluidos')}
           >
             <CardContent className="p-4">
@@ -194,10 +191,9 @@ const CronogramaLicitacoes = () => {
             </CardContent>
           </Card>
 
-          <Card 
-            className={`cursor-pointer transition-all hover:shadow-md ${
-              currentFilter === 'publicados' ? 'ring-2 ring-purple-500' : ''
-            }`}
+          <Card
+            className={`cursor-pointer transition-all hover:shadow-md ${currentFilter === 'publicados' ? 'ring-2 ring-purple-500' : ''
+              }`}
             onClick={() => handleFilterChange('publicados')}
           >
             <CardContent className="p-4">
@@ -241,7 +237,7 @@ const CronogramaLicitacoes = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Secretaria
@@ -308,9 +304,9 @@ const CronogramaLicitacoes = () => {
               Cronograma de Licitações - {filters.ano}
               {currentFilter !== 'all' && (
                 <span className="text-sm font-normal text-gray-600 ml-2">
-                  - {currentFilter === 'em-elaboracao' ? 'Em Elaboração' : 
-                     currentFilter === 'concluidos' ? 'Concluídos' : 
-                     'Publicados'}
+                  - {currentFilter === 'em-elaboracao' ? 'Em Elaboração' :
+                    currentFilter === 'concluidos' ? 'Concluídos' :
+                      'Publicados'}
                 </span>
               )}
             </CardTitle>
@@ -320,11 +316,11 @@ const CronogramaLicitacoes = () => {
               <div className="text-center py-8">
                 <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
                 <p className="text-gray-500">
-                  {currentFilter === 'all' 
-                    ? 'Nenhuma licitação encontrada para os filtros selecionados.' 
-                    : `Nenhuma licitação ${currentFilter === 'em-elaboracao' ? 'em elaboração' : 
-                                         currentFilter === 'concluidos' ? 'concluída' : 
-                                         'publicada'} encontrada.`}
+                  {currentFilter === 'all'
+                    ? 'Nenhuma licitação encontrada para os filtros selecionados.'
+                    : `Nenhuma licitação ${currentFilter === 'em-elaboracao' ? 'em elaboração' :
+                      currentFilter === 'concluidos' ? 'concluída' :
+                        'publicada'} encontrada.`}
                 </p>
               </div>
             ) : (
@@ -425,12 +421,12 @@ const CronogramaLicitacoes = () => {
                     <Pagination>
                       <PaginationContent>
                         <PaginationItem>
-                          <PaginationPrevious 
+                          <PaginationPrevious
                             onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                             className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />
                         </PaginationItem>
-                        
+
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                           <PaginationItem key={page}>
                             <PaginationLink
@@ -442,9 +438,9 @@ const CronogramaLicitacoes = () => {
                             </PaginationLink>
                           </PaginationItem>
                         ))}
-                        
+
                         <PaginationItem>
-                          <PaginationNext 
+                          <PaginationNext
                             onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                             className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                           />

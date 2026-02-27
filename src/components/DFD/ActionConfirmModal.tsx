@@ -6,24 +6,26 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, X, Trash2 } from 'lucide-react';
 
+import { MappedDFD } from '../../pages/DFD';
+
 interface ActionConfirmModalProps {
   open: boolean;
   onClose: () => void;
   actionType: 'cancel' | 'delete' | 'remove-pca';
-  dfd: any;
+  dfd: MappedDFD | null;
   justification: string;
   onJustificationChange: (value: string) => void;
   onConfirm: () => void;
 }
 
-const ActionConfirmModal = ({ 
-  open, 
-  onClose, 
-  actionType, 
-  dfd, 
-  justification, 
-  onJustificationChange, 
-  onConfirm 
+const ActionConfirmModal = ({
+  open,
+  onClose,
+  actionType,
+  dfd,
+  justification,
+  onJustificationChange,
+  onConfirm
 }: ActionConfirmModalProps) => {
   const getModalConfig = () => {
     switch (actionType) {
@@ -78,7 +80,7 @@ const ActionConfirmModal = ({
             <span>{config.title}</span>
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {dfd && (
             <div className="bg-gray-50 p-4 rounded-lg">
@@ -88,9 +90,9 @@ const ActionConfirmModal = ({
               <p className="text-sm text-gray-600">Valor: {dfd.valor}</p>
             </div>
           )}
-          
+
           <p className="text-gray-700">{config.description}</p>
-          
+
           {config.requiresJustification && (
             <div className="space-y-2">
               <Label htmlFor="justification">
@@ -110,12 +112,12 @@ const ActionConfirmModal = ({
             </div>
           )}
         </div>
-        
+
         <div className="flex justify-end space-x-2 pt-4">
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button 
+          <Button
             variant={config.confirmVariant}
             onClick={onConfirm}
             disabled={!canConfirm}

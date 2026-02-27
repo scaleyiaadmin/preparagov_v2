@@ -70,7 +70,7 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
 
   // Filter and sort DFDs
   const filteredDFDs = useMemo(() => {
-    let filtered = availableDFDs.filter(dfd => {
+    const filtered = availableDFDs.filter(dfd => {
       // Search term filter
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
@@ -267,10 +267,10 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
             <div
               key={dfd.id}
               className={`border rounded-lg p-4 transition-colors ${selectedDFDs.some(selected => selected.id === dfd.id)
-                  ? 'border-orange-500 bg-orange-50'
-                  : dfd.usedInETP
-                    ? 'border-gray-300 bg-gray-50'
-                    : 'border-gray-200 hover:bg-gray-50'
+                ? 'border-orange-500 bg-orange-50'
+                : dfd.usedInETP
+                  ? 'border-gray-300 bg-gray-50'
+                  : 'border-gray-200 hover:bg-gray-50'
                 }`}
             >
               <div className="flex items-start space-x-3">

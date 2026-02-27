@@ -22,12 +22,12 @@ const DocumentsCard = () => {
       const { count: dfdCount } = await supabase
         .from('dfd')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'Em Elaboração');
+        .in('status', ['Em Elaboração', 'Rascunho', 'Pendente']);
 
       const { count: etpCount } = await supabase
         .from('etp')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'Em Elaboração');
+        .in('status', ['Em Elaboração', 'Rascunho']);
 
       setCounts({
         dfd: dfdCount || 0,

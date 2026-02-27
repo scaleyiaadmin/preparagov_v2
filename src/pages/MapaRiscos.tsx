@@ -32,7 +32,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DbMapaRiscos, DbMapaRiscosItem } from '@/types/database';
 
 // Tipos auxiliares corrigidos
-interface Risco extends DbMapaRiscosItem { }
+type Risco = DbMapaRiscosItem;
 interface MapaRisco extends DbMapaRiscos {
   totalRiscos?: number;
 }
@@ -462,6 +462,7 @@ const MapaRiscos = () => {
         <MapaRiscosOverviewCards
           onViewConcluidos={handleViewConcluidos}
           onViewElaboracao={handleViewElaboracao}
+          counts={counts}
         />
 
         <ETPSelectionModal
@@ -508,6 +509,7 @@ const MapaRiscos = () => {
 
         <MapaRiscosCards
           statusFilter={isConcluido ? 'concluido' : 'elaboracao'}
+          mapas={mapas}
           onViewPreview={handleViewPreview}
           onContinueEditing={handleContinueEditing}
           onExportPDF={handleExportPDF}

@@ -3,6 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { DbDFD, DbUser, DbSecretaria, DbETPWithDFDs } from '@/types/database';
 
 interface SelectedDFD {
   id: string; // Changed to string for UUID
@@ -78,11 +79,11 @@ export const useETPCreation = () => {
         const { data: secretariasData } = await supabase.from('secretarias').select('id, nome');
         const { data: usedData } = await supabase.from('etp_dfd').select('dfd_id');
 
-        const usedIds = new Set(usedData?.map((u: any) => u.dfd_id));
+        const usedIds = new Set(usedData?.map((u) => u.dfd_id));
 
-        const formatted: SelectedDFD[] = data.map((d: any) => {
-          const user = usersData?.find((u: any) => u.id === d.created_by);
-          const secretaria = secretariasData?.find((s: any) => s.id === d.secretaria_id);
+        const formatted: SelectedDFD[] = (data as DbDFD[]).map((d) => {
+          const user = (usersData as DbUser[])?.find((u) => u.id === d.created_by);
+          const secretaria = (secretariasData as DbSecretaria[])?.find((s) => s.id === d.secretaria_id);
 
           return {
             id: d.id,
@@ -138,7 +139,7 @@ export const useETPCreation = () => {
     }
   }, []);
 
-  const updateFormData = (field: keyof ETPFormData, value: any) => {
+  const updateFormData = <K extends keyof ETPFormData>(field: K, value: ETPFormData[K]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -164,7 +165,7 @@ export const useETPCreation = () => {
       if (error) throw error;
 
       // Map to form data
-      const selectedDFDs = etp.etp_dfd.map((item: any) => ({
+      const selectedDFDs = (etp as DbETPWithDFDs).etp_dfd.map((item) => ({
         id: item.dfd.id,
         objeto: item.dfd.objeto,
         valorEstimado: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.dfd.valor_estimado_total || 0),
@@ -253,7 +254,7 @@ ${dfdDescriptions}
     ).join(', ');
 
     const totalValue = formData.selectedDFDs.reduce((acc, d) => {
-      const val = parseFloat(d.valorEstimado.replace(/[R$\.,]/g, '')) / 100;
+      const val = parseFloat(d.valorEstimado.replace(/[R$.,]/g, '')) / 100;
       return acc + (isNaN(val) ? 0 : val);
     }, 0);
 

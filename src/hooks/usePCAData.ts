@@ -1,7 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
-import { DbDFD } from '@/types/database';
+import { DbDFD, DbDFDWithRelations, DbUser, DbSecretaria } from '@/types/database';
+
+export interface ConsolidatedPCAItem {
+  id: string;
+  descricao: string;
+  quantidade: number;
+  valor: number;
+  unidadeMedida: string;
+  detalhamentoTecnico?: string;
+  secretaria: string;
+  prioridade: string;
+  dataContratacao: string;
+  dfdId: string;
+  tipoDFD: string;
+}
 
 export const usePCAData = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
@@ -12,16 +26,16 @@ export const usePCAData = () => {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [selectedDFD, setSelectedDFD] = useState<any>(null);
-  const [dfdToRemove, setDFDToRemove] = useState<any>(null);
+  const [selectedDFD, setSelectedDFD] = useState<DbDFDWithRelations | null>(null);
+  const [dfdToRemove, setDFDToRemove] = useState<DbDFDWithRelations | null>(null);
   const [pcaPublished, setPcaPublished] = useState(false);
-  const [scheduleFilters, setScheduleFilters] = useState<any>(null);
+  const [scheduleFilters, setScheduleFilters] = useState<any>(null); // This can be more specific if we know the shape
   const { toast } = useToast();
 
-  const [approvedDFDs, setApprovedDFDs] = useState<DbDFD[]>([]);
-  const [pendingDFDs, setPendingDFDs] = useState<DbDFD[]>([]);
-  const [cancellationRequests, setCancellationRequests] = useState<any[]>([]);
-  const [consolidatedItems, setConsolidatedItems] = useState<any[]>([]);
+  const [approvedDFDs, setApprovedDFDs] = useState<DbDFDWithRelations[]>([]);
+  const [pendingDFDs, setPendingDFDs] = useState<DbDFDWithRelations[]>([]);
+  const [cancellationRequests, setCancellationRequests] = useState<DbDFDWithRelations[]>([]);
+  const [consolidatedItems, setConsolidatedItems] = useState<ConsolidatedPCAItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -45,10 +59,10 @@ export const usePCAData = () => {
 
       // Process consolidated items
       if (approved) {
-        const allItems: any[] = [];
-        approved.forEach((dfd: any) => {
+        const allItems: ConsolidatedPCAItem[] = [];
+        (approved as DbDFDWithRelations[]).forEach((dfd) => {
           if (dfd.dfd_items && Array.isArray(dfd.dfd_items)) {
-            dfd.dfd_items.forEach((item: any) => {
+            dfd.dfd_items.forEach((item) => {
               allItems.push({
                 id: item.id,
                 descricao: item.descricao_item,
@@ -87,9 +101,9 @@ export const usePCAData = () => {
         .from('secretarias')
         .select('id, nome');
 
-      const mappedPending = (pending || []).map((dfd: any) => {
-        const user = usersData?.find((u: any) => u.id === dfd.created_by);
-        const secretaria = secretariasData?.find((s: any) => s.id === user?.secretaria_id);
+      const mappedPending = (pending || []).map((dfd: DbDFD) => {
+        const user = (usersData as DbUser[])?.find((u) => u.id === dfd.created_by);
+        const secretaria = (secretariasData as DbSecretaria[])?.find((s) => s.id === user?.secretaria_id);
 
         return {
           ...dfd,
@@ -100,14 +114,13 @@ export const usePCAData = () => {
           requisitante: {
             nome: user?.nome || 'Não informado',
             email: user?.email || 'Não informado',
-            cargo: user?.cargo || 'Não informado',
+            cargo: user?.cargo_funcional || 'Não informado',
             secretaria: secretaria?.nome || 'Não informada'
           }
         };
       });
 
       setPendingDFDs(mappedPending);
-      b
       // Fetch Cancellation Requests
       const { data: cancellations, error: cancellationsError } = await supabase
         .from('dfd')
@@ -153,12 +166,12 @@ export const usePCAData = () => {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  const handleViewDFD = (dfd: any) => {
+  const handleViewDFD = (dfd: DbDFDWithRelations) => {
     setSelectedDFD(dfd);
     setShowDFDViewModal(true);
   };
 
-  const handleApproveDFD = async (dfd: any) => {
+  const handleApproveDFD = async (dfd: DbDFDWithRelations) => {
     try {
       const { error } = await supabase
         .from('dfd')
@@ -182,7 +195,7 @@ export const usePCAData = () => {
     }
   };
 
-  const handleRejectDFD = async (dfd: any, justification: string) => {
+  const handleRejectDFD = async (dfd: DbDFDWithRelations, justification: string) => {
     try {
       const { error } = await supabase
         .from('dfd')
@@ -206,7 +219,7 @@ export const usePCAData = () => {
     }
   };
 
-  const handleApproveCancellation = async (dfd: any) => {
+  const handleApproveCancellation = async (dfd: DbDFDWithRelations) => {
     try {
       const { error } = await supabase
         .from('dfd')
@@ -233,7 +246,7 @@ export const usePCAData = () => {
     }
   };
 
-  const handleDenyCancellation = async (dfd: any, justification: string) => {
+  const handleDenyCancellation = async (dfd: DbDFDWithRelations, justification: string) => {
     try {
       const { error } = await supabase
         .from('dfd')
@@ -260,12 +273,12 @@ export const usePCAData = () => {
     }
   };
 
-  const handleRemoveFromPCA = (dfd: any) => {
+  const handleRemoveFromPCA = (dfd: DbDFDWithRelations) => {
     setDFDToRemove(dfd);
     setShowRemoveModal(true);
   };
 
-  const handleConfirmRemoval = async (dfd: any, justification: string) => {
+  const handleConfirmRemoval = async (dfd: DbDFDWithRelations, justification: string) => {
     try {
       const { error } = await supabase
         .from('dfd')
@@ -346,9 +359,9 @@ export const usePCAData = () => {
 
   const calculateTotalValue = () => {
     let total = 0;
-    approvedDFDs.forEach(dfd => {
+    approvedDFDs.forEach((dfd: DbDFDWithRelations) => {
       if (dfd.dfd_items && Array.isArray(dfd.dfd_items)) {
-        dfd.dfd_items.forEach((item: any) => {
+        dfd.dfd_items.forEach((item) => {
           total += (Number(item.quantidade) * Number(item.valor_unitario));
         });
       }

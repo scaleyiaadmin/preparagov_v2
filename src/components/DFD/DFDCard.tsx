@@ -8,7 +8,7 @@ import { Eye, Pencil, X, Trash2, AlertTriangle } from 'lucide-react';
 
 interface DFDCardProps {
   dfd: {
-    id: number;
+    id: string;
     objeto: string;
     tipoDFD: string;
     valor: string;
@@ -90,9 +90,9 @@ const DFDCard = ({ dfd, onAction }: DFDCardProps) => {
                 {actions.includes('view') && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
                           console.log('View action clicked for DFD:', dfd.id);
                           onAction(dfd, 'view');
@@ -109,9 +109,9 @@ const DFDCard = ({ dfd, onAction }: DFDCardProps) => {
                 {actions.includes('edit') && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
                           console.log('Edit action clicked for DFD:', dfd.id);
                           onAction(dfd, 'edit');
@@ -128,9 +128,9 @@ const DFDCard = ({ dfd, onAction }: DFDCardProps) => {
                 {actions.includes('cancel') && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
                           console.log('Cancel action clicked for DFD:', dfd.id);
                           onAction(dfd, 'cancel');
@@ -147,9 +147,9 @@ const DFDCard = ({ dfd, onAction }: DFDCardProps) => {
                 {actions.includes('delete') && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
                           console.log('Delete action clicked for DFD:', dfd.id);
                           onAction(dfd, 'delete');
@@ -166,9 +166,9 @@ const DFDCard = ({ dfd, onAction }: DFDCardProps) => {
                 {actions.includes('remove-pca') && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
                           console.log('Remove PCA action clicked for DFD:', dfd.id);
                           onAction(dfd, 'remove-pca');

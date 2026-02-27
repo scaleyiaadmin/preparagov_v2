@@ -4,6 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
+import { MappedDFD } from '../../pages/DFD';
+
+type DFDData = MappedDFD;
 
 interface DFDItem {
   id: string;
@@ -12,30 +15,9 @@ interface DFDItem {
   unidade: string;
   quantidade: number;
   valorReferencia: number;
-  tabelaReferencia: string;
+  tabelaReferencia?: string;
 }
 
-interface DFDData {
-  id: number;
-  objeto: string;
-  tipoDFD: string;
-  valor: string;
-  status: string;
-  data: string;
-  prioridade: string;
-  anoContratacao: string;
-  descricaoDemanda?: string;
-  justificativa?: string;
-  dataPrevista?: string;
-  justificativaPrioridade?: string;
-  itens?: DFDItem[];
-  requisitante?: {
-    nome: string;
-    email: string;
-    cargo: string;
-    secretaria: string;
-  };
-}
 
 interface DFDViewModalProps {
   open: boolean;

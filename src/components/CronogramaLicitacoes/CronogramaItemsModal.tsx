@@ -7,12 +7,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatCurrency, getPriorityColor, formatDate } from '../../utils/pcaConsolidation';
 import { Building2, Package, FileText } from 'lucide-react';
+import { CronogramaItem } from '../../hooks/useCronogramaData';
 import DFDPreviewModal from './DFDPreviewModal';
 
 interface CronogramaItemsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  licitacao: any;
+  licitacao: CronogramaItem | null;
 }
 
 const CronogramaItemsModal = ({ isOpen, onClose, licitacao }: CronogramaItemsModalProps) => {
@@ -36,29 +37,29 @@ const CronogramaItemsModal = ({ isOpen, onClose, licitacao }: CronogramaItemsMod
           descricao: `Item consolidado - ${licitacao.tipoDFD || 'Tipo não informado'}`,
           unidadeMedida: licitacao.unidadeMedida || 'Unidade',
           quantidadeTotal: licitacao.quantidadeTotal || 0,
-          valorTotal: typeof licitacao.valorTotal === 'string' 
+          valorTotal: typeof licitacao.valorTotal === 'string'
             ? parseFloat(licitacao.valorTotal.replace(/[^\d,]/g, '').replace(',', '.')) || 0
             : licitacao.valorTotal || 0
         }];
       }
       return [];
     }
-    
+
     return licitacao.itensConsolidados;
   }, [licitacao]);
 
   // Mapear DFDs para suas respectivas secretarias - SEMPRE executar o hook
   const dfdSecretariaMap = React.useMemo(() => {
     const map = new Map();
-    
+
     if (licitacao && licitacao.secretariasData && typeof licitacao.secretariasData === 'object') {
-      Object.entries(licitacao.secretariasData).forEach(([secretaria, dados]: [string, any]) => {
+      Object.entries(licitacao.secretariasData).forEach(([secretaria, dados]) => {
         if (dados && dados.dfdId) {
           map.set(dados.dfdId, secretaria);
         }
       });
     }
-    
+
     // Fallback: mapear usando arrays paralelos
     if (licitacao && licitacao.dfdIds && licitacao.secretariasNomes) {
       licitacao.dfdIds.forEach((dfdId: string, index: number) => {
@@ -67,7 +68,7 @@ const CronogramaItemsModal = ({ isOpen, onClose, licitacao }: CronogramaItemsMod
         }
       });
     }
-    
+
     return map;
   }, [licitacao]);
 
@@ -146,10 +147,10 @@ const CronogramaItemsModal = ({ isOpen, onClose, licitacao }: CronogramaItemsMod
                     <span className="text-sm text-gray-700 flex-1">{secretaria}</span>
                   </div>
                 )) || (
-                  <div className="col-span-full">
-                    <p className="text-gray-500 text-sm">Nenhuma secretaria encontrada</p>
-                  </div>
-                )}
+                    <div className="col-span-full">
+                      <p className="text-gray-500 text-sm">Nenhuma secretaria encontrada</p>
+                    </div>
+                  )}
               </div>
             </div>
 

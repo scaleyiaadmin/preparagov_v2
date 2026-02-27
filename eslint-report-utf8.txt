@@ -1,0 +1,274 @@
+﻿
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\CronogramaLicitacoes\CronogramaItemsModal.tsx
+  15:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:88  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\DFD\AISuggestionsModal.tsx
+   34:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  216:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\DFD\ActionConfirmModal.tsx
+  13:8  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\DFD\DFDCard.tsx
+  20:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\DFD\DFDFilters.tsx
+  15:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\DFD\DFDForm.tsx
+   55:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  292:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  372:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\DFD\DFDList.tsx
+  13:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\DFD\DFDListPagination.tsx
+  31:11  error  'end' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\DFD\ItemDetailsModal.tsx
+  23:9  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\DFD\ItemSearchModal.tsx
+  37:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Dashboard\DFDCard.tsx
+  31:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Dashboard\NewsSection.tsx
+  8:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Dashboard\PCACard.tsx
+  30:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  32:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\ETP\DFDSelectionStep.tsx
+  73:9  error  'filtered' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\ETP\ETPPreview.tsx
+  18:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\ETP\SummaryStep.tsx
+  6:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Edital\EditalWizard.tsx
+   42:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   92:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  242:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Edital\steps\EditalStep1.tsx
+  14:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  15:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Edital\steps\EditalStep2.tsx
+  14:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  15:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Edital\steps\EditalStep3.tsx
+  15:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Edital\steps\EditalStep4.tsx
+  12:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  13:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Edital\steps\EditalStep5.tsx
+  15:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  43:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Edital\steps\EditalStep6.tsx
+  11:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  12:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  31:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  91:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Edital\steps\EditalStep7.tsx
+  12:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  13:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  26:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\Edital\steps\EditalStep8.tsx
+   33:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   34:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  277:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\PCA\CancellationRequestsModal.tsx
+  19:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  22:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\PCA\DFDApprovalModal.tsx
+  19:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  21:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  22:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\PCA\PCAApprovedDFDsList.tsx
+  11:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  12:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  13:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\PCA\RemoveFromPCAModal.tsx
+  19:8   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\TermoReferencia\DFDsLivresModal.tsx
+  26:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  87:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\TermoReferencia\ItensEspecificosModal.tsx
+   29:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   34:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   46:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   98:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  139:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  306:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\TermoReferencia\TRCreationWizard.tsx
+   38:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   40:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  291:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\TermoReferencia\TRSelectionModal.tsx
+  23:88  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  30:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  73:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  78:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\admin\AdminLayout.tsx
+  116:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\ui\command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\ui\textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\contexts\AuthContext.tsx
+  39:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\hooks\useCronogramaData.ts
+  24:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  69:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  86:66  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\hooks\useETPCreation.ts
+   81:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   84:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   85:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  141:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  167:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  256:58  error  Unnecessary escape character: \.          no-useless-escape
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\hooks\usePCAData.ts
+   15:50  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   16:50  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   18:58  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   23:68  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   24:62  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   48:25  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   49:32  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   51:42  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   90:55  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   91:42  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+   92:54  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  110:7   error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  156:31  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  161:40  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  185:39  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  209:49  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  236:46  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  263:37  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  268:44  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  295:44  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  351:38  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\pages\CronogramaLicitacoes.tsx
+  42:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  72:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  77:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\pages\DFD.tsx
+   16:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   27:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   44:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   54:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\pages\ETP.tsx
+   26:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   33:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   57:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   58:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   62:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  141:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  299:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\pages\Edital.tsx
+   38:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  185:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  201:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\pages\GerenciarUsuarios.tsx
+  165:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\pages\MapaRiscos.tsx
+  35:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\pages\Perfil.tsx
+  143:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\pages\TermoReferencia.tsx
+   39:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  165:99  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\services\etpService.ts
+   9:13  error  'query' is never reassigned. Use 'const' instead  prefer-const
+  32:72  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\services\mapaRiscosService.ts
+  18:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\services\referenciaService.ts
+  10:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\services\systemConfigService.ts
+  51:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\types\database.ts
+  181:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  200:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  218:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\utils\pcaConsolidation.ts
+  96:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 162 problems (162 errors, 0 warnings)
+  3 errors and 0 warnings potentially fixable with the `--fix` option.
+

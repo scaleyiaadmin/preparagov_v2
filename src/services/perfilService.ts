@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { DbUser } from '@/types/database';
 
 export const perfilService = {
     async updateProfile(userId: string, data: {
@@ -9,7 +10,7 @@ export const perfilService = {
         matricula?: string;
         cargo_funcional?: string;
         unidade?: string;
-    }) {
+    }): Promise<void> {
         const { error } = await supabase
             .from('usuarios_acesso')
             .update(data)
@@ -18,7 +19,7 @@ export const perfilService = {
         if (error) throw error;
     },
 
-    async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
         // Verify current password
         const { data: user, error: fetchError } = await supabase
             .from('usuarios_acesso')
@@ -41,7 +42,7 @@ export const perfilService = {
         if (updateError) throw updateError;
     },
 
-    async getUserStats(userId: string) {
+    async getUserStats(userId: string): Promise<{ dfds: number; etps: number; editais: number }> {
         const [dfdResult, etpResult, editalResult] = await Promise.all([
             supabase
                 .from('dfd')
@@ -64,7 +65,7 @@ export const perfilService = {
         };
     },
 
-    async getUserProfile(userId: string) {
+    async getUserProfile(userId: string): Promise<Partial<DbUser>> {
         const { data, error } = await supabase
             .from('usuarios_acesso')
             .select('nome, email, telefone, cpf, matricula, cargo_funcional, unidade')

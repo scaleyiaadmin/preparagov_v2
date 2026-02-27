@@ -77,6 +77,13 @@ export interface DbDFD {
     justificativa_cancelamento?: string;
 }
 
+export interface DbDFDWithRelations extends DbDFD {
+    dfd_items?: DbDFDItem[];
+    secretarias?: {
+        nome: string;
+    } | null;
+}
+
 // Tabela: dfd_items
 export interface DbDFDItem {
     id: string;
@@ -124,6 +131,12 @@ export interface DbETP {
     conclusao_tecnica?: string;
     created_by?: string;
     prefeitura_id?: string;
+}
+
+export interface DbETPWithDFDs extends DbETP {
+    etp_dfd: {
+        dfd: DbDFD;
+    }[];
 }
 
 // Tabela: etp_dfd (Junção)

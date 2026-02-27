@@ -8,12 +8,44 @@ import DFDList from '../components/DFD/DFDList';
 import ActionConfirmModal from '../components/DFD/ActionConfirmModal';
 import DFDViewModal from '../components/DFD/DFDViewModal';
 import { dfdService } from '@/services/dfdService';
+import { DbDFDWithRelations } from '@/types/database';
+
+export interface MappedDFD {
+  id: string;
+  objeto: string;
+  tipoDFD: string;
+  valor: string;
+  status: string;
+  data: string;
+  prioridade: string;
+  anoContratacao: string;
+  descricaoDemanda: string;
+  justificativa: string;
+  dataPrevista?: string;
+  justificativaPrioridade?: string;
+  descricaoSucinta?: string;
+  itens: {
+    id: string;
+    codigo: string;
+    descricao: string;
+    unidade: string;
+    quantidade: number;
+    valorReferencia: number;
+    tabelaReferencia?: string;
+  }[];
+  requisitante?: {
+    nome: string;
+    email: string;
+    cargo: string;
+    secretaria: string;
+  };
+}
 
 const DFD = () => {
   console.log('DFD component rendering...');
 
   const [showForm, setShowForm] = useState(false);
-  const [editingDFD, setEditingDFD] = useState<any>(null);
+  const [editingDFD, setEditingDFD] = useState<MappedDFD | null>(null);
   const [filters, setFilters] = useState({
     tipoDFD: '',
     prioridade: '',
@@ -24,7 +56,7 @@ const DFD = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionType, setActionType] = useState<'cancel' | 'delete' | 'remove-pca'>('cancel');
-  const [selectedDFD, setSelectedDFD] = useState<any>(null);
+  const [selectedDFD, setSelectedDFD] = useState<MappedDFD | null>(null);
   const [actionJustification, setActionJustification] = useState('');
   const [showViewModal, setShowViewModal] = useState(false);
   const { toast } = useToast();
@@ -41,7 +73,7 @@ const DFD = () => {
   console.log('DFD state:', { showForm, filters, currentPage });
 
   // State for DFDs
-  const [dfds, setDfds] = useState<any[]>([]);
+  const [dfds, setDfds] = useState<MappedDFD[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch DFDs
@@ -51,13 +83,13 @@ const DFD = () => {
       const data = await dfdService.getAll();
       if (data) {
         // Map DB to Frontend Model
-        const mappedData = data.map((d: any) => ({
+        const mappedData: MappedDFD[] = (data as DbDFDWithRelations[]).map((d) => ({
           id: d.id,
           objeto: d.objeto,
           tipoDFD: d.tipo_dfd,
           valor: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(d.valor_estimado_total || 0),
           status: d.status,
-          data: new Date(d.created_at).toLocaleDateString(),
+          data: d.created_at ? new Date(d.created_at).toLocaleDateString('pt-BR') : '-',
           prioridade: d.prioridade,
           anoContratacao: d.ano_contratacao?.toString(),
           descricaoDemanda: d.descricao_demanda,
@@ -66,7 +98,7 @@ const DFD = () => {
           justificativaPrioridade: d.justificativa_prioridade,
           descricaoSucinta: d.descricao_sucinta,
           // Map Items
-          itens: d.dfd_items?.map((i: any) => ({
+          itens: d.dfd_items?.map((i) => ({
             id: i.id,
             codigo: i.codigo_item,
             descricao: i.descricao_item,
@@ -74,7 +106,13 @@ const DFD = () => {
             quantidade: Number(i.quantidade),
             valorReferencia: Number(i.valor_unitario),
             tabelaReferencia: i.tabela_referencia
-          })) || []
+          })) || [],
+          requisitante: d.secretarias ? {
+            nome: 'Equipe de Planejamento',
+            email: '-',
+            cargo: '-',
+            secretaria: d.secretarias.nome
+          } : undefined
         }));
         setDfds(mappedData);
       }
@@ -97,7 +135,7 @@ const DFD = () => {
   // Filter logic applied to fetched data
   const allDFDs = dfds; // Remapping to keep existing logic working with minimal changes
 
-  const handleAction = (dfd: any, action: 'cancel' | 'delete' | 'remove-pca' | 'view' | 'edit') => {
+  const handleAction = (dfd: MappedDFD, action: 'cancel' | 'delete' | 'remove-pca' | 'view' | 'edit') => {
     console.log('handleAction called:', dfd, action);
 
     switch (action) {

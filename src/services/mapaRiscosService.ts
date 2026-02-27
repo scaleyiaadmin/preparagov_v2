@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { DbMapaRiscos, DbMapaRiscosItem } from '@/types/database';
 
 export const mapaRiscosService = {
-    async fetchMapasRiscos(prefeituraId?: string) {
+    async fetchMapasRiscos(prefeituraId?: string): Promise<(DbMapaRiscos & { totalRiscos: number })[]> {
         let query = supabase
             .from('mapa_riscos')
             .select('*, mapa_riscos_itens(count)')
@@ -15,13 +15,13 @@ export const mapaRiscosService = {
         const { data, error } = await query;
         if (error) throw error;
 
-        return (data || []).map((mapa: any) => ({
+        return (data || []).map((mapa) => ({
             ...mapa,
-            totalRiscos: mapa.mapa_riscos_itens?.[0]?.count || 0,
+            totalRiscos: (mapa.mapa_riscos_itens as unknown as { count: number }[])?.[0]?.count || 0,
         }));
     },
 
-    async fetchMapaRisco(id: string) {
+    async fetchMapaRisco(id: string): Promise<DbMapaRiscos> {
         const { data, error } = await supabase
             .from('mapa_riscos')
             .select('*, mapa_riscos_itens(*)')
@@ -79,7 +79,7 @@ export const mapaRiscosService = {
         if (error) throw error;
     },
 
-    async addRiscoItem(mapaId: string, item: Omit<DbMapaRiscosItem, 'id' | 'mapa_riscos_id'>) {
+    async addRiscoItem(mapaId: string, item: Omit<DbMapaRiscosItem, 'id' | 'mapa_riscos_id'>): Promise<DbMapaRiscosItem> {
         const { data, error } = await supabase
             .from('mapa_riscos_itens')
             .insert({ ...item, mapa_riscos_id: mapaId })
@@ -145,9 +145,9 @@ export const mapaRiscosService = {
         const [concluidos, elaboracao] = await Promise.all([queryConcluidos, queryElaboracao]);
 
         return {
-            concluidos: concluidos.count || 0,
-            elaboracao: elaboracao.count || 0,
-            total: (concluidos.count || 0) + (elaboracao.count || 0),
+            concluidos: (concluidos as unknown as { count: number }).count || 0,
+            elaboracao: (elaboracao as unknown as { count: number }).count || 0,
+            total: ((concluidos as unknown as { count: number }).count || 0) + ((elaboracao as unknown as { count: number }).count || 0),
         };
     },
 };

@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase';
-import { DbDFD, DbDFDItem } from '@/types/database';
+import { DbDFD, DbDFDItem, DbDFDWithRelations } from '@/types/database';
 
 export const dfdService = {
-    async getAll(filters?: { status?: string; ano?: number }) {
+    async getAll(filters?: { status?: string; ano?: number }): Promise<DbDFDWithRelations[]> {
         let query = supabase
             .from('dfd')
             .select('*, dfd_items(*)')
@@ -21,7 +21,7 @@ export const dfdService = {
         return data;
     },
 
-    async getById(id: string) {
+    async getById(id: string): Promise<DbDFDWithRelations> {
         const { data, error } = await supabase
             .from('dfd')
             .select('*, dfd_items(*)')
@@ -32,7 +32,7 @@ export const dfdService = {
         return data;
     },
 
-    async create(dfd: Omit<DbDFD, 'id' | 'created_at'>, items: Omit<DbDFDItem, 'id' | 'dfd_id'>[]) {
+    async create(dfd: Omit<DbDFD, 'id' | 'created_at'>, items: Omit<DbDFDItem, 'id' | 'dfd_id'>[]): Promise<DbDFD> {
         // 1. Create DFD Header
         const { data: dfdData, error: dfdError } = await supabase
             .from('dfd')

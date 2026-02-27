@@ -21,24 +21,24 @@ const DFDListPagination = ({ currentPage, totalPages, onPageChange }: DFDListPag
   const getVisiblePages = () => {
     const pages = [];
     const maxVisible = 5;
-    
+
     if (totalPages <= maxVisible) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
       let start = Math.max(1, currentPage - 2);
-      let end = Math.min(totalPages, start + maxVisible - 1);
-      
+      const end = Math.min(totalPages, start + maxVisible - 1);
+
       if (end - start < maxVisible - 1) {
         start = Math.max(1, end - maxVisible + 1);
       }
-      
+
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
     }
-    
+
     return pages;
   };
 
@@ -47,7 +47,7 @@ const DFDListPagination = ({ currentPage, totalPages, onPageChange }: DFDListPag
       <Pagination>
         <PaginationContent>
           <PaginationItem>
-            <PaginationPrevious 
+            <PaginationPrevious
               href="#"
               onClick={(e) => {
                 e.preventDefault();
@@ -56,7 +56,7 @@ const DFDListPagination = ({ currentPage, totalPages, onPageChange }: DFDListPag
               className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
             />
           </PaginationItem>
-          
+
           {getVisiblePages().map((page) => (
             <PaginationItem key={page}>
               <PaginationLink
@@ -71,9 +71,9 @@ const DFDListPagination = ({ currentPage, totalPages, onPageChange }: DFDListPag
               </PaginationLink>
             </PaginationItem>
           ))}
-          
+
           <PaginationItem>
-            <PaginationNext 
+            <PaginationNext
               href="#"
               onClick={(e) => {
                 e.preventDefault();

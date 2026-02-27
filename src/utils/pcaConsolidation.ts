@@ -1,5 +1,5 @@
 
-interface DFDItem {
+export interface DFDItem {
   id: string;
   descricao: string;
   quantidade: number;
@@ -13,7 +13,7 @@ interface DFDItem {
   tipoDFD: string;
 }
 
-interface ConsolidatedItemByType {
+export interface ConsolidatedItemByType {
   id: string;
   descricao: string;
   unidadeMedida: string;
@@ -32,7 +32,7 @@ interface ConsolidatedItemByType {
   }>;
 }
 
-interface ConsolidatedItem {
+export interface ConsolidatedItem {
   id: string;
   descricao: string;
   unidadeMedida: string;
@@ -63,7 +63,7 @@ export const consolidateItemsByType = (items: DFDItem[]): Record<string, Consoli
   // Agrupar itens por chave única (descrição + unidade + detalhamento + tipo)
   items.forEach(item => {
     const key = `${item.descricao.toLowerCase().trim()}_${item.unidadeMedida.toLowerCase().trim()}_${item.detalhamentoTecnico?.toLowerCase().trim() || ''}_${item.tipoDFD}`;
-    
+
     if (!grouped.has(key)) {
       grouped.set(key, []);
     }
@@ -73,27 +73,33 @@ export const consolidateItemsByType = (items: DFDItem[]): Record<string, Consoli
   // Consolidar cada grupo
   const consolidated = Array.from(grouped.entries()).map(([key, groupItems]) => {
     const firstItem = groupItems[0];
-    
+
     // Calcular totais
     const quantidadeTotal = groupItems.reduce((sum, item) => sum + item.quantidade, 0);
     const valorTotal = groupItems.reduce((sum, item) => sum + item.valor, 0);
-    
+
     // Encontrar data mais próxima
     const dataContratacaoOficial = groupItems
       .map(item => item.dataContratacao)
       .sort()[0]; // Primeira data cronologicamente
-    
+
     // Encontrar maior prioridade
     const prioridadeOficial = groupItems
-      .reduce((maxPrior, item) => 
-        PRIORIDADE_PESO[item.prioridade] > PRIORIDADE_PESO[maxPrior] 
-          ? item.prioridade 
-          : maxPrior, 
+      .reduce((maxPrior, item) =>
+        PRIORIDADE_PESO[item.prioridade] > PRIORIDADE_PESO[maxPrior]
+          ? item.prioridade
+          : maxPrior,
         'Baixa' as 'Alta' | 'Média' | 'Baixa'
       );
-    
+
     // Mapear secretarias como Record
-    const secretarias: Record<string, any> = {};
+    const secretarias: Record<string, {
+      quantidade: number;
+      valor: number;
+      prioridade: 'Alta' | 'Média' | 'Baixa';
+      dataInformada: string;
+      dfdId: string;
+    }> = {};
     groupItems.forEach(item => {
       secretarias[item.secretaria] = {
         quantidade: item.quantidade,
@@ -136,7 +142,7 @@ export const consolidateItems = (items: DFDItem[]): ConsolidatedItem[] => {
   // Agrupar itens por chave única (descrição + unidade + detalhamento)
   items.forEach(item => {
     const key = `${item.descricao.toLowerCase().trim()}_${item.unidadeMedida.toLowerCase().trim()}_${item.detalhamentoTecnico?.toLowerCase().trim() || ''}`;
-    
+
     if (!grouped.has(key)) {
       grouped.set(key, []);
     }
@@ -146,25 +152,25 @@ export const consolidateItems = (items: DFDItem[]): ConsolidatedItem[] => {
   // Consolidar cada grupo
   return Array.from(grouped.entries()).map(([key, groupItems]) => {
     const firstItem = groupItems[0];
-    
+
     // Calcular totais
     const quantidadeTotal = groupItems.reduce((sum, item) => sum + item.quantidade, 0);
     const valorTotal = groupItems.reduce((sum, item) => sum + item.valor, 0);
-    
+
     // Encontrar data mais próxima
     const dataContratacaoOficial = groupItems
       .map(item => item.dataContratacao)
       .sort()[0]; // Primeira data cronologicamente
-    
+
     // Encontrar maior prioridade
     const prioridadeOficial = groupItems
-      .reduce((maxPrior, item) => 
-        PRIORIDADE_PESO[item.prioridade] > PRIORIDADE_PESO[maxPrior] 
-          ? item.prioridade 
-          : maxPrior, 
+      .reduce((maxPrior, item) =>
+        PRIORIDADE_PESO[item.prioridade] > PRIORIDADE_PESO[maxPrior]
+          ? item.prioridade
+          : maxPrior,
         'Baixa' as 'Alta' | 'Média' | 'Baixa'
       );
-    
+
     // Mapear secretarias
     const secretarias = groupItems.map(item => ({
       nome: item.secretaria,
@@ -191,7 +197,7 @@ export const consolidateItems = (items: DFDItem[]): ConsolidatedItem[] => {
 
 export const getAllSecretarias = (itemsByType: Record<string, ConsolidatedItemByType[]>): string[] => {
   const secretariasSet = new Set<string>();
-  
+
   Object.values(itemsByType).forEach(items => {
     items.forEach(item => {
       Object.keys(item.secretarias).forEach(secretaria => {
@@ -199,7 +205,7 @@ export const getAllSecretarias = (itemsByType: Record<string, ConsolidatedItemBy
       });
     });
   });
-  
+
   return Array.from(secretariasSet).sort();
 };
 

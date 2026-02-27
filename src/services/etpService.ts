@@ -6,7 +6,7 @@ export const etpService = {
      * Busca ETPs concluídos para seleção no Mapa de Riscos
      */
     async fetchConcluidos(prefeituraId?: string) {
-        let query = supabase
+        const query = supabase
             .from('etp')
             .select(`
         *,

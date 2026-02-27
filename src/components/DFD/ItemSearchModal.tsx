@@ -45,15 +45,14 @@ const ItemSearchModal = ({ open, onClose, onAddItem }: ItemSearchModalProps) => 
     { id: 'CATSER', name: 'CATSER' },
     { id: 'SETOP', name: 'SETOP' },
     { id: 'SIMPRO', name: 'SIMPRO' },
-    { id: 'CEASA', name: 'CEASA' },
     { id: 'SIGTAP', name: 'SIGTAP' },
-    { id: 'LICITAR', name: 'LICITAR DIGITAL' }
+    { id: 'NFE', name: 'NFE' },
   ];
 
   useEffect(() => {
     const fetchItems = async () => {
-      // Especial para PNCP ou se tiver busca, trazer algo
-      if (!debouncedSearch && activeTab !== 'PNCP') {
+      // Só buscar se houver um termo de busca
+      if (!debouncedSearch || debouncedSearch.length < 2) {
         setItems([]);
         return;
       }
@@ -157,8 +156,14 @@ const ItemSearchModal = ({ open, onClose, onAddItem }: ItemSearchModalProps) => 
                         </div>
                       </div>
 
-                      <div className="flex-1 overflow-y-auto">
-                        {loading ? (
+                      <div className="flex-1 overflow-y-auto min-h-[400px]">
+                        {!debouncedSearch ? (
+                          <div className="p-12 text-center text-gray-500">
+                            <Search size={48} className="mx-auto mb-4 text-gray-300 animate-pulse" />
+                            <p className="text-lg font-medium text-gray-400">Aguardando sua pesquisa...</p>
+                            <p className="text-sm">Digite no campo acima para localizar itens nas tabelas de referência</p>
+                          </div>
+                        ) : loading ? (
                           <div className="flex flex-col items-center justify-center py-20">
                             <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-2" />
                             <p className="text-gray-500">Buscando na base {tabela.name}...</p>
@@ -181,6 +186,12 @@ const ItemSearchModal = ({ open, onClose, onAddItem }: ItemSearchModalProps) => 
                                     </div>
                                     <p className="font-medium text-gray-900 mb-1">{item.descricao}</p>
                                     <p className="text-sm text-gray-600">Unidade: {item.unidade}</p>
+                                    {item.metadata && (
+                                      <p className="text-[10px] text-gray-400 mt-1 uppercase italic">{item.metadata}</p>
+                                    )}
+                                    {item.orgao && (
+                                      <p className="text-[10px] text-blue-400 mt-0.5">{item.orgao}</p>
+                                    )}
                                   </div>
                                   <div className="text-right flex items-center space-x-2">
                                     <div>

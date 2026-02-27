@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { consolidateItemsByType, formatCurrency } from '../utils/pcaConsolidation';
+import { consolidateItemsByType, formatCurrency, ConsolidatedItemByType, DFDItem } from '../utils/pcaConsolidation';
 import { supabase } from '@/lib/supabase';
 
 // Mock data - em produção viria do PCA
@@ -21,8 +21,37 @@ const calculateBusinessDays = (date: Date, days: number): Date => {
   return result;
 };
 
+export interface CronogramaItem {
+  id: string;
+  tipoDFD: string;
+  dataContratacao: string;
+  dataSugeridaAbertura: string;
+  prioridade: string;
+  secretariasNomes: string[];
+  secretariasSiglas: string[];
+  dfdIds: string[];
+  valorTotal: string;
+  quantidadeTotal: number;
+  unidadeMedida: string;
+  itensConsolidados: {
+    descricao: string;
+    unidadeMedida: string;
+    quantidadeTotal: number;
+    valorTotal: number;
+    detalhamentoTecnico?: string;
+  }[];
+  secretariasData: Record<string, {
+    quantidade: number;
+    valor: number;
+    prioridade: string;
+    dataInformada: string;
+    dfdId: string;
+  }>;
+  status: 'Em Elaboração' | 'Concluído' | 'Publicado'; // Adicionado status ao tipo
+}
+
 export const useCronogramaData = (filters: any) => {
-  const [consolidatedItems, setConsolidatedItems] = useState<any[]>([]);
+  const [consolidatedItems, setConsolidatedItems] = useState<DFDItem[]>([]);
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -107,8 +136,8 @@ export const useCronogramaData = (filters: any) => {
           quantidadeTotal: item.quantidadeTotal,
           unidadeMedida: item.unidadeMedida,
           itensConsolidados: itensConsolidados,
-          // Armazenar dados das secretarias sem referência circular
-          secretariasData: { ...item.secretarias }
+          secretariasData: { ...item.secretarias },
+          status: 'Em Elaboração' // Valor padrão por enquanto
         });
       });
     });

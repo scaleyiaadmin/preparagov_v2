@@ -120,6 +120,21 @@ const generateTRNumber = () => {
   return `TR-${sequence}`;
 };
 
+const mapDFDTypeToNatureza = (tipo: string): string => {
+  if (!tipo) return 'materiais-consumo';
+
+  const tipoLower = tipo.toLowerCase();
+
+  if (tipoLower.includes('consumo')) return 'materiais-consumo';
+  if (tipoLower.includes('permanente') || tipoLower.includes('equipamento')) return 'materiais-permanentes';
+  if (tipoLower.includes('continuado') && !tipoLower.includes('não')) return 'servico-continuado';
+  if (tipoLower.includes('não continuado')) return 'servico-nao-continuado';
+  if (tipoLower.includes('engenharia') || tipoLower.includes('obra')) return 'servico-engenharia';
+  if (tipoLower.includes('aditivo')) return 'termo-aditivo';
+
+  return 'materiais-consumo';
+};
+
 const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationWizardProps) => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -195,38 +210,12 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
 
   const { toast } = useToast();
 
-  // Auto-fill natureza do objeto based on DFD type
   useEffect(() => {
-    if (selectedData && !formData.naturezaObjeto) {
-      let natureza = '';
-
-      if (origin === 'cronograma' && selectedData?.tipoDFD) {
-        natureza = mapDFDTypeToNatureza(selectedData.tipoDFD);
-      } else if (origin === 'dfds-livres' && Array.isArray(selectedData)) {
-        const tipos = selectedData.map(dfd => dfd.tipoDFD);
-        const tipoMaisComum = tipos.sort((a, b) =>
-          tipos.filter(v => v === a).length - tipos.filter(v => v === b).length
-        ).pop();
-        natureza = mapDFDTypeToNatureza(tipoMaisComum);
-      }
-
-      if (natureza) {
-        setFormData(prev => ({ ...prev, naturezaObjeto: natureza }));
-      }
+    const natureza = mapDFDTypeToNatureza(getOriginDescription());
+    if (natureza && !formData.naturezaObjeto) {
+      setFormData(prev => ({ ...prev, naturezaObjeto: natureza }));
     }
-  }, [selectedData, origin, formData.naturezaObjeto]);
-
-  const mapDFDTypeToNatureza = (tipoDFD: string): string => {
-    const mapping: { [key: string]: string } = {
-      'Material de Consumo': 'materiais-consumo',
-      'Material Permanente': 'materiais-permanentes',
-      'Equipamento': 'materiais-permanentes',
-      'Serviço': 'servico-nao-continuado',
-      'Serviço de Engenharia': 'servico-engenharia',
-      'Obra': 'servico-engenharia'
-    };
-    return mapping[tipoDFD] || 'materiais-consumo';
-  };
+  }, [selectedData, origin]);
 
   const steps = [
     { title: 'Identificação e Origem', icon: <FileText size={16} /> },
@@ -352,11 +341,11 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
   };
 
   const getOriginDescription = () => {
-    if (origin === 'cronograma' && selectedData?.tipoDFD) {
-      return selectedData.tipoDFD.toLowerCase();
+    if (origin === 'cronograma' && selectedData) {
+      return (selectedData.tipo_dfd || selectedData.tipoDFD || 'materiais').toLowerCase();
     } else if (origin === 'dfds-livres' && Array.isArray(selectedData)) {
-      const tipos = [...new Set(selectedData.map(dfd => dfd.tipoDFD))];
-      return tipos.join(', ').toLowerCase();
+      const tipos = [...new Set(selectedData.map(dfd => dfd.tipo_dfd || dfd.tipoDFD))].filter(Boolean);
+      return tipos.length > 0 ? tipos.join(', ').toLowerCase() : 'materiais';
     } else if (origin === 'itens-especificos' && Array.isArray(selectedData)) {
       return 'itens específicos selecionados';
     }
@@ -364,20 +353,28 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
   };
 
   const calculateTotalValue = () => {
-    if (origin === 'cronograma' && selectedData?.valorTotal) {
-      return selectedData.valorTotal;
+    if (origin === 'cronograma' && selectedData) {
+      const val = selectedData.valor_estimado_total || selectedData.valorTotal;
+      if (typeof val === 'number') return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+      return val || 'R$ 0,00';
     } else if (origin === 'dfds-livres' && Array.isArray(selectedData)) {
       const total = selectedData.reduce((sum, dfd) => {
-        const valor = parseFloat(dfd.valorTotal.replace(/[^\d,]/g, '').replace(',', '.'));
-        return sum + valor;
+        const val = dfd.valor_estimado_total || dfd.valorTotal;
+        if (typeof val === 'number') return sum + val;
+        const stringVal = (val || '0').toString().replace(/[^\d,]/g, '').replace(',', '.');
+        const numericVal = parseFloat(stringVal) || 0;
+        return sum + numericVal;
       }, 0);
-      return `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total);
     } else if (origin === 'itens-especificos' && Array.isArray(selectedData)) {
       const total = selectedData.reduce((sum, item) => {
-        const valor = parseFloat(item.valorEstimado.replace(/[^\d,]/g, '').replace(',', '.'));
-        return sum + valor;
+        const val = item.valor_total || item.valorEstimado;
+        if (typeof val === 'number') return sum + val;
+        const stringVal = (val || '0').toString().replace(/[^\d,]/g, '').replace(',', '.');
+        const numericVal = parseFloat(stringVal) || 0;
+        return sum + numericVal;
       }, 0);
-      return `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total);
     }
     return 'R$ 0,00';
   };
@@ -469,11 +466,11 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
     if (origin === 'cronograma' && selectedData?.secretariasNomes) {
       return selectedData.secretariasNomes[0];
     } else if (origin === 'dfds-livres' && Array.isArray(selectedData)) {
-      const secretarias = [...new Set(selectedData.map(dfd => dfd.secretaria))];
-      return secretarias.join(', ');
+      const secretarias = [...new Set(selectedData.map(dfd => dfd.area_requisitante || dfd.secretaria))].filter(Boolean);
+      return secretarias.join(', ') || 'Não informada';
     } else if (origin === 'itens-especificos' && Array.isArray(selectedData)) {
-      const secretarias = [...new Set(selectedData.map(item => item.dfdSecretaria))];
-      return secretarias.join(', ');
+      const secretarias = [...new Set(selectedData.map(item => item.dfdSecretaria))].filter(Boolean);
+      return secretarias.join(', ') || 'Não informada';
     }
     return 'Secretaria';
   };
