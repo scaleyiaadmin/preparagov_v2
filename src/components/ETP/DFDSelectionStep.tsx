@@ -6,7 +6,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Search, Filter, X } from 'lucide-react';
+import { CheckCircle, Search, Filter, X, Eye } from 'lucide-react';
+import DFDViewModal from '@/components/DFD/DFDViewModal';
+import { supabase } from '@/lib/supabase';
 import {
   Pagination,
   PaginationContent,
@@ -54,6 +56,8 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
     secretaria: 'all',
     searchTerm: ''
   });
+  const [previewDFD, setPreviewDFD] = useState<any>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const itemsPerPage = 5;
 
@@ -283,8 +287,34 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <h3 className="font-medium text-gray-900">{dfd.objeto}</h3>
-                      {dfd.numeroDFD && (
-                        <p className="text-sm text-blue-600 font-medium">DFD nº {dfd.numeroDFD}</p>
+                      {dfd.numeroDFD && dfd.numeroDFD !== 'N/A' ? (
+                        <p className="text-sm text-blue-600 font-medium flex items-center">
+                          DFD nº {dfd.numeroDFD}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 ml-1 text-blue-400 hover:text-blue-600"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                const { data, error } = await supabase
+                                  .from('dfd')
+                                  .select('*, dfd_items(*)')
+                                  .eq('id', dfd.id)
+                                  .single();
+                                if (error) throw error;
+                                setPreviewDFD(data);
+                                setIsViewModalOpen(true);
+                              } catch (err) {
+                                console.error('Erro ao buscar DFD:', err);
+                              }
+                            }}
+                          >
+                            <Eye size={14} />
+                          </Button>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-400 font-medium">DFD nº Não gerado</p>
                       )}
                     </div>
                     {dfd.usedInETP && (
@@ -396,6 +426,12 @@ const DFDSelectionStep = ({ availableDFDs, selectedDFDs, onSelectDFDs }: DFDSele
             </div>
           </div>
         )}
+        {/* Visualização de DFD */}
+        <DFDViewModal
+          open={isViewModalOpen}
+          onClose={() => setIsViewModalOpen(false)}
+          dfd={previewDFD}
+        />
       </CardContent>
     </Card>
   );

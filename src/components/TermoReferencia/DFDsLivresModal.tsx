@@ -51,7 +51,7 @@ const DFDsLivresModal = ({ open, onClose, onContinuar }: DFDsLivresModalProps) =
     try {
       setLoading(true);
       // Buscamos apenas DFDs aprovados
-      const data = await dfdService.getAll({ status: 'Aprovado' });
+      const data = await dfdService.getAll({ status: 'Aprovado', prefeituraId: user?.prefeituraId || undefined });
       setDfds(data || []);
     } catch (error) {
       console.error('Erro ao carregar DFDs:', error);

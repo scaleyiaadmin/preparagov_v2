@@ -7,15 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Save, X } from 'lucide-react';
 
-interface DFDItem {
-  id: string;
-  codigo: string;
-  descricao: string;
-  unidade: string;
-  quantidade: number;
-  valorReferencia: number;
-  tabelaReferencia: string;
-}
+import { DFDItem } from './types';
 
 interface ItemEditModalProps {
   open: boolean;
@@ -51,7 +43,7 @@ const ItemEditModal = ({ open, onClose, item, onSave }: ItemEditModalProps) => {
         <DialogHeader>
           <DialogTitle>Editar Item do DFD</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div>
             <Label className="text-sm font-medium text-gray-700">Código</Label>
@@ -112,7 +104,7 @@ const ItemEditModal = ({ open, onClose, item, onSave }: ItemEditModalProps) => {
             <X size={16} className="mr-2" />
             Cancelar
           </Button>
-          <Button 
+          <Button
             onClick={handleSave}
             disabled={quantidade <= 0}
             className="bg-orange-500 hover:bg-orange-600"

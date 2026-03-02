@@ -5,15 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Edit } from 'lucide-react';
 
-interface DFDItem {
-  id: string;
-  codigo: string;
-  descricao: string;
-  unidade: string;
-  quantidade: number;
-  valorReferencia: number;
-  tabelaReferencia: string;
-}
+import { DFDItem } from './types';
 
 interface ItemsTableProps {
   items: DFDItem[];
@@ -68,17 +60,17 @@ const ItemsTable = ({ items, onRemoveItem, onEditItem }: ItemsTableProps) => {
               </TableCell>
               <TableCell>
                 <div className="flex space-x-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     title="Editar"
                     onClick={() => onEditItem(item)}
                   >
                     <Edit size={14} />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     title="Remover"
                     onClick={() => onRemoveItem(item.id)}
                   >
@@ -90,7 +82,7 @@ const ItemsTable = ({ items, onRemoveItem, onEditItem }: ItemsTableProps) => {
           ))}
         </TableBody>
       </Table>
-      
+
       <div className="flex justify-end">
         <div className="bg-gray-50 p-4 rounded-lg">
           <p className="text-lg font-semibold">

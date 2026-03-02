@@ -67,9 +67,9 @@ export interface DbDFD {
     data_prevista_contratacao?: string;
     prioridade?: 'Baixo' | 'Médio' | 'Alto';
     justificativa_prioridade?: string;
-    status: 'Rascunho' | 'Pendente' | 'Aprovado' | 'Reprovado' | 'Cancelado';
+    status: 'Rascunho' | 'Pendente' | 'Aprovado' | 'Reprovado' | 'Cancelado' | 'Retirado';
     ano_contratacao: number;
-    valor_estimado_total: number;
+    valor_estimado_total?: number; // Opcional pois pode ser calculado via trigger/view
     created_by?: string;
     secretaria_id?: string;
     prefeitura_id?: string;
@@ -93,7 +93,7 @@ export interface DbDFDItem {
     unidade?: string;
     quantidade: number;
     valor_unitario?: number;
-    valor_total: number;
+    valor_total?: number; // Opcional pois é gerado pelo banco (qty * unit)
     tabela_referencia?: string;
 }
 
@@ -113,6 +113,8 @@ export interface DbETP {
     id: string;
     created_at: string;
     numero_etp?: string;
+    objeto?: string;
+    descricao_sucinta?: string;
     status: 'Em Elaboração' | 'Concluído';
     descricao_demanda?: string;
     requisitos_contratacao?: string;

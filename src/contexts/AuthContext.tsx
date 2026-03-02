@@ -289,7 +289,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     }
 
-    return currentUser.permissions[module] === true;
+    // Caso a permissão não exista no objeto (permissões novas do sistema), usa o padrão da role
+    if (currentUser.permissions && currentUser.permissions[module] !== undefined) {
+      return currentUser.permissions[module] === true;
+    }
+
+    return defaultPermissionsByRole[currentUser.role]?.[module] === true;
   }, [authState, getCurrentUser]);
 
   const isSuperAdmin = useCallback((): boolean => {
@@ -470,8 +475,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [secretarias]);
 
   const getAllUsers = useCallback(() => {
-    return users;
-  }, [users]);
+    // Super Admin vê todos os usuários
+    // Admin e Operator veem apenas usuários da sua prefeitura
+    const currentUser = authState.user;
+    if (currentUser?.role === 'super_admin') {
+      return users;
+    }
+    if (currentUser?.prefeituraId) {
+      return users.filter(u => u.prefeituraId === currentUser.prefeituraId);
+    }
+    return [];
+  }, [users, authState.user]);
 
 
   const addSecretaria = useCallback((data: Omit<DbSecretaria, 'id' | 'created_at'>) => {

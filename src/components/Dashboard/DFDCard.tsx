@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DFDCard = () => {
   const navigate = useNavigate();
+  const { user, isSuperAdmin } = useAuth();
 
   const [dfdStats, setDfdStats] = React.useState({
     total: 0,
@@ -18,7 +20,13 @@ const DFDCard = () => {
   React.useEffect(() => {
     const fetchStats = async () => {
       const { supabase } = await import('@/lib/supabase');
-      const { data } = await supabase.from('dfd').select('*');
+      let query = supabase.from('dfd').select('*');
+
+      if (!isSuperAdmin() && user?.prefeituraId) {
+        query = query.eq('prefeitura_id', user.prefeituraId);
+      }
+
+      const { data } = await query;
 
       if (data) {
         const stats = {

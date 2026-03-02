@@ -54,7 +54,7 @@ const ItensEspecificosModal = ({ open, onClose, onContinuar }: ItensEspecificosM
   const loadDFDs = async () => {
     try {
       setLoading(true);
-      const data = await dfdService.getAll({ status: 'Aprovado' });
+      const data = await dfdService.getAll({ status: 'Aprovado', prefeituraId: user?.prefeituraId || undefined });
       setDfds(data || []);
     } catch (error) {
       console.error('Erro ao carregar DFDs:', error);
@@ -309,7 +309,7 @@ const ItensEspecificosModal = ({ open, onClose, onContinuar }: ItensEspecificosM
                                 <TableRow
                                   key={item.id}
                                   className={`${isUtilizado ? 'bg-red-50/30' :
-                                      selectedItems.includes(item.id) ? 'bg-orange-50/30' : ''
+                                    selectedItems.includes(item.id) ? 'bg-orange-50/30' : ''
                                     }`}
                                 >
                                   <TableCell>

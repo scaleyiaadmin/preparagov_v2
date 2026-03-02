@@ -4,6 +4,8 @@ import ETPPreview from './ETPPreview';
 
 interface ETPFormData {
   selectedDFDs: any[];
+  objeto: string;
+  descricaoSucinta: string;
   descricaoDemanda: string;
   requisitosContratacao: string;
   alternativasExistem: boolean;
@@ -24,10 +26,11 @@ interface ETPFormData {
 interface SummaryStepProps {
   formData: ETPFormData;
   onGeneratePDF: () => void;
+  user?: any;
 }
 
-const SummaryStep = ({ formData, onGeneratePDF }: SummaryStepProps) => {
-  return <ETPPreview formData={formData} onGeneratePDF={onGeneratePDF} />;
+const SummaryStep = ({ formData, onGeneratePDF, user }: SummaryStepProps) => {
+  return <ETPPreview formData={formData} onGeneratePDF={onGeneratePDF} user={user} />;
 };
 
 export default SummaryStep;

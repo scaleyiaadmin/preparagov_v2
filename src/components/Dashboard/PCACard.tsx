@@ -3,9 +3,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PCACard = () => {
   const navigate = useNavigate();
+  const { user, isSuperAdmin } = useAuth();
 
   const [pcaStats, setPcaStats] = React.useState({
     valorTotal: 'R$ 0,00',
@@ -20,10 +22,16 @@ const PCACard = () => {
       const { supabase } = await import('@/lib/supabase');
       const currentYear = new Date().getFullYear();
 
-      const { data } = await supabase
+      let query = supabase
         .from('dfd')
         .select('status, valor_estimado_total, ano_contratacao')
         .eq('ano_contratacao', currentYear);
+
+      if (!isSuperAdmin() && user?.prefeituraId) {
+        query = query.eq('prefeitura_id', user.prefeituraId);
+      }
+
+      const { data } = await query;
 
       if (data) {
         const totalDFDs = data.length;

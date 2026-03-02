@@ -1,0 +1,6 @@
+﻿
+C:\Users\freir\OneDrive\├ürea de Trabalho\Sistemas 2026\PreparaGov\src\components\DFD\ItemDatabaseSearch.tsx
+  69:11  warning  The 'sources' array makes the dependencies of useEffect Hook (at line 114) change on every render. To fix this, wrap the initialization of 'sources' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+Ô£û 1 problem (0 errors, 1 warning)
+

@@ -12,6 +12,7 @@ export interface ModulePermissions {
   termoReferencia: boolean;
   edital: boolean;
   perfil: boolean;
+  integracoes: boolean;
   gerenciarUsuarios: boolean;
   gestaoPrefeiturasAcesso: boolean;
 }
@@ -62,6 +63,7 @@ export const defaultPermissionsByRole: Record<UserRole, ModulePermissions> = {
     termoReferencia: true,
     edital: true,
     perfil: true,
+    integracoes: true,
     gerenciarUsuarios: true,
     gestaoPrefeiturasAcesso: true,
   },
@@ -75,6 +77,7 @@ export const defaultPermissionsByRole: Record<UserRole, ModulePermissions> = {
     termoReferencia: true,
     edital: true,
     perfil: true,
+    integracoes: true,
     gerenciarUsuarios: true,
     gestaoPrefeiturasAcesso: false,
   },
@@ -88,6 +91,7 @@ export const defaultPermissionsByRole: Record<UserRole, ModulePermissions> = {
     termoReferencia: false,
     edital: false,
     perfil: true,
+    integracoes: false,
     gerenciarUsuarios: false,
     gestaoPrefeiturasAcesso: false,
   },
@@ -109,6 +113,7 @@ export const moduleLabels: Record<keyof ModulePermissions, string> = {
   termoReferencia: 'Termo de Referência',
   edital: 'Edital',
   perfil: 'Perfil',
+  integracoes: 'Integrações',
   gerenciarUsuarios: 'Gerenciar Usuários',
   gestaoPrefeiturasAcesso: 'Gestão de Prefeituras',
 };

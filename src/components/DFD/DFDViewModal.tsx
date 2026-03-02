@@ -3,20 +3,12 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { X, Printer } from 'lucide-react';
 import { MappedDFD } from '../../pages/DFD';
 
 type DFDData = MappedDFD;
 
-interface DFDItem {
-  id: string;
-  codigo: string;
-  descricao: string;
-  unidade: string;
-  quantidade: number;
-  valorReferencia: number;
-  tabelaReferencia?: string;
-}
+import { DFDItem } from './types';
 
 
 interface DFDViewModalProps {
@@ -33,23 +25,27 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
     return dfd.itens.reduce((total, item) => total + (item.quantidade * item.valorReferencia), 0);
   };
 
-  const generateDFDNumber = () => {
-    const year = new Date().getFullYear();
-    const number = String(dfd.id).padStart(4, '0');
-    return `DFD-${year}-${number}`;
-  };
+  const dfdNumber = dfd.numeroDFD || `DFD-${new Date().getFullYear()}-${String(dfd.id).substring(0, 4)}`;
 
-  const dfdNumber = generateDFDNumber();
+  const handlePrint = () => {
+    window.print();
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col print:h-auto print:max-w-none print:p-0">
+        <DialogHeader className="flex-shrink-0 print:hidden">
           <div className="flex items-center justify-between">
             <DialogTitle>Visualização do DFD - {dfdNumber}</DialogTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X size={16} />
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm" onClick={handlePrint}>
+                <Printer size={16} className="mr-2" />
+                Imprimir
+              </Button>
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                <X size={16} />
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -68,7 +64,7 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p><strong>Descrição Sucinta do Objeto:</strong></p>
-                  <p className="text-gray-700">{dfd.objeto}</p>
+                  <p className="text-gray-700">{dfd.descricaoSucinta || 'Não informada'}</p>
                 </div>
                 <div>
                   <p><strong>Tipo de DFD:</strong></p>
@@ -83,10 +79,11 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
                 </div>
                 <div>
                   <p><strong>Status:</strong>
-                    <Badge className={`ml-2 ${dfd.status === 'Pendente Aprovação' ? 'bg-orange-100 text-orange-800' :
+                    <Badge className={`ml-2 ${dfd.status === 'Pendente' ? 'bg-orange-100 text-orange-800' :
                       dfd.status === 'Em Elaboração' ? 'bg-blue-100 text-blue-800' :
                         dfd.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
-                          'bg-red-100 text-red-800'
+                          dfd.status === 'Retirado' ? 'bg-gray-100 text-gray-600 border-dashed border-gray-300' :
+                            'bg-red-100 text-red-800'
                       }`}>
                       {dfd.status}
                     </Badge>
@@ -121,10 +118,17 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
               </div>
             )}
 
-            {dfd.prioridade === 'Alto' && dfd.justificativaPrioridade && (
+            {dfd.justificativaPrioridade && (
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Justificativa da Prioridade Alta:</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">Justificativa da Prioridade:</h3>
                 <p className="text-gray-700 leading-relaxed">{dfd.justificativaPrioridade}</p>
+              </div>
+            )}
+
+            {dfd.justificativaQuantidade && (
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Justificativa da Quantidade Estimada:</h3>
+                <p className="text-gray-700 leading-relaxed">{dfd.justificativaQuantidade}</p>
               </div>
             )}
           </div>

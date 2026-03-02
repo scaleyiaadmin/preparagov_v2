@@ -17,7 +17,7 @@ interface DFDCardProps {
     prioridade: string;
     anoContratacao: string;
   };
-  onAction: (dfd: any, action: 'cancel' | 'delete' | 'remove-pca' | 'view' | 'edit') => void;
+  onAction: (dfd: DFDCardProps['dfd'], action: 'cancel' | 'delete' | 'remove-pca' | 'view' | 'edit') => void;
 }
 
 const DFDCard = ({ dfd, onAction }: DFDCardProps) => {
@@ -25,7 +25,11 @@ const DFDCard = ({ dfd, onAction }: DFDCardProps) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'Rascunho':
+        return 'bg-gray-100 text-gray-600 border-gray-200';
       case 'Pendente Aprovação':
+        return 'bg-orange-100 text-orange-800';
+      case 'Pendente':
         return 'bg-orange-100 text-orange-800';
       case 'Em Elaboração':
         return 'bg-blue-100 text-blue-800';
@@ -33,6 +37,8 @@ const DFDCard = ({ dfd, onAction }: DFDCardProps) => {
         return 'bg-green-100 text-green-800';
       case 'Cancelado':
         return 'bg-red-100 text-red-800';
+      case 'Retirado':
+        return 'bg-gray-200 text-gray-500';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -52,7 +58,10 @@ const DFDCard = ({ dfd, onAction }: DFDCardProps) => {
 
   const getActionsForStatus = (status: string) => {
     switch (status) {
+      case 'Rascunho':
+        return ['view', 'edit', 'delete'];
       case 'Pendente Aprovação':
+      case 'Pendente':
         return ['view', 'edit', 'cancel'];
       case 'Em Elaboração':
         return ['view', 'edit', 'delete'];

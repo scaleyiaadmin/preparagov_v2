@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import ETPPreview from '@/components/ETP/ETPPreview';
+import CreationNameModal from '@/components/CreationNameModal';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Save,
   Download,
@@ -26,9 +32,11 @@ const ETP = () => {
   const [selectedETP, setSelectedETP] = useState<any>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedETPForView, setSelectedETPForView] = useState<any>(null);
+  const [showNameModal, setShowNameModal] = useState(false);
   const [completedPage, setCompletedPage] = useState(1);
   const [inProgressPage, setInProgressPage] = useState(1);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [etps, setEtps] = useState<any[]>([]);
 
@@ -36,7 +44,7 @@ const ETP = () => {
     const fetchETPs = async () => {
       try {
         // 1. Fetch ETPs with related DFDs
-        const { data, error } = await supabase
+        let query = supabase
           .from('etp')
           .select(`
             *,
@@ -47,12 +55,25 @@ const ETP = () => {
             )
           `);
 
+        // Filtrar por prefeitura (exceto super_admin)
+        if (user?.role !== 'super_admin' && user?.prefeituraId) {
+          query = query.eq('prefeitura_id', user.prefeituraId);
+        }
+
+        const { data, error } = await query;
+
         if (error) throw error;
 
-        // 2. Fetch Users for "Responsável"
-        const { data: usersData } = await supabase
+        // 2. Fetch Users for "Responsável" (filtrado pela mesma prefeitura)
+        let usersQuery = supabase
           .from('usuarios_acesso')
           .select('id, nome');
+
+        if (user?.role !== 'super_admin' && user?.prefeituraId) {
+          usersQuery = usersQuery.eq('prefeitura_id', user.prefeituraId);
+        }
+
+        const { data: usersData } = await usersQuery;
 
         const formatted = data.map((etp: any) => {
           const totalValue = etp.etp_dfd?.reduce((acc: number, item: any) => {
@@ -63,7 +84,7 @@ const ETP = () => {
 
           return {
             id: etp.id,
-            titulo: `ETP ${etp.numero_etp || 'Sem Número'}`,
+            titulo: etp.objeto || etp.descricao_demanda?.substring(0, 50) + '...' || `ETP ${etp.numero_etp || 'Sem Número'}`,
             numeroETP: etp.numero_etp || 'Rascunho',
             status: etp.status,
             totalDFDs: etp.etp_dfd?.length || 0,
@@ -104,9 +125,12 @@ const ETP = () => {
     loadETP
   } = useETPCreation();
 
-  const handleCreateNew = () => {
+  const handleCreateNew = (name: string) => {
+    // Definimos um valor inicial para a demanda com o título fornecido
+    updateFormData('objeto', name);
     setViewMode('creation');
     setCurrentStep(0);
+    setShowNameModal(false);
   };
 
   const handleViewETP = (etp: any) => {
@@ -139,11 +163,19 @@ const ETP = () => {
   };
 
   const handleGeneratePDF = (etp: any) => {
-    const fileName = `${etp.numeroETP.replace('-', '_')}.pdf`;
+    const filename = `ETP_${etp.numeroETP.replace(/\//g, '_')}.pdf`;
+
+    if (selectedETPForView && selectedETPForView.id === etp.id) {
+      generatePDF(filename);
+    } else {
+      handleViewETP(etp);
+      // Aguarda o modal abrir e os dados carregarem para capturar o elemento
+      setTimeout(() => generatePDF(filename), 1500);
+    }
 
     toast({
-      title: "PDF Gerado com Sucesso",
-      description: `Documento ${fileName} foi gerado e está pronto para download.`,
+      title: "Gerando PDF",
+      description: `Iniciando download do ${etp.numeroETP}.`,
     });
   };
 
@@ -152,15 +184,64 @@ const ETP = () => {
     setSelectedETP(null);
   };
 
+  const objetoOptions = [
+    'Aquisição de Gêneros Alimentícios',
+    'Aquisição de Material de Limpeza',
+    'Aquisição de Medicamentos',
+    'Aquisição de Material Hospitalar',
+    'Aquisição de Material de Expediente',
+    'Aquisição de Equipamentos de Informática',
+    'Aquisição de Mobiliário',
+    'Aquisição de Veículos',
+    'Aquisição de Uniformes e EPIs',
+    'Contratação de Serviços de Manutenção Predial',
+    'Contratação de Serviços de Limpeza e Conservação',
+    'Contratação de Serviços de Tecnologia',
+    'Contratação de Obras e Engenharia'
+  ];
+
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 0:
         return (
-          <DFDSelectionStep
-            availableDFDs={availableDFDs}
-            selectedDFDs={formData.selectedDFDs}
-            onSelectDFDs={selectDFDs}
-          />
+          <div className="space-y-6">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">1. Informações Básicas do ETP</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Nome do ETP (Objeto)</Label>
+                    <Input
+                      value={formData.objeto}
+                      onChange={(e) => updateFormData('objeto', e.target.value)}
+                      placeholder="Ex: Aquisição de Computadores..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Descrição Sucinta</Label>
+                    <Select
+                      value={formData.descricaoSucinta}
+                      onValueChange={(value) => updateFormData('descricaoSucinta', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {objetoOptions.map(option => (
+                          <SelectItem key={option} value={option}>{option}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <DFDSelectionStep
+              availableDFDs={availableDFDs}
+              selectedDFDs={formData.selectedDFDs}
+              onSelectDFDs={selectDFDs}
+            />
+          </div>
         );
       case 1:
         return (
@@ -290,7 +371,13 @@ const ETP = () => {
           />
         );
       case 12:
-        return <SummaryStep formData={formData} onGeneratePDF={generatePDF} />;
+        return (
+          <SummaryStep
+            formData={formData}
+            onGeneratePDF={() => generatePDF(`ETP_${formData.selectedDFDs[0]?.numeroDFD || 'Novo'}.pdf`)}
+            user={user}
+          />
+        );
       default:
         return null;
     }
@@ -413,15 +500,26 @@ const ETP = () => {
   // Dashboard view
   if (viewMode === 'dashboard') {
     return (
-      <ETPDashboard
-        etps={etps}
-        onCreateNew={handleCreateNew}
-        onViewETP={handleViewETP}
-        onViewCompleted={handleViewCompleted}
-        onViewInProgress={handleViewInProgress}
-        onContinueETP={handleContinueETP}
-        onGeneratePDF={handleGeneratePDF}
-      />
+      <div className="space-y-6">
+        <ETPDashboard
+          etps={etps}
+          onCreateNew={() => setShowNameModal(true)}
+          onViewETP={handleViewETP}
+          onViewCompleted={handleViewCompleted}
+          onViewInProgress={handleViewInProgress}
+          onContinueETP={handleContinueETP}
+          onGeneratePDF={handleGeneratePDF}
+        />
+
+        <CreationNameModal
+          isOpen={showNameModal}
+          onClose={() => setShowNameModal(false)}
+          onConfirm={handleCreateNew}
+          title="Novo Estudo Técnico Preliminar (ETP)"
+          placeholder="Dê um título para este ETP..."
+          description="Este título ajudará a identificar o estudo durante a elaboração e no dashboard."
+        />
+      </div>
     );
   }
 
@@ -553,8 +651,8 @@ const ETP = () => {
         </Button>
         <Button
           onClick={currentStep === steps.length - 1 ? async () => {
-            await saveETP();
-            setViewMode('dashboard');
+            const success = await saveETP();
+            if (success) setViewMode('dashboard');
           } : nextStep}
           disabled={!canProceed()}
           className="bg-orange-500 hover:bg-orange-600"

@@ -3,7 +3,10 @@ import { useToast } from '@/hooks/use-toast';
 
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { etpService } from '@/services/etpService';
 import { DbDFD, DbUser, DbSecretaria, DbETPWithDFDs } from '@/types/database';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 interface SelectedDFD {
   id: string; // Changed to string for UUID
@@ -22,6 +25,8 @@ interface SelectedDFD {
 
 interface ETPFormData {
   selectedDFDs: SelectedDFD[];
+  objeto: string;
+  descricaoSucinta: string;
   descricaoDemanda: string;
   requisitosContratacao: string;
   alternativasExistem: boolean;
@@ -43,6 +48,8 @@ export const useETPCreation = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<ETPFormData>({
     selectedDFDs: [],
+    objeto: '',
+    descricaoSucinta: '',
     descricaoDemanda: '',
     requisitosContratacao: '',
     alternativasExistem: false,
@@ -59,8 +66,10 @@ export const useETPCreation = () => {
     observacoesGerais: '',
     conclusaoTecnica: ''
   });
+  const [editingEtpId, setEditingEtpId] = useState<string | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { getCurrentUser } = useAuth();
+  const user = getCurrentUser();
   const [availableDFDs, setAvailableDFDs] = useState<SelectedDFD[]>([]);
 
   useEffect(() => {
@@ -126,16 +135,17 @@ export const useETPCreation = () => {
 
   // Salvar progresso no localStorage
   useEffect(() => {
-    localStorage.setItem('etp-creation-progress', JSON.stringify({ currentStep, formData }));
-  }, [currentStep, formData]);
+    localStorage.setItem('etp-creation-progress', JSON.stringify({ currentStep, formData, editingEtpId }));
+  }, [currentStep, formData, editingEtpId]);
 
   // Carregar progresso do localStorage
   useEffect(() => {
     const saved = localStorage.getItem('etp-creation-progress');
     if (saved) {
-      const { currentStep: savedStep, formData: savedData } = JSON.parse(saved);
+      const { currentStep: savedStep, formData: savedData, editingEtpId: savedId } = JSON.parse(saved);
       setCurrentStep(savedStep);
       setFormData(savedData);
+      setEditingEtpId(savedId || null);
     }
   }, []);
 
@@ -148,6 +158,7 @@ export const useETPCreation = () => {
 
   const loadETP = async (etpId: string) => {
     try {
+      setEditingEtpId(etpId);
       // Fetch ETP details
       const { data: etp, error } = await supabase
         .from('etp')
@@ -174,12 +185,14 @@ export const useETPCreation = () => {
         prioridade: item.dfd.prioridade,
         numeroDFD: item.dfd.numero_dfd,
         dataContratacao: item.dfd.data_prevista_contratacao,
-        secretaria: 'Carregando...', // We can improve this if needed by fetching secretarias
+        secretaria: 'Carregando...',
         responsavelDemanda: 'Carregando...'
       }));
 
       setFormData({
         selectedDFDs,
+        objeto: etp.objeto || '',
+        descricaoSucinta: etp.descricao_sucinta || '',
         descricaoDemanda: etp.descricao_demanda || '',
         requisitosContratacao: etp.requisitos_contratacao || '',
         alternativasExistem: etp.alternativas_existem || false,
@@ -197,7 +210,7 @@ export const useETPCreation = () => {
         conclusaoTecnica: etp.conclusao_tecnica || ''
       });
 
-      setCurrentStep(0); // Start at beginning or determine step
+      setCurrentStep(0);
     } catch (error) {
       console.error('Error loading ETP:', error);
       toast({
@@ -328,7 +341,7 @@ A alternativa escolhida foi a aquisição por meio de licitação pública, gara
   const canProceed = () => {
     switch (currentStep) {
       case 0:
-        return formData.selectedDFDs.length > 0;
+        return formData.objeto.trim() !== '' && formData.descricaoSucinta.trim() !== '' && formData.selectedDFDs.length > 0;
       case 1:
         return formData.descricaoDemanda.trim() !== '';
       case 2:
@@ -356,15 +369,21 @@ A alternativa escolhida foi a aquisição por meio de licitação pública, gara
     }
   };
 
-  const generateETPNumber = async () => {
+  const generateETPNumber = async (prefeituraId: string | null) => {
     const year = new Date().getFullYear();
 
-    // Get count of ETPs for current year
-    const { count, error } = await supabase
+    // Get count of ETPs for current year and prefeitura
+    let query = supabase
       .from('etp')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', `${year}-01-01`)
       .lte('created_at', `${year}-12-31`);
+
+    if (prefeituraId) {
+      query = query.eq('prefeitura_id', prefeituraId);
+    }
+
+    const { count, error } = await query;
 
     if (error) {
       console.error('Error generating ETP number:', error);
@@ -377,84 +396,119 @@ A alternativa escolhida foi a aquisição por meio de licitação pública, gara
 
   const saveETP = async () => {
     try {
-      const numeroETP = await generateETPNumber();
+      if (!user) {
+        toast({
+          title: "Erro de Autenticação",
+          description: "Você precisa estar logado para salvar um ETP.",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      // 1. Create ETP Record
-      const { data: etpData, error: etpError } = await supabase
-        .from('etp')
-        .insert([{
-          numero_etp: numeroETP, // Added number generation
-          status: 'Em Elaboração',
-          descricao_demanda: formData.descricaoDemanda,
-          requisitos_contratacao: formData.requisitosContratacao,
-          alternativas_existem: formData.alternativasExistem,
-          alternativas_descricao: formData.alternativasDescricao,
-          descricao_solucao: formData.descricaoSolucao,
-          justificativa_parcelamento: formData.justificativaParcelamento,
-          resultados_pretendidos: formData.resultadosPretendidos,
-          providencias_existem: formData.providenciasExistem,
-          providencias_descricao: formData.providenciasDescricao,
-          contratacoes_correlatas: formData.contratacoesCorrelatas,
-          contratacoes_descricao: formData.contratacoesDescricao,
-          impactos_ambientais: formData.impactosAmbientais,
-          impactos_descricao: formData.impactosDescricao,
-          observacoes_gerais: formData.observacoesGerais,
-          conclusao_tecnica: formData.conclusaoTecnica,
-          created_by: user?.id,
-          prefeitura_id: user?.prefeituraId
-        }])
-        .select()
-        .single();
+      const prefeituraId = (user as any).prefeitura_id || (user as any).prefeituraId || null;
+      const dfdIds = formData.selectedDFDs.map(d => d.id);
 
-      if (etpError) throw etpError;
+      const etpData: any = {
+        objeto: formData.objeto,
+        descricao_sucinta: formData.descricaoSucinta,
+        status: 'Concluído' as const,
+        descricao_demanda: formData.descricaoDemanda,
+        requisitos_contratacao: formData.requisitosContratacao,
+        alternativas_existem: formData.alternativasExistem,
+        alternativas_descricao: formData.alternativasDescricao,
+        descricao_solucao: formData.descricaoSolucao,
+        justificativa_parcelamento: formData.justificativaParcelamento,
+        resultados_pretendidos: formData.resultadosPretendidos,
+        providencias_existem: formData.providenciasExistem,
+        providencias_descricao: formData.providenciasDescricao,
+        contratacoes_correlatas: formData.contratacoesCorrelatas,
+        contratacoes_descricao: formData.contratacoesDescricao,
+        impactos_ambientais: formData.impactosAmbientais,
+        impactos_descricao: formData.impactosDescricao,
+        observacoes_gerais: formData.observacoesGerais,
+        conclusao_tecnica: formData.conclusaoTecnica,
+        created_by: user.id,
+        prefeitura_id: prefeituraId
+      };
 
-      // 2. Link DFDs
-      if (formData.selectedDFDs.length > 0) {
-        const links = formData.selectedDFDs.map(dfd => ({
-          etp_id: etpData.id,
-          dfd_id: dfd.id
-        }));
+      console.log('Tentando salvar ETP. Mode:', editingEtpId ? 'Update' : 'Create', 'ID:', editingEtpId);
 
-        const { error: linkError } = await supabase
-          .from('etp_dfd')
-          .insert(links);
+      if (editingEtpId) {
+        // Atualizar existente
+        await etpService.update(editingEtpId, etpData, dfdIds);
+        toast({
+          title: "ETP Atualizado",
+          description: `Estudo Técnico Preliminar atualizado com sucesso.`,
+        });
+      } else {
+        // Criar novo
+        const numeroETP = await generateETPNumber(prefeituraId);
+        etpData.numero_etp = numeroETP;
+        await etpService.create(etpData, dfdIds);
+        toast({
+          title: "ETP Salvo",
+          description: `Estudo Técnico Preliminar ${numeroETP} salvo com sucesso.`,
+        });
+      }
 
-        if (linkError) throw linkError;
+      localStorage.removeItem('etp-creation-progress');
+      setEditingEtpId(null);
+      return true;
+    } catch (error: any) {
+      console.group('ERRO AO SALVAR ETP - DETALHES PARA O SUPORTE');
+      console.error('Mensagem principal:', error?.message);
+      console.error('Código do erro:', error?.code);
+      console.error('Detalhes técnicos:', error?.details);
+      console.error('Sugestão/Dica (Hint):', error?.hint);
+      console.error('Objeto completo do erro:', error);
+      console.groupEnd();
+
+      // Se for erro de RLS ou constraints, dar uma dica melhor
+      let errorMsg = "Não foi possível concluir o ETP. Verifique o console (F12) para detalhes técnicos.";
+
+      if (error?.message?.includes('violates foreign key')) {
+        errorMsg = "Erro de integridade: Um ou mais DFDs selecionados podem ter sido alterados ou removidos.";
+      } else if (error?.code === '42501') {
+        errorMsg = "Erro de permissão: Você não tem autorização do banco de dados para atualizar este registro.";
+      } else if (error?.code === '23505') {
+        errorMsg = "Erro de duplicidade: Já existe um registro com estes dados no banco.";
       }
 
       toast({
-        title: "ETP Salvo",
-        description: "Estudo Técnico Preliminar salvo com sucesso no sistema.",
-      });
-      localStorage.removeItem('etp-creation-progress');
-    } catch (error) {
-      console.error(error);
-      toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar o ETP.",
+        description: errorMsg,
         variant: "destructive"
       });
+      return false;
     }
   };
 
-  const generatePDF = () => {
-    const generateETPId = () => {
-      return `ETP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+  const generatePDF = (filename: string = 'ETP_Documento.pdf') => {
+    const element = document.getElementById('etp-preview');
+    if (!element) {
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Não foi possível localizar o conteúdo do documento.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const opt: any = {
+      margin: 10,
+      filename: filename,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    const etpId = generateETPId();
-    const fileName = `${etpId.replace('-', '_')}.pdf`;
+    // New Promise-based usage:
+    html2pdf().from(element).set(opt as any).save();
 
-    // Simulate PDF generation
     toast({
-      title: "PDF Gerado com Sucesso",
-      description: `Documento ${fileName} foi gerado e está pronto para download.`,
+      title: "Download Iniciado",
+      description: "O documento ETP está sendo gerado e o download começará em breve.",
     });
-
-    // In a real implementation, you would use a library like jsPDF or html2pdf
-    // to generate the actual PDF from the preview content
-    console.log(`Generating PDF: ${fileName}`);
-    console.log('ETP Data:', formData);
   };
 
   return {

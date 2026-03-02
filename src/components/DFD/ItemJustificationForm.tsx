@@ -8,15 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sparkles, FileText, Check, X } from 'lucide-react';
 
-interface DFDItem {
-  id: string;
-  codigo: string;
-  descricao: string;
-  unidade: string;
-  quantidade: number;
-  valorReferencia: number;
-  tabelaReferencia: string;
-}
+import { DFDItem } from './types';
 
 interface ItemJustificationFormProps {
   items: DFDItem[];
@@ -24,10 +16,10 @@ interface ItemJustificationFormProps {
   onGlobalJustificationChange: (justification: string) => void;
 }
 
-const ItemJustificationForm = ({ 
-  items, 
-  globalJustification, 
-  onGlobalJustificationChange 
+const ItemJustificationForm = ({
+  items,
+  globalJustification,
+  onGlobalJustificationChange
 }: ItemJustificationFormProps) => {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState('');
@@ -35,7 +27,7 @@ const ItemJustificationForm = ({
 
   const generateAISuggestion = async () => {
     setLoadingAI(true);
-    
+
     // Simulate AI generation based on items
     setTimeout(() => {
       // Group items by category for better justification
@@ -52,7 +44,7 @@ const ItemJustificationForm = ({
         } else if (item.descricao.toLowerCase().includes('seringa') || item.descricao.toLowerCase().includes('hospitalar')) {
           category = 'Material Hospitalar';
         }
-        
+
         if (!acc[category]) acc[category] = [];
         acc[category].push(item);
         return acc;
@@ -163,7 +155,7 @@ const ItemJustificationForm = ({
               <span>Sugestão de Justificativa Gerada por IA</span>
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             {loadingAI ? (
               <div className="flex items-center justify-center py-8">
@@ -186,7 +178,7 @@ const ItemJustificationForm = ({
                     <X size={16} className="mr-2" />
                     Descartar
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleAcceptSuggestion}
                     className="bg-orange-500 hover:bg-orange-600"
                   >

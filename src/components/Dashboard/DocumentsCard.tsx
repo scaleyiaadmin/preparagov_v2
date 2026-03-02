@@ -3,9 +3,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, FileText, Search, Shield, BookOpen, Gavel } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DocumentsCard = () => {
   const navigate = useNavigate();
+  const { user, isSuperAdmin } = useAuth();
 
   const [counts, setCounts] = React.useState({
     dfd: 0,
@@ -19,15 +21,23 @@ const DocumentsCard = () => {
     const fetchCounts = async () => {
       const { supabase } = await import('@/lib/supabase');
 
-      const { count: dfdCount } = await supabase
+      let dfdQuery = supabase
         .from('dfd')
         .select('*', { count: 'exact', head: true })
         .in('status', ['Em Elaboração', 'Rascunho', 'Pendente']);
 
-      const { count: etpCount } = await supabase
+      let etpQuery = supabase
         .from('etp')
         .select('*', { count: 'exact', head: true })
         .in('status', ['Em Elaboração', 'Rascunho']);
+
+      if (!isSuperAdmin() && user?.prefeituraId) {
+        dfdQuery = dfdQuery.eq('prefeitura_id', user.prefeituraId);
+        etpQuery = etpQuery.eq('prefeitura_id', user.prefeituraId);
+      }
+
+      const { count: dfdCount } = await dfdQuery;
+      const { count: etpCount } = await etpQuery;
 
       setCounts({
         dfd: dfdCount || 0,

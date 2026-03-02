@@ -10,6 +10,7 @@ interface PCAApprovedDFDsListProps {
   selectedYear: string;
   approvedDFDs: any[];
   onViewDFD: (dfd: any) => void;
+  onPrintDFD: (dfd: any) => void;
   onRemoveFromPCA: (dfd: any) => void;
 }
 
@@ -17,6 +18,7 @@ const PCAApprovedDFDsList = ({
   selectedYear,
   approvedDFDs,
   onViewDFD,
+  onPrintDFD,
   onRemoveFromPCA
 }: PCAApprovedDFDsListProps) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -26,6 +28,8 @@ const PCAApprovedDFDsList = ({
     switch (status) {
       case 'Aprovado':
         return 'bg-green-100 text-green-800';
+      case 'Retirado':
+        return 'bg-gray-100 text-gray-500 border-dashed border-gray-300';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -42,7 +46,8 @@ const PCAApprovedDFDsList = ({
   };
 
   // Cálculos de paginação
-  const totalPages = Math.ceil(approvedDFDs.length / itemsPerPage);
+  const totalItems = approvedDFDs.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedDFDs = approvedDFDs.slice(startIndex, startIndex + itemsPerPage);
 
@@ -53,14 +58,29 @@ const PCAApprovedDFDsList = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>DFDs Aprovados - Componentes do PCA {selectedYear}</CardTitle>
+        <CardTitle>
+          DFDs no PCA {selectedYear} ({totalItems})
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {paginatedDFDs.map((item) => (
-            <div key={item.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+            <div key={item.id} className={`flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 ${item.status === 'Retirado' ? 'opacity-70 bg-gray-50/50' : 'border-gray-200'}`}>
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900">{item.objeto}</h3>
+                <div className="flex items-center space-x-2">
+                  <h3 className={`font-medium ${item.status === 'Retirado' ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                    {item.objeto}
+                  </h3>
+                  {item.status === 'Retirado' && (
+                    <Badge variant="outline" className="text-[10px] uppercase">Fora do Plano</Badge>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2 mt-1">
+                  {item.numeroDFD && (
+                    <span className="text-xs font-bold text-blue-600">#{item.numeroDFD}</span>
+                  )}
+                  <span className="text-xs text-gray-500 font-medium uppercase">{item.secretaria || 'Secretaria não informada'}</span>
+                </div>
                 <div className="flex items-center space-x-4 mt-2">
                   <Badge className={getStatusColor(item.status)}>
                     {item.status}
@@ -77,16 +97,18 @@ const PCAApprovedDFDsList = ({
                 </div>
                 <p className="text-sm font-medium text-gray-900 mt-1">{item.valorEstimado}</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm" onClick={() => onViewDFD(item)}>
+              <div className="flex items-center space-x-1">
+                <Button variant="ghost" size="sm" onClick={() => onViewDFD(item)} title="Visualizar">
                   <Eye size={16} />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={() => onPrintDFD(item)} title="Imprimir">
                   <Printer size={16} />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => onRemoveFromPCA(item)}>
-                  <X size={16} className="text-red-600" />
-                </Button>
+                {item.status !== 'Retirado' && (
+                  <Button variant="ghost" size="sm" onClick={() => onRemoveFromPCA(item)} title="Retirar do PCA">
+                    <X size={16} className="text-red-600" />
+                  </Button>
+                )}
               </div>
             </div>
           ))}

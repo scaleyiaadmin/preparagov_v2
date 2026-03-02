@@ -15,6 +15,8 @@ import CronogramaLicitacoes from "./pages/CronogramaLicitacoes";
 import TermoReferencia from "./pages/TermoReferencia";
 import Edital from "./pages/Edital";
 import Perfil from "./pages/Perfil";
+import Integracoes from "./pages/Integracoes";
+import GerenciarSub from "./pages/GerenciarSub";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminPrefeituras from "./pages/admin/Prefeituras";
@@ -65,6 +67,8 @@ const App = () => (
                 <Route path="termo" element={<TermoReferencia />} />
                 <Route path="edital" element={<Edital />} />
                 <Route path="perfil" element={<Perfil />} />
+                <Route path="gestao" element={<GerenciarSub />} />
+                <Route path="integracoes" element={<Integracoes />} />
               </Route>
             </Route>
 

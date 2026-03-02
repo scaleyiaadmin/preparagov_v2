@@ -18,7 +18,7 @@ import {
   Lightbulb,
   Edit
 } from 'lucide-react';
-import ItemSearchModal from './ItemSearchModal';
+import ItemDatabaseSearch from './ItemDatabaseSearch';
 import DFDPreview from './DFDPreview';
 import ItemsTable from './ItemsTable';
 import AISuggestionsModal from './AISuggestionsModal';
@@ -28,31 +28,11 @@ import { dfdService } from '@/services/dfdService';
 import { useAuth } from '@/contexts/AuthContext';
 import { DbDFDItem } from '@/types/database';
 
-interface DFDItem {
-  id: string;
-  codigo: string;
-  descricao: string;
-  unidade: string;
-  quantidade: number;
-  valorReferencia: number;
-  tabelaReferencia: string;
-}
-
-interface DFDFormData {
-  objeto: string;
-  tipoDFD: string;
-  descricaoSucinta: string;
-  descricaoDemanda: string;
-  justificativa: string;
-  dataPrevista: string;
-  prioridade: string;
-  justificativaPrioridade: string;
-  itens: DFDItem[];
-}
+import { DFDItem, DFDFormData, MappedDFD } from './types';
 
 interface DFDFormProps {
   onBack: () => void;
-  editingDFD?: any;
+  editingDFD?: MappedDFD | null;
 }
 
 const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
@@ -64,7 +44,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
   const [loadingAI, setLoadingAI] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
   const [isEditingAI, setIsEditingAI] = useState(false);
-  const [globalQuantityJustification, setGlobalQuantityJustification] = useState('');
+  const [globalQuantityJustification, setGlobalQuantityJustification] = useState(editingDFD?.justificativaQuantidade || '');
   const [formData, setFormData] = useState<DFDFormData>({
     objeto: editingDFD?.objeto || '',
     tipoDFD: editingDFD?.tipoDFD || '',
@@ -78,7 +58,8 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
   });
 
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { getCurrentUser } = useAuth();
+  const user = getCurrentUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const objetoOptions = [
@@ -118,99 +99,109 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
   };
 
   const isAIButtonEnabled = () => {
-    return formData.objeto && formData.prioridade && formData.dataPrevista && formData.tipoDFD;
+    return formData.descricaoSucinta && formData.prioridade && formData.dataPrevista && formData.tipoDFD;
   };
 
   const generateWithAI = async () => {
     setLoadingAI(true);
 
-    // Simular delay da IA
     setTimeout(() => {
-      const suggestions: Record<string, any> = {
+      const nome = formData.objeto || formData.descricaoSucinta || 'Objeto da Contratação';
+      const categoria = formData.descricaoSucinta;
+
+      // Mapa de sugestões por categoria (descricaoSucinta)
+      const suggestions: Record<string, { descricaoDemanda: string; justificativa: string }> = {
         'Aquisição de Gêneros Alimentícios': {
-          descricaoDemanda: 'Atender às necessidades nutricionais dos alunos da rede escolar municipal, fornecendo alimentação balanceada e de qualidade conforme diretrizes do PNAE (Programa Nacional de Alimentação Escolar), garantindo o desenvolvimento adequado dos estudantes e o cumprimento das metas educacionais.',
-          justificativa: 'A aquisição de gêneros alimentícios é fundamental para garantir a alimentação escolar adequada, conforme estabelecido na Lei nº 11.947/2009 e nas diretrizes do PNAE. A contratação visa assegurar a continuidade do fornecimento de merenda escolar, contribuindo para a permanência dos alunos na escola e seu desenvolvimento nutricional. A demanda foi calculada com base no número de estudantes matriculados e no cardápio nutricional aprovado por nutricionista responsável técnico.'
-        },
-        'Aquisição de Material de Limpeza': {
-          descricaoDemanda: 'Manter as instalações públicas municipais em condições adequadas de higiene e limpeza, garantindo um ambiente saudável e seguro para servidores, munícipes e visitantes, em conformidade com as normas sanitárias vigentes.',
-          justificativa: 'A aquisição de material de limpeza é essencial para manter as condições de higiene e salubridade das instalações públicas, atendendo às normas da ANVISA e demais órgãos reguladores. A contratação visa garantir a continuidade dos serviços de limpeza e conservação, prevenindo riscos à saúde pública e mantendo a qualidade do ambiente de trabalho. A estimativa de consumo foi baseada no histórico de utilização e na área total das instalações.'
+          descricaoDemanda: `A presente demanda visa a aquisição de gêneros alimentícios denominada "${nome}", destinada a garantir o fornecimento regular de alimentos para as unidades atendidas pelo município, atendendo às normas do Programa Nacional de Alimentação Escolar (PNAE) e demais legislações sanitárias vigentes.`,
+          justificativa: `A aquisição de gêneros alimentícios é essencial para manter a continuidade dos serviços de alimentação prestados à população, em especial a alunos da rede pública. A ausência desses insumos causaria impacto direto na saúde e no desempenho escolar dos beneficiários.`
         },
         'Aquisição de Medicamentos': {
-          descricaoDemanda: 'Garantir o fornecimento contínuo de medicamentos essenciais para atendimento básico da população através da farmácia municipal, complementando as ações de atenção primária à saúde e assegurando o acesso universal aos medicamentos.',
-          justificativa: 'A aquisição de medicamentos é fundamental para garantir o direito constitucional à saúde, conforme Art. 196 da CF/88 e Lei nº 8.080/90 (SUS). A contratação visa manter o estoque adequado da farmácia municipal para atendimento à população carente, seguindo a Relação Nacional de Medicamentos Essenciais (RENAME) e o Componente Básico da Assistência Farmacêutica. A demanda foi calculada com base no perfil epidemiológico local e consumo histórico.'
+          descricaoDemanda: `A presente demanda refere-se à aquisição de medicamentos e insumos farmacêuticos denominada "${nome}", com vistas a suprir as necessidades da rede municipal de saúde e garantir o acesso da população aos tratamentos essenciais previstos no Componente Básico da Assistência Farmacêutica.`,
+          justificativa: `O fornecimento contínuo de medicamentos é obrigação constitucional do Estado e condição indispensável para o funcionamento das Unidades Básicas de Saúde. A falta de estoque adequado compromete diretamente o tratamento de doenças crônicas e agudas, podendo causar agravamento da condição de saúde dos pacientes atendidos.`
         },
         'Aquisição de Material Hospitalar': {
-          descricaoDemanda: 'Garantir o funcionamento adequado das unidades de saúde municipais com materiais hospitalares de qualidade, assegurando a continuidade dos serviços de saúde e o atendimento digno à população usuária do Sistema Único de Saúde.',
-          justificativa: 'A aquisição de material hospitalar é indispensável para o funcionamento das unidades de saúde, garantindo a qualidade e segurança dos procedimentos médicos realizados. A contratação visa manter o estoque adequado conforme padrões técnicos da ANVISA e Ministério da Saúde, assegurando a continuidade dos serviços de saúde pública. A demanda foi estimada com base no histórico de consumo e na capacidade de atendimento das unidades.'
+          descricaoDemanda: `Esta demanda contempla a aquisição de materiais hospitalares e insumos médicos sob a denominação "${nome}", destinados ao abastecimento das unidades de saúde municipais, incluindo unidades de pronto atendimento e postos de saúde.`,
+          justificativa: `Os materiais hospitalares são insumos críticos para a realização de procedimentos clínicos, curativos e assistência de enfermagem. A ausência ou insuficiência desses itens compromete a segurança dos pacientes e dos profissionais de saúde, podendo gerar riscos à vida.`
+        },
+        'Aquisição de Material de Limpeza': {
+          descricaoDemanda: `A demanda denominada "${nome}" tem por objeto a aquisição de materiais de higienização e limpeza para uso nas instalações públicas municipais, incluindo escolas, unidades de saúde e prédios administrativos.`,
+          justificativa: `A manutenção de ambientes limpos e higienizados é condição fundamental para a saúde pública e o bem-estar dos servidores e usuários dos serviços municipais. O fornecimento regular desses materiais é obrigatório para cumprimento das normas da ANVISA e do Ministério da Saúde.`
         },
         'Aquisição de Material de Expediente': {
-          descricaoDemanda: 'Suprir as necessidades administrativas das secretarias e demais órgãos municipais com materiais de expediente adequados, garantindo o fluxo normal dos trabalhos burocráticos e o atendimento ao cidadão.',
-          justificativa: 'A aquisição de material de expediente é essencial para a manutenção das atividades administrativas do município. A falta destes itens pode comprometer a eficiência do serviço público e o atendimento à população. A estimativa quantitativa baseou-se no consumo médio dos últimos exercícios.'
+          descricaoDemanda: `A demanda denominada "${nome}" visa o suprimento de materiais de escritório, papelaria e expediente necessários ao funcionamento regular da administração pública municipal, secretarias e unidades escolares.`,
+          justificativa: `Os materiais de expediente são insumos básicos indispensáveis para a execução das atividades administrativas e pedagógicas. A falta desses itens prejudica a produtividade dos servidores, o atendimento ao público e o registro adequado das atividades institucionais.`
         },
         'Aquisição de Equipamentos de Informática': {
-          descricaoDemanda: 'Modernizar o parque tecnológico da administração municipal através da aquisição de equipamentos de informática, visando aumentar a produtividade dos servidores e a qualidade dos serviços digitais oferecidos aos cidadãos.',
-          justificativa: 'A atualização dos equipamentos de informática é necessária devido à obsolescência natural dos dispositivos atuais e à necessidade de suportar sistemas mais modernos. A contratação trará ganhos de eficiência e agilidade nos processos administrativos.'
+          descricaoDemanda: `Esta demanda tem por objeto a aquisição de equipamentos de informática identificada como "${nome}", com vistas a modernizar a infraestrutura tecnológica das secretarias e unidades escolares do município, garantindo condições adequadas de trabalho e conectividade.`,
+          justificativa: `A obsolescência do parque tecnológico compromete a eficiência operacional, a segurança da informação e a capacidade de atendimento ao cidadão. A renovação dos equipamentos é necessária para conformidade com os requisitos mínimos dos sistemas governamentais federais e estaduais.`
         },
         'Aquisição de Mobiliário': {
-          descricaoDemanda: 'Prover as repartições públicas de mobiliário adequado e ergonômico, proporcionando condições dignas de trabalho aos servidores e conforto ao atendimento do público externo.',
-          justificativa: 'A aquisição de mobiliário visa substituir itens danificados e mobiliar novos espaços, atendendo às normas de ergonomia (NR-17) e garantindo um ambiente de trabalho adequado. A demanda foi levantada através de inventário físico realizado nas unidades.'
+          descricaoDemanda: `A presente demanda contempla a aquisição de mobiliário sob a denominação "${nome}", destinada ao equipamento de instalações públicas, com foco em garantir as condições mínimas de trabalho para os servidores e de atendimento para a população.`,
+          justificativa: `A inadequação ou ausência de mobiliário compromete a ergonomia, a produtividade e a segurança no ambiente de trabalho, além de impactar negativamente a imagem institucional da administração pública junto à população.`
         },
         'Aquisição de Veículos': {
-          descricaoDemanda: 'Renovar e ampliar a frota municipal para atender às demandas de transporte de servidores, materiais e fiscalização, reduzindo custos com manutenção e garantindo a eficiência logística.',
-          justificativa: 'A aquisição de novos veículos justifica-se pelo alto custo de manutenção da frota antiga e pela necessidade de expansão dos serviços. A compra de veículos próprios demonstra-se economicamente vantajosa em comparação à locação a longo prazo para este perfil de utilização.'
+          descricaoDemanda: `Esta demanda, identificada como "${nome}", tem por objeto a aquisição de veículos para uso exclusivo da frota oficial municipal, visando a substituição de veículos com vida útil encerrada e a ampliação da capacidade operacional das secretarias.`,
+          justificativa: `A renovação da frota é necessária para garantir a mobilidade dos agentes públicos no exercício de suas funções, especialmente nas áreas de saúde, educação e assistência social, onde o transporte é condição essencial para a prestação dos serviços.`
         },
         'Aquisição de Uniformes e EPIs': {
-          descricaoDemanda: 'Fornecer uniformes e Equipamentos de Proteção Individual (EPIs) aos servidores, garantindo sua identificação, segurança e conformidade com as normas regulamentadoras de segurança do trabalho.',
-          justificativa: 'A aquisição é obrigatória conforme legislação trabalhista e normas de segurança. Visa proteger a integridade física dos servidores no exercício de suas funções, bem como padronizar a identificação visual das equipes municipais.'
+          descricaoDemanda: `A demanda denominada "${nome}" refere-se à aquisição de uniformes e equipamentos de proteção individual (EPIs) para os servidores municipais que atuam em áreas operacionais, conforme exigências da NR-6 e legislação trabalhista aplicável ao setor público.`,
+          justificativa: `O fornecimento de EPIs adequados é obrigação legal do empregador conforme a Norma Regulamentadora NR-6 da Portaria MTE 3.214/1978, aplicável ao serviço público. A ausência desses equipamentos expõe os servidores a riscos de acidentes e adoecimento ocupacional.`
         },
         'Contratação de Serviços de Manutenção Predial': {
-          descricaoDemanda: 'Garantir a conservação e o funcionamento adequado dos prédios públicos municipais através de serviços de manutenção preventiva e corretiva, preservando o patrimônio público e a segurança dos usuários.',
-          justificativa: 'A contratação de serviços de manutenção é imprescindível para evitar a deterioração dos imóveis públicos, garantindo sua vida útil e a segurança de servidores e cidadãos. A terceirização destes serviços permite maior agilidade e especialização técnica nas intervenções necessárias.'
+          descricaoDemanda: `A demanda denominada "${nome}" visa a contratação de empresa especializada em serviços de manutenção predial preventiva e corretiva, abrangendo as instalações físicas dos prédios públicos municipais.`,
+          justificativa: `A conservação adequada do patrimônio público é dever da administração e essencial para garantir segurança, funcionalidade e vida útil prolongada das edificações. A ausência de manutenção regular gera custos extraordinários com reformas emergenciais e riscos à integridade física dos ocupantes.`
         },
         'Contratação de Serviços de Limpeza e Conservação': {
-          descricaoDemanda: 'Assegurar a limpeza, conservação e higienização das áreas internas e externas das unidades municipais, proporcionando um ambiente salubre e agradável para o desenvolvimento das atividades públicas.',
-          justificativa: 'A terceirização dos serviços de limpeza visa garantir a continuidade e qualidade da higienização dos espaços públicos, atividade meio essencial para o funcionamento da administração. A demanda foi dimensionada com base na área física e frequência de utilização dos espaços.'
+          descricaoDemanda: `Esta demanda, intitulada "${nome}", tem por objeto a contratação de serviços continuados de limpeza e conservação para as dependências dos órgãos municipais, incluindo varrição, lavagem, desinfecção e coleta de resíduos comuns.`,
+          justificativa: `A limpeza e conservação dos espaços públicos é condição básica para a saúde dos servidores e usuários, além de requisito normativo para o funcionamento de unidades de saúde e educação. A terceirização desses serviços é prática consagrada e economicamente vantajosa para a administração.`
         },
         'Contratação de Serviços de Tecnologia': {
-          descricaoDemanda: 'Contratar serviços especializados em Tecnologia da Informação para suporte, desenvolvimento e manutenção de sistemas, garantindo a disponibilidade e segurança das informações municipais.',
-          justificativa: 'A contratação justifica-se pela necessidade de conhecimento técnico especializado e pela criticidade dos sistemas de governo. Visa assegurar a continuidade dos serviços digitais, a segurança de dados e a modernização administrativa.'
+          descricaoDemanda: `A demanda denominada "${nome}" tem por objeto a contratação de serviços de tecnologia da informação e comunicação, incluindo suporte técnico, manutenção de sistemas, segurança da informação e infraestrutura de redes para as secretarias municipais.`,
+          justificativa: `A dependência crescente de sistemas digitais na gestão pública torna essencial a contratação de suporte especializado. A ausência de manutenção adequada dos sistemas e redes expõe o município a riscos de segurança, paralisação de serviços e descumprimento de obrigações digitais perante órgãos de controle.`
         },
         'Contratação de Obras e Engenharia': {
-          descricaoDemanda: 'Executar obras de construção, reforma ou ampliação de infraestrutura pública, visando atender às demandas da população por melhores equipamentos urbanos e sociais.',
-          justificativa: 'A realização da obra é necessária para atender ao interesse público, melhorando a infraestrutura municipal. O projeto básico e o orçamento estimativo demonstram a viabilidade técnica e econômica da intervenção, que trará benefícios diretos à comunidade.'
+          descricaoDemanda: `Esta demanda, denominada "${nome}", contempla a contratação de empresa de engenharia e construção civil para execução de obras e serviços de engenharia em imóveis públicos municipais, conforme projeto executivo e memória de cálculo elaborados pela equipe técnica local.`,
+          justificativa: `A execução das obras previstas é necessária para ampliar ou recuperar a infraestrutura pública municipal, garantindo condições adequadas de atendimento à população e preservação do patrimônio edificado. A contratação segue os ditames da Lei 14.133/2021 e demais normas técnicas aplicáveis.`
         }
       };
 
-      const suggestion = suggestions[formData.objeto];
+      // Usar a categoria como chave principal; fallback genérico usando o nome
+      const suggestion = suggestions[categoria] || {
+        descricaoDemanda: `A presente demanda, denominada "${nome}", tem por objetivo suprir necessidade identificada pela administração municipal, garantindo a continuidade e qualidade dos serviços prestados à população conforme disposições da Lei 14.133/2021.`,
+        justificativa: `A contratação é necessária para atender às demandas operacionais da secretaria requisitante, em conformidade com o planejamento anual de contratações e os princípios constitucionais da eficiência e economicidade na gestão dos recursos públicos.`
+      };
+
+      const justificativaPrioridade = formData.prioridade === 'Alto'
+        ? `A demanda "${nome}" está classificada como prioritária pois sua não execução acarretaria interrupção imediata de serviços essenciais à população, com potencial impacto à saúde, segurança ou continuidade das atividades institucionais do município.`
+        : '';
 
       setFormData(prev => ({
         ...prev,
-        descricaoDemanda: suggestion?.descricaoDemanda || '',
-        justificativa: suggestion?.justificativa || '',
-        justificativaPrioridade: formData.prioridade === 'Alto' ?
-          'Esta demanda possui caráter urgente devido à natureza essencial do serviço público prestado, podendo causar descontinuidade nas atividades caso não seja atendida tempestivamente. O não atendimento pode comprometer a qualidade dos serviços oferecidos à população.' : ''
+        descricaoDemanda: suggestion.descricaoDemanda,
+        justificativa: suggestion.justificativa,
+        justificativaPrioridade
       }));
 
       setAiGenerated(true);
-      setIsEditingAI(false); // Reseta para modo de visualização caso já tenha gerado antes
+      setIsEditingAI(false);
       setLoadingAI(false);
 
       toast({
         title: "Conteúdo gerado por IA",
-        description: "Os campos foram preenchidos automaticamente com sugestões inteligentes.",
+        description: `Sugestões geradas com base em "${nome}" aplicadas com sucesso.`,
       });
-    }, 3000);
+    }, 2000);
   };
 
-  const handleAddItem = (item: DFDItem) => {
+  const handleAddItems = (newItems: DFDItem[]) => {
     setFormData(prev => ({
       ...prev,
-      itens: [...prev.itens, { ...item, id: Date.now().toString() }]
+      itens: [...prev.itens, ...newItems]
     }));
     setShowItemModal(false);
     toast({
-      title: "Item adicionado",
-      description: "Item incluído na demanda com sucesso.",
+      title: `${newItems.length} itens adicionados`,
+      description: "Itens incluídos na demanda com sucesso.",
     });
   };
 
@@ -253,7 +244,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         descricao_sucinta: formData.descricaoSucinta,
         descricao_demanda: formData.descricaoDemanda,
         justificativa: formData.justificativa,
-        justificativa_quantidade: globalQuantityJustification,
+        justificativa_quantidade: String(globalQuantityJustification || ''),
         data_prevista_contratacao: formData.dataPrevista,
         prioridade: formData.prioridade as 'Baixo' | 'Médio' | 'Alto',
         justificativa_prioridade: formData.justificativaPrioridade,
@@ -271,11 +262,16 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         unidade: item.unidade,
         quantidade: Number(item.quantidade),
         valor_unitario: Number(item.valorReferencia),
-        // valor_total é gerado automaticamente no banco
         tabela_referencia: item.tabelaReferencia
       }));
 
-      if (editingDFD) {
+      console.log('Tentando salvar Rascunho DFD. Payload:', { dfdData, itemsData });
+
+      if (!dfdData.prefeitura_id) {
+        console.warn('AVISO: Salvando DFD sem prefeitura_id. Isso pode falhar se o RLS exigir um ID.');
+      }
+
+      if (editingDFD?.id) {
         await dfdService.update(editingDFD.id, dfdData, itemsData);
         toast({
           title: "Rasunho Atualizado",
@@ -290,10 +286,17 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
       }
       onBack();
     } catch (error: any) {
-      console.error(error);
+      console.group('ERRO AO SALVAR DFD (RASCUNHO) - DETALHES');
+      console.error('Mensagem:', error?.message);
+      console.error('Código:', error?.code);
+      console.error('Detalhes:', error?.details);
+      console.error('Hint:', error?.hint);
+      console.groupEnd();
+
+      const errorMessage = error instanceof Error ? error.message : "Não foi possível salvar o rascunho. Verifique o console para detalhes.";
       toast({
         title: "Erro ao salvar",
-        description: error.message || "Não foi possível salvar o DFD. Tente novamente.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -333,7 +336,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
           descricao_sucinta: formData.descricaoSucinta,
           descricao_demanda: formData.descricaoDemanda,
           justificativa: formData.justificativa,
-          justificativa_quantidade: globalQuantityJustification,
+          justificativa_quantidade: String(globalQuantityJustification || ''),
           data_prevista_contratacao: formData.dataPrevista,
           prioridade: formData.prioridade as 'Baixo' | 'Médio' | 'Alto',
           justificativa_prioridade: formData.justificativaPrioridade,
@@ -351,11 +354,16 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
           unidade: item.unidade,
           quantidade: Number(item.quantidade),
           valor_unitario: Number(item.valorReferencia),
-          // valor_total é coluna gerada automaticamente no banco
           tabela_referencia: item.tabelaReferencia
         }));
 
-        if (editingDFD) {
+        console.log('Tentando enviar DFD para aprovação. Payload:', { dfdData, itemsData });
+
+        if (!dfdData.prefeitura_id) {
+          throw new Error("Você precisa estar impersonando uma prefeitura para enviar um DFD para aprovação (Super Admin) ou ter uma prefeitura vinculada.");
+        }
+
+        if (editingDFD?.id) {
           await dfdService.update(editingDFD.id, dfdData, itemsData);
           toast({
             title: "DFD Atualizado",
@@ -370,10 +378,17 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         }
         onBack();
       } catch (error: any) {
-        console.error(error);
+        console.group('ERRO AO ENVIAR DFD - DETALHES');
+        console.error('Mensagem:', error?.message);
+        console.error('Código:', error?.code);
+        console.error('Detalhes:', error?.details);
+        console.error('Hint:', error?.hint);
+        console.groupEnd();
+
+        const errorMessage = error instanceof Error ? error.message : "Não foi possível enviar o DFD para aprovação. Verifique o console.";
         toast({
           title: "Erro ao enviar",
-          description: error.message || "Não foi possível enviar o DFD. Tente novamente.",
+          description: errorMessage,
           variant: "destructive"
         });
       } finally {
@@ -403,10 +418,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
       return;
     }
 
-    toast({
-      title: "PDF Gerado",
-      description: "Documento PDF foi gerado com sucesso.",
-    });
+    setShowPreview(true);
   };
 
   return (
@@ -479,10 +491,20 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="objeto">Descrição Sucinta do Objeto *</Label>
-              <Select value={formData.objeto} onValueChange={(value) => handleInputChange('objeto', value)}>
+              <Label htmlFor="objeto">Nome do DFD *</Label>
+              <Input
+                id="objeto"
+                value={formData.objeto}
+                onChange={(e) => handleInputChange('objeto', e.target.value)}
+                placeholder="Ex: Aquisição de Material de Expediente"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="descricaoSucinta">Descrição Sucinta do Objeto *</Label>
+              <Select value={formData.descricaoSucinta} onValueChange={(value) => handleInputChange('descricaoSucinta', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de objeto" />
+                  <SelectValue placeholder="Selecione a descrição sucinta" />
                 </SelectTrigger>
                 <SelectContent>
                   {objetoOptions.map((option) => (
@@ -638,16 +660,20 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         </Button>
       </div>
 
-      <ItemSearchModal
-        open={showItemModal}
-        onClose={() => setShowItemModal(false)}
-        onAddItem={handleAddItem}
-      />
+      {showItemModal && (
+        <ItemDatabaseSearch
+          open={showItemModal}
+          onClose={() => setShowItemModal(false)}
+          onAddItems={handleAddItems}
+        />
+      )}
 
       <AISuggestionsModal
         open={showAISuggestions}
         onClose={() => setShowAISuggestions(false)}
         objeto={formData.objeto}
+        descricaoDemanda={formData.descricaoDemanda}
+        justificativa={formData.justificativa}
         onAddItems={(items) => {
           setFormData(prev => ({
             ...prev,

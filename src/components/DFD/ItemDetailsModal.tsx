@@ -7,20 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, X } from 'lucide-react';
 
-interface DFDItem {
-  id: string;
-  codigo: string;
-  descricao: string;
-  unidade: string;
-  quantidade: number;
-  valorReferencia: number;
-  tabelaReferencia: string;
-}
+import { DFDItem } from './types';
 
-interface ItemDetailsModalProps {
+export interface ItemDetailsModalProps {
   open: boolean;
   onClose: () => void;
-  item: any;
+  item: {
+    codigo: string;
+    descricao: string;
+    unidade: string;
+    valor: number;
+    tabelaReferencia: string;
+  } | null;
   onAddItem: (item: DFDItem) => void;
 }
 
@@ -64,7 +62,7 @@ const ItemDetailsModal = ({ open, onClose, item, onAddItem }: ItemDetailsModalPr
             </Button>
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {/* Informações do item */}
           <div className="border rounded-lg p-4 bg-gray-50">
@@ -80,12 +78,12 @@ const ItemDetailsModal = ({ open, onClose, item, onAddItem }: ItemDetailsModalPr
                 </Badge>
               </div>
             </div>
-            
+
             <div className="mt-4">
               <Label className="text-sm font-medium text-gray-600">Descrição Completa</Label>
               <p className="text-gray-900 mt-1 leading-relaxed">{item.descricao}</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
                 <Label className="text-sm font-medium text-gray-600">Unidade de Medida</Label>
@@ -116,7 +114,7 @@ const ItemDetailsModal = ({ open, onClose, item, onAddItem }: ItemDetailsModalPr
                 className="mt-2"
               />
             </div>
-            
+
             {quantidade && parseInt(quantidade) > 0 && (
               <div className="border rounded-lg p-4 bg-green-50 border-green-200">
                 <div className="flex items-center justify-between">
@@ -143,7 +141,7 @@ const ItemDetailsModal = ({ open, onClose, item, onAddItem }: ItemDetailsModalPr
             <X size={16} className="mr-2" />
             Cancelar
           </Button>
-          <Button 
+          <Button
             onClick={handleAddItem}
             disabled={!quantidade || parseInt(quantidade) <= 0}
             className="bg-orange-500 hover:bg-orange-600"

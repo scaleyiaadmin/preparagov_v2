@@ -4,18 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { Download, Printer } from 'lucide-react';
 
 interface ETPFormData {
   selectedDFDs: any[];
+  objeto: string;
+  descricaoSucinta: string;
   descricaoDemanda: string;
   requisitosContratacao: string;
   alternativasExistem: boolean;
@@ -36,9 +38,10 @@ interface ETPFormData {
 interface ETPPreviewProps {
   formData: ETPFormData;
   onGeneratePDF: () => void;
+  user?: any;
 }
 
-const ETPPreview = ({ formData, onGeneratePDF }: ETPPreviewProps) => {
+const ETPPreview = ({ formData, onGeneratePDF, user }: ETPPreviewProps) => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'Alta':
@@ -95,6 +98,25 @@ const ETPPreview = ({ formData, onGeneratePDF }: ETPPreviewProps) => {
           <CardTitle>Documento Técnico</CardTitle>
         </CardHeader>
         <CardContent className="space-y-8">
+          {/* 0. Informações Básicas */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-gray-900">
+              Informações Básicas
+            </h3>
+            <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span className="font-semibold text-gray-800">Nome do ETP:</span>
+                <p className="text-gray-700">{formData.objeto}</p>
+              </div>
+              <div>
+                <span className="font-semibold text-gray-800">Descrição Sucinta:</span>
+                <p className="text-gray-700">{formData.descricaoSucinta || 'Não informada'}</p>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* 1. Descrição da Demanda */}
           <div>
             <h3 className="text-lg font-semibold mb-3 text-gray-900">
@@ -126,8 +148,8 @@ const ETPPreview = ({ formData, onGeneratePDF }: ETPPreviewProps) => {
             </h3>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-700 whitespace-pre-wrap">
-                {formData.alternativasExistem 
-                  ? formData.alternativasDescricao 
+                {formData.alternativasExistem
+                  ? formData.alternativasDescricao
                   : 'Não há alternativas identificadas'}
               </p>
             </div>
@@ -178,8 +200,8 @@ const ETPPreview = ({ formData, onGeneratePDF }: ETPPreviewProps) => {
             </h3>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-700 whitespace-pre-wrap">
-                {formData.providenciasExistem 
-                  ? formData.providenciasDescricao 
+                {formData.providenciasExistem
+                  ? formData.providenciasDescricao
                   : 'Não há providências prévias necessárias'}
               </p>
             </div>
@@ -194,8 +216,8 @@ const ETPPreview = ({ formData, onGeneratePDF }: ETPPreviewProps) => {
             </h3>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-700 whitespace-pre-wrap">
-                {formData.contratacoesCorrelatas 
-                  ? formData.contratacoesDescricao 
+                {formData.contratacoesCorrelatas
+                  ? formData.contratacoesDescricao
                   : 'Não há contratações correlatas'}
               </p>
             </div>
@@ -210,8 +232,8 @@ const ETPPreview = ({ formData, onGeneratePDF }: ETPPreviewProps) => {
             </h3>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-700 whitespace-pre-wrap">
-                {formData.impactosAmbientais 
-                  ? formData.impactosDescricao 
+                {formData.impactosAmbientais
+                  ? formData.impactosDescricao
                   : 'Não há impactos ambientais significativos'}
               </p>
             </div>
@@ -295,10 +317,10 @@ const ETPPreview = ({ formData, onGeneratePDF }: ETPPreviewProps) => {
               Responsável pela Elaboração:
             </div>
             <div className="font-medium text-gray-900">
-              [Nome do Responsável]
+              {user?.nome || '[Nome do Responsável]'}
             </div>
             <div className="text-sm text-gray-600">
-              [Cargo/Função]
+              {user?.cargo_funcional || user?.tipo_perfil || '[Cargo/Função]'}
             </div>
             <div className="text-sm text-gray-500 mt-4">
               Documento gerado automaticamente pelo Sistema em {getCurrentDate()}
@@ -308,7 +330,7 @@ const ETPPreview = ({ formData, onGeneratePDF }: ETPPreviewProps) => {
       </Card>
 
       {/* Botões de Ação */}
-      <div className="flex justify-center space-x-4 print:hidden">
+      <div className="flex justify-center space-x-4 print:hidden" data-html2canvas-ignore="true">
         <Button
           variant="outline"
           onClick={() => window.print()}

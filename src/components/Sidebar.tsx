@@ -13,7 +13,8 @@ import {
   CalendarDays,
   Settings,
   Users,
-  Building2
+  Building2,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,7 +47,7 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
     { icon: CalendarDays, label: 'Cronograma de Licitações', path: '/cronograma', permissionKey: 'cronograma' },
     { icon: BookOpen, label: 'Termo de Referência', path: '/termo', permissionKey: 'termoReferencia' },
     { icon: Gavel, label: 'Edital', path: '/edital', permissionKey: 'edital' },
-    { icon: User, label: 'Perfil', path: '/perfil', permissionKey: 'perfil' },
+    { icon: Globe, label: 'Integrações', path: '/integracoes', requiresAdmin: true },
   ];
 
   // Filtra menu items baseado nas permissões

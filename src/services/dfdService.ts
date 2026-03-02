@@ -2,11 +2,15 @@ import { supabase } from '@/lib/supabase';
 import { DbDFD, DbDFDItem, DbDFDWithRelations } from '@/types/database';
 
 export const dfdService = {
-    async getAll(filters?: { status?: string; ano?: number }): Promise<DbDFDWithRelations[]> {
+    async getAll(filters?: { status?: string; ano?: number; prefeituraId?: string }): Promise<DbDFDWithRelations[]> {
         let query = supabase
             .from('dfd')
-            .select('*, dfd_items(*)')
+            .select('*, dfd_items(*), secretarias(*)')
             .order('created_at', { ascending: false });
+
+        if (filters?.prefeituraId) {
+            query = query.eq('prefeitura_id', filters.prefeituraId);
+        }
 
         if (filters?.status && filters.status !== 'all') {
             query = query.eq('status', filters.status);
@@ -24,7 +28,7 @@ export const dfdService = {
     async getById(id: string): Promise<DbDFDWithRelations> {
         const { data, error } = await supabase
             .from('dfd')
-            .select('*, dfd_items(*)')
+            .select('*, dfd_items(*), secretarias(*)')
             .eq('id', id)
             .single();
 
@@ -130,5 +134,29 @@ export const dfdService = {
             .eq('id', id);
 
         if (error) throw error;
+    },
+
+    async approve(id: string) {
+        const { error } = await supabase
+            .from('dfd')
+            .update({ status: 'Aprovado' })
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
+    async requestPcaRemoval(id: string, justification: string) {
+        const { error } = await supabase
+            .from('dfd')
+            .update({
+                status: 'Retirado',
+                justificativa_cancelamento: justification
+            })
+            .eq('id', id);
+
+        if (error) throw error;
+
+        // Aqui poderíamos chamar uma função de notificação se o serviço existisse
+        console.log('Notificação enviada ao responsável pelo DFD', id);
     }
 };

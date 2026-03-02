@@ -6,20 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Plus, Eye, Loader2 } from 'lucide-react';
-import ItemDetailsModal from './ItemDetailsModal';
+import ItemDetailsModal, { ItemDetailsModalProps } from './ItemDetailsModal';
+import { DFDItem } from './types';
 import { referenciaService, ReferenciaItem } from '@/services/referenciaService';
 import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '../../hooks/use-debounce';
-
-interface DFDItem {
-  id: string;
-  codigo: string;
-  descricao: string;
-  unidade: string;
-  quantidade: number;
-  valorReferencia: number;
-  tabelaReferencia: string;
-}
 
 interface ItemSearchModalProps {
   open: boolean;
@@ -34,7 +25,7 @@ const ItemSearchModal = ({ open, onClose, onAddItem }: ItemSearchModalProps) => 
   const [activeTab, setActiveTab] = useState('PNCP');
   const [items, setItems] = useState<ReferenciaItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<ItemDetailsModalProps['item']>(null);
   const [showItemDetails, setShowItemDetails] = useState(false);
 
   const tabelas = [
@@ -42,11 +33,9 @@ const ItemSearchModal = ({ open, onClose, onAddItem }: ItemSearchModalProps) => 
     { id: 'BPS', name: 'BPS' },
     { id: 'CMED', name: 'CMED' },
     { id: 'SINAPI', name: 'SINAPI' },
-    { id: 'CATSER', name: 'CATSER' },
-    { id: 'SETOP', name: 'SETOP' },
-    { id: 'SIMPRO', name: 'SIMPRO' },
-    { id: 'SIGTAP', name: 'SIGTAP' },
-    { id: 'NFE', name: 'NFE' },
+    { id: 'NFE', name: 'Banco de NFe' },
+    { id: 'CATMAT', name: 'CATMAT', commingSoon: true },
+    { id: 'CATSER', name: 'CATSER', commingSoon: true },
   ];
 
   useEffect(() => {
@@ -77,7 +66,7 @@ const ItemSearchModal = ({ open, onClose, onAddItem }: ItemSearchModalProps) => 
     if (open) {
       fetchItems();
     }
-  }, [debouncedSearch, activeTab, open]);
+  }, [debouncedSearch, activeTab, open, toast]);
 
   const handleSelectItem = (item: ReferenciaItem) => {
     setSelectedItem({
@@ -130,9 +119,15 @@ const ItemSearchModal = ({ open, onClose, onAddItem }: ItemSearchModalProps) => 
                   <TabsTrigger
                     key={tabela.id}
                     value={tabela.id}
-                    className="text-xs px-2"
+                    className="text-xs px-2 relative"
                   >
                     {tabela.name}
+                    {tabela.commingSoon && (
+                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                      </span>
+                    )}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -157,7 +152,13 @@ const ItemSearchModal = ({ open, onClose, onAddItem }: ItemSearchModalProps) => 
                       </div>
 
                       <div className="flex-1 overflow-y-auto min-h-[400px]">
-                        {!debouncedSearch ? (
+                        {tabela.commingSoon ? (
+                          <div className="p-12 text-center text-gray-500">
+                            <Loader2 size={48} className="mx-auto mb-4 text-orange-300 animate-spin" />
+                            <p className="text-lg font-medium text-orange-600">Em Breve!</p>
+                            <p className="text-sm">Esta fonte de dados está sendo integrada e estará disponível em breve para consultas reais.</p>
+                          </div>
+                        ) : !debouncedSearch ? (
                           <div className="p-12 text-center text-gray-500">
                             <Search size={48} className="mx-auto mb-4 text-gray-300 animate-pulse" />
                             <p className="text-lg font-medium text-gray-400">Aguardando sua pesquisa...</p>

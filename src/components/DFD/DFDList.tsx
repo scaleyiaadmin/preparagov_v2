@@ -10,13 +10,22 @@ interface DFDListProps {
     anoContratacao: string;
     status: string;
   };
-  onFilterChange: (filters: any) => void;
+  onFilterChange: (filters: DFDListProps['filters']) => void;
   currentPage: number;
   onPageChange: (page: number) => void;
-  onAction: (dfd: any, action: 'cancel' | 'delete' | 'remove-pca' | 'view' | 'edit') => void;
+  onAction: (dfd: DFDListProps['dfds'][0], action: 'cancel' | 'delete' | 'remove-pca' | 'view' | 'edit') => void;
 
   currentFilter: string;
-  dfds: any[];
+  dfds: {
+    id: string;
+    objeto: string;
+    tipoDFD: string;
+    valor: string;
+    status: string;
+    data: string;
+    prioridade: string;
+    anoContratacao: string;
+  }[];
 }
 
 const DFDList = ({
@@ -62,7 +71,7 @@ const DFDList = ({
       case 'aprovados':
         return dfd.status === 'Aprovado';
       case 'pendentes':
-        return dfd.status === 'Pendente Aprovação';
+        return dfd.status === 'Pendente';
       default:
         return true;
     }

@@ -47,10 +47,14 @@ const PCA = () => {
     handleDenyCancellation,
     handleRemoveFromPCA,
     handleConfirmRemoval,
+    handlePrintDFD,
     handlePublishPNCP
   } = usePCAData();
 
-  const consolidatedItemsByType = consolidateItemsByType(consolidatedItems);
+  // O hook usePCAData já retorna consolidatedItems. 
+  // O utilitário consolidateItemsByType deve ser usado se precisarmos re-consolidar aqui.
+  // Mas no código original, ele estava sendo redeclarado como constante.
+  const itemsByType = consolidateItemsByType(consolidatedItems);
 
   return (
     <div className="space-y-6">
@@ -78,6 +82,7 @@ const PCA = () => {
         selectedYear={selectedYear}
         approvedDFDs={approvedDFDs}
         onViewDFD={handleViewDFD}
+        onPrintDFD={handlePrintDFD}
         onRemoveFromPCA={handleRemoveFromPCA}
       />
 
@@ -104,13 +109,13 @@ const PCA = () => {
         open={showPCAModal}
         onClose={() => setShowPCAModal(false)}
         selectedYear={selectedYear}
-        itemsByType={consolidatedItemsByType}
+        itemsByType={itemsByType as any}
       />
 
       <PCAStructuredExportModal
         open={showExportModal}
         onClose={() => setShowExportModal(false)}
-        itemsByType={consolidatedItemsByType}
+        itemsByType={itemsByType as any}
         selectedYear={selectedYear}
       />
 
@@ -124,7 +129,7 @@ const PCA = () => {
       <DFDViewModal
         open={showDFDViewModal}
         onClose={() => setShowDFDViewModal(false)}
-        dfd={selectedDFD}
+        dfd={selectedDFD as any}
       />
     </div>
   );

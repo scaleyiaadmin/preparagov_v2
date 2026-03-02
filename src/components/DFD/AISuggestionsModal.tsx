@@ -5,26 +5,21 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { referenciaService, ReferenciaItem } from '@/services/referenciaService';
-import { Loader2, Sparkles, CheckCircle2, Edit, X } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Sparkles, CheckCircle2, Edit, X, Search } from 'lucide-react';
 
-interface DFDItem {
-  id: string;
-  codigo: string;
-  descricao: string;
-  unidade: string;
-  quantidade: number;
-  valorReferencia: number;
-  tabelaReferencia: string;
-}
+import { DFDItem } from './types';
 
 interface AISuggestionsModalProps {
   open: boolean;
   onClose: () => void;
   objeto: string;
+  descricaoDemanda?: string;
+  justificativa?: string;
   onAddItems: (items: DFDItem[]) => void;
 }
 
-const AISuggestionsModal = ({ open, onClose, objeto, onAddItems }: AISuggestionsModalProps) => {
+const AISuggestionsModal = ({ open, onClose, objeto, descricaoDemanda, justificativa, onAddItems }: AISuggestionsModalProps) => {
   const [suggestedItems, setSuggestedItems] = useState<DFDItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -37,7 +32,11 @@ const AISuggestionsModal = ({ open, onClose, objeto, onAddItems }: AISuggestions
 
       try {
         setLoading(true);
-        const results = await referenciaService.searchMultisource(objeto);
+        const results = await referenciaService.searchMultisource({
+          objeto,
+          descricaoDemanda,
+          justificativa
+        });
 
         const mappedResults: DFDItem[] = results.map(item => ({
           id: item.id,
@@ -46,11 +45,11 @@ const AISuggestionsModal = ({ open, onClose, objeto, onAddItems }: AISuggestions
           unidade: item.unidade || 'UN',
           quantidade: 1, // Padrão inicial
           valorReferencia: item.valor,
-          tabelaReferencia: item.fonte
+          tabelaReferencia: item.fonte || 'CATMAT'
         }));
 
         setSuggestedItems(mappedResults);
-        // Selecionar todos por padrão se houver poucos, ou nenhum se houver muitos
+        // Selecionar todos por padrão se houver poucos
         if (mappedResults.length <= 5) {
           setSelectedItems(mappedResults.map(i => i.codigo));
         }
@@ -62,7 +61,9 @@ const AISuggestionsModal = ({ open, onClose, objeto, onAddItems }: AISuggestions
     };
 
     fetchSuggestions();
-  }, [open, objeto]);
+  }, [open, objeto, descricaoDemanda, justificativa]);
+
+  const fixedSources = ['PNCP', 'BPS', 'CMED', 'SINAPI', 'NFE'];
 
   const groupedItems = suggestedItems.reduce((acc, item) => {
     const source = item.tabelaReferencia;
@@ -101,7 +102,7 @@ const AISuggestionsModal = ({ open, onClose, objeto, onAddItems }: AISuggestions
     setTempQuantities({});
   };
 
-  const getItemQuantity = (item: any) => {
+  const getItemQuantity = (item: DFDItem) => {
     return tempQuantities[item.codigo] || item.quantidade;
   };
 
@@ -180,101 +181,126 @@ const AISuggestionsModal = ({ open, onClose, objeto, onAddItems }: AISuggestions
               <p className="text-sm text-gray-400">Tente ajustar a descrição do objeto no DFD.</p>
             </div>
           ) : (
-            Object.entries(groupedItems).map(([source, sourceItems]) => (
-              <div key={source} className="space-y-3">
-                <div className="flex items-center space-x-2 border-b pb-1 mt-6 first:mt-0">
-                  <Badge className="bg-orange-500 text-white font-bold">{source}</Badge>
-                  <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">
-                    {sourceItems.length} sugestões encontradas
-                  </span>
-                </div>
+            <Tabs defaultValue="PNCP" className="w-full">
+              <div className="sticky top-0 bg-white z-10 pb-2 mb-4 border-b">
+                <TabsList className="w-full justify-start overflow-x-auto bg-gray-50 flex-nowrap h-auto p-1">
+                  {fixedSources.map((source) => (
+                    <TabsTrigger
+                      key={source}
+                      value={source}
+                      className="flex items-center space-x-2 whitespace-nowrap px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-sm"
+                    >
+                      <span className="font-bold">{source === 'NFE' ? 'Banco de NFe' : source}</span>
+                      <Badge variant="secondary" className="ml-2 bg-gray-200 text-gray-700">
+                        {groupedItems[source]?.length || 0}
+                      </Badge>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
 
-                {sourceItems.map((item) => (
-                  <div
-                    key={item.codigo}
-                    className={`border rounded-lg p-4 transition-colors ${selectedItems.includes(item.codigo)
-                      ? 'border-orange-300 bg-orange-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <Checkbox
-                        checked={selectedItems.includes(item.codigo)}
-                        onCheckedChange={() => handleItemToggle(item.codigo)}
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <Badge variant="outline">{item.codigo}</Badge>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-green-600">
-                              R$ {item.valorReferencia.toFixed(2)} / {item.unidade}
-                            </p>
-                          </div>
-                        </div>
-                        <h4 className="font-medium text-gray-900 mb-3">{item.descricao}</h4>
-
-                        {/* Seção de quantidade editável */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-600">Quantidade:</span>
-                            {editingQuantity === item.codigo ? (
+              {fixedSources.map((source) => (
+                <TabsContent key={source} value={source} className="space-y-3 mt-0">
+                  {groupedItems[source] && groupedItems[source].length > 0 ? (
+                    groupedItems[source].map((item) => (
+                      <div
+                        key={item.codigo}
+                        className={`border rounded-lg p-4 transition-colors ${selectedItems.includes(item.codigo)
+                          ? 'border-orange-300 bg-orange-50/50'
+                          : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <Checkbox
+                            checked={selectedItems.includes(item.codigo)}
+                            onCheckedChange={() => handleItemToggle(item.codigo)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center space-x-2">
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={tempQuantities[item.codigo] || item.quantidade}
-                                  onChange={(e) => setTempQuantities(prev => ({
-                                    ...prev,
-                                    [item.codigo]: parseInt(e.target.value) || item.quantidade
-                                  }))}
-                                  className="w-20 h-8"
-                                />
-                                <span className="text-sm text-gray-500">{item.unidade}</span>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleSaveQuantity(item.codigo)}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <CheckCircle2 size={14} className="text-green-600" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={handleCancelEditQuantity}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <X size={14} className="text-red-600" />
-                                </Button>
+                                <Badge variant="outline" className="text-xs bg-white">{item.codigo}</Badge>
                               </div>
-                            ) : (
+                              <div className="text-right">
+                                <p className="font-semibold text-green-700">
+                                  R$ {item.valorReferencia.toFixed(2)} / {item.unidade}
+                                </p>
+                              </div>
+                            </div>
+                            <h4 className="font-medium text-gray-900 mb-3 text-sm leading-relaxed">{item.descricao}</h4>
+
+                            {/* Seção de quantidade editável */}
+                            <div className="flex items-center justify-between bg-white p-2 rounded-md border border-gray-100">
                               <div className="flex items-center space-x-2">
-                                <span className="font-semibold text-orange-600">
-                                  {getItemQuantity(item)} {item.unidade}
+                                <span className="text-sm text-gray-500 font-medium">Qtd:</span>
+                                {editingQuantity === item.codigo ? (
+                                  <div className="flex items-center space-x-2">
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={tempQuantities[item.codigo] || item.quantidade}
+                                      onChange={(e) => setTempQuantities(prev => ({
+                                        ...prev,
+                                        [item.codigo]: parseInt(e.target.value) || item.quantidade
+                                      }))}
+                                      className="w-20 h-8 text-sm"
+                                    />
+                                    <span className="text-sm text-gray-500 font-medium">{item.unidade}</span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleSaveQuantity(item.codigo)}
+                                      className="h-7 w-7 p-0 hover:bg-green-50"
+                                    >
+                                      <CheckCircle2 size={16} className="text-green-600" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={handleCancelEditQuantity}
+                                      className="h-7 w-7 p-0 hover:bg-red-50"
+                                    >
+                                      <X size={16} className="text-red-500" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center space-x-2 group">
+                                    <span className="font-bold text-orange-600">
+                                      {getItemQuantity(item)}
+                                      <span className="text-sm font-medium ml-1">{item.unidade}</span>
+                                    </span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditQuantity(item.codigo, getItemQuantity(item))}
+                                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <Edit size={14} className="text-gray-400 hover:text-orange-500" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end">
+                                <span className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Total do Item</span>
+                                <span className="font-bold text-gray-900">
+                                  R$ {(getItemQuantity(item) * item.valorReferencia).toFixed(2)}
                                 </span>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleEditQuantity(item.codigo, getItemQuantity(item))}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <Edit size={12} className="text-gray-500" />
-                                </Button>
                               </div>
-                            )}
+                            </div>
                           </div>
-                          <span className="font-medium text-gray-900">
-                            Total: R$ {(getItemQuantity(item) * item.valorReferencia).toFixed(2)}
-                          </span>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                      <Search size={40} className="text-gray-300 mb-4" />
+                      <p className="text-gray-500 font-medium">Nenhum item encontrado nesta fonte.</p>
+                      <p className="text-sm text-gray-400">A busca automática não retornou resultados para {source} com base neste objeto.</p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ))
+                  )}
+                </TabsContent>
+              ))}
+            </Tabs>
           )}
 
           {/* Resumo de seleção */}

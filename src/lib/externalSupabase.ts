@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Configurações do banco de dados de referência externo
-const supabaseUrl = 'https://qwlbclurkhfnsztopeoj.supabase.co';
-const supabaseAnonKey = 'sb_publishable_5ATbbplIn-PbSyuB0gU87A_m2lawRWM';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_REFERENCE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_REFERENCE_ANON_KEY;
 
 export const externalSupabase = createClient(supabaseUrl, supabaseAnonKey);

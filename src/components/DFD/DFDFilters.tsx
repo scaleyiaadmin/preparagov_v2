@@ -12,21 +12,22 @@ interface DFDFiltersProps {
     anoContratacao: string;
     status: string;
   };
-  onFilterChange: (filters: any) => void;
+  onFilterChange: (filters: DFDFiltersProps['filters']) => void;
   tipoDFDOptions: string[];
   prioridadeOptions: string[];
 }
 
-const DFDFilters = ({ 
-  filters, 
-  onFilterChange, 
-  tipoDFDOptions, 
-  prioridadeOptions 
+const DFDFilters = ({
+  filters,
+  onFilterChange,
+  tipoDFDOptions,
+  prioridadeOptions
 }: DFDFiltersProps) => {
   console.log('DFDFilters rendering with filters:', filters);
 
-  const statusOptions = ['Pendente Aprovação', 'Em Elaboração', 'Aprovado', 'Cancelado'];
-  const anoOptions = ['2024', '2023', '2022'];
+  const statusOptions = ['Pendente', 'Em Elaboração', 'Aprovado', 'Cancelado', 'Retirado'];
+  const currentYear = new Date().getFullYear();
+  const anoOptions = Array.from({ length: currentYear - 2025 + 3 }, (_, i) => String(2025 + i));
 
   const handleFilterChange = (key: string, value: string) => {
     console.log('Filter change:', key, value);
