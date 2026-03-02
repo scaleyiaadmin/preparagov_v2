@@ -17,6 +17,7 @@ import {
     Trash2
 } from 'lucide-react';
 import { referenciaService, ReferenciaItem } from '@/services/referenciaService';
+import { pncpApiService } from '@/services/pncpApiService';
 import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '@/hooks/use-debounce';
 import {
@@ -40,6 +41,10 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
     const debouncedSearch = useDebounce(searchTerm, 500);
     const [loading, setLoading] = useState(false);
     const [items, setItems] = useState<ReferenciaItem[]>([]);
+    const [portalItems, setPortalItems] = useState<ReferenciaItem[]>([]);
+    const [totalPortal, setTotalPortal] = useState(0);
+    const [portalPage, setPortalPage] = useState(1);
+    const [loadingPortalMore, setLoadingPortalMore] = useState(false);
     const [selectedItems, setSelectedItems] = useState<DFDItem[]>([]);
     const [showFilters, setShowFilters] = useState(false);
 
@@ -50,8 +55,19 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
     const [priceRange, setPriceRange] = useState({ min: '', max: '' });
 
     // Lógica de Filtro Real
+    const allItems = useMemo(() => {
+        // Combina itens do cache e do portal, removendo duplicatas por código se necessário
+        const combined = [...items, ...portalItems];
+        const seen = new Set();
+        return combined.filter(item => {
+            if (seen.has(item.codigo)) return false;
+            seen.add(item.codigo);
+            return true;
+        });
+    }, [items, portalItems]);
+
     const filteredItems = useMemo(() => {
-        return items.filter(item => {
+        return allItems.filter(item => {
             // Filtro de Unidade
             const matchUnit = !selectedUnit ||
                 item.unidade.toUpperCase() === selectedUnit.toUpperCase() ||
@@ -62,9 +78,14 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
             const max = priceRange.max ? parseFloat(priceRange.max) : Infinity;
             const matchPrice = item.valor >= min && item.valor <= max;
 
-            return matchUnit && matchPrice;
+            // Filtro de Estado (Para itens do Banco de Dados que possuem UF no metadado ou órgão)
+            const matchesState = selectedStates.length === 0 ||
+                (item.orgao && selectedStates.some(uf => item.orgao?.includes(uf))) ||
+                (item.detalhes?.uf && selectedStates.includes(item.detalhes.uf));
+
+            return matchUnit && matchPrice && matchesState;
         });
-    }, [items, selectedUnit, priceRange]);
+    }, [allItems, selectedUnit, priceRange, selectedStates]);
 
     const sources = useMemo(() => [
         { id: 'PNCP', name: 'PNCP' },
@@ -91,16 +112,34 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
         const fetchItems = async () => {
             if (!debouncedSearch || debouncedSearch.length < 2) {
                 setItems([]);
+                setPortalItems([]);
+                setTotalPortal(0);
                 return;
             }
 
             try {
                 setLoading(true);
                 const activeSource = selectedSources.find(s => !sources.find(src => src.id === s)?.status);
+
+                // Busca no Banco de Dados (Cache)
                 if (activeSource) {
                     const results = await referenciaService.searchAll(debouncedSearch, activeSource);
                     setItems(results || []);
                 }
+
+                // Busca Direta no Portal PNCP se PNCP estiver selecionado
+                if (selectedSources.includes('PNCP')) {
+                    const ufFilter = selectedStates.length === 1 ? selectedStates[0] : undefined;
+                    const portalResult = await pncpApiService.search(debouncedSearch, 1, ufFilter);
+                    setPortalItems(portalResult.items);
+                    setTotalPortal(portalResult.total);
+                    setPortalPage(1);
+                } else {
+                    setPortalItems([]);
+                    setTotalPortal(0);
+                    setPortalPage(1);
+                }
+
             } catch (error) {
                 console.error('Erro ao buscar itens:', error);
             } finally {
@@ -169,6 +208,24 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                 return item;
             })
         );
+    };
+
+    const handleLoadMorePortal = async () => {
+        if (loadingPortalMore || portalItems.length >= totalPortal) return;
+
+        try {
+            setLoadingPortalMore(true);
+            const nextPage = portalPage + 1;
+            const ufFilter = selectedStates.length === 1 ? selectedStates[0] : undefined;
+            const portalResult = await pncpApiService.search(debouncedSearch, nextPage, ufFilter);
+
+            setPortalItems(prev => [...prev, ...portalResult.items]);
+            setPortalPage(nextPage);
+        } catch (error) {
+            console.error('Erro ao carregar mais itens do portal:', error);
+        } finally {
+            setLoadingPortalMore(false);
+        }
     };
 
     const handleFinish = () => {
@@ -329,7 +386,14 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                             {/* Results Area */}
                             <div className="space-y-4 flex-1">
                                 <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-bold text-gray-700">{filteredItems.length} itens encontrados</h4>
+                                    <h4 className="text-sm font-bold text-gray-700">
+                                        {filteredItems.length} itens encontrados
+                                        {totalPortal > filteredItems.length && (
+                                            <span className="ml-2 text-[10px] text-orange-500 font-normal">
+                                                (Exibindo {filteredItems.length} de {totalPortal} no Portal)
+                                            </span>
+                                        )}
+                                    </h4>
                                 </div>
 
                                 <div className="divide-y divide-gray-100 border-t border-gray-100 bg-white rounded-lg shadow-sm">
@@ -348,7 +412,12 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                                                     <div className="flex items-center space-x-2 text-[12px] font-normal text-gray-600 mb-1">
                                                         <span className="uppercase font-medium">{item.unidade}</span>
                                                         <span className="text-gray-300">•</span>
-                                                        <span className="text-gray-600 font-medium uppercase">{item.fonte}</span>
+                                                        <span className={`font-bold uppercase ${item.fonte === 'PNCP (Portal)' ? 'text-orange-600' : 'text-gray-600'}`}>
+                                                            {item.fonte}
+                                                        </span>
+                                                        {item.fonte === 'PNCP (Portal)' && (
+                                                            <Badge className="bg-orange-100 text-orange-600 border-orange-200 text-[8px] h-4 px-1 ml-1">Portal Oficial</Badge>
+                                                        )}
                                                         <span className="text-gray-300">•</span>
                                                         <span className="text-gray-900 font-bold">
                                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor)}
@@ -372,19 +441,30 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                                         ))
                                     ) : debouncedSearch ? (
                                         <div className="py-20 text-center space-y-3">
-                                            <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
-                                                <Search className="text-gray-300" size={32} />
-                                            </div>
-                                            <h5 className="font-bold text-gray-700">Poxa, não encontramos nada.</h5>
-                                            <p className="text-sm text-gray-500 max-w-xs mx-auto">Tente usar palavras-chave mais genéricas ou verifique se as fontes selecionadas possuem este tipo de item.</p>
+                                            {/* ... conteúdo existente ... */}
                                         </div>
                                     ) : (
                                         <div className="py-20 text-center space-y-3">
-                                            <div className="h-16 w-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto animate-bounce">
-                                                <Search className="text-orange-300" size={32} />
-                                            </div>
-                                            <h5 className="font-bold text-gray-700">O que você deseja buscar hoje?</h5>
-                                            <p className="text-sm text-gray-500 max-w-xs mx-auto">Use o campo de busca acima e aplique filtros para encontrar os melhores preços de referência.</p>
+                                            {/* ... conteúdo existente ... */}
+                                        </div>
+                                    )}
+
+                                    {totalPortal > portalItems.length && (
+                                        <div className="p-4 flex justify-center border-t border-gray-50">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleLoadMorePortal}
+                                                disabled={loadingPortalMore}
+                                                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                                            >
+                                                {loadingPortalMore ? (
+                                                    <Loader2 className="animate-spin mr-2" size={14} />
+                                                ) : (
+                                                    <Plus className="mr-2" size={14} />
+                                                )}
+                                                Carregar mais do Portal PNCP ({totalPortal - portalItems.length} restantes)
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
