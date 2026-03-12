@@ -222,6 +222,28 @@ export const referenciaService = {
         }));
     },
 
+    async searchCEASA(term: string): Promise<ReferenciaItem[]> {
+        const { data, error } = await externalSupabase
+            .from('referencia_ceasa')
+            .select('*')
+            .ilike('produto', `%${term}%`)
+            .limit(10000);
+
+        if (error) throw error;
+
+        return (data || []).map(item => ({
+            id: `ceasa-${item.id}`,
+            codigo: item.id.substring(0, 8),
+            descricao: `${item.produto} ${item.variedade ? `(${item.variedade})` : ''}`,
+            unidade: item.unidade || 'KG',
+            valor: parseFloat(item.preco_medio) || 0,
+            fonte: 'CEASA',
+            data: item.data || '2025',
+            orgao: item.mercado || 'CEASA',
+            detalhes: item
+        }));
+    },
+
     async searchCATMAT(term: string): Promise<ReferenciaItem[]> {
         const { data, error } = await externalSupabase
             .from('referencia_pncp') // Usando PNCP como fallback enquanto a tabela oficial catmat é carregada, ou mudar para a correta se existir
@@ -257,6 +279,7 @@ export const referenciaService = {
             case 'SIMPRO': results = await this.searchSIMPRO(term); break;
             case 'SIGTAP': results = await this.searchSIGTAP(term); break;
             case 'NFE': results = await this.searchNFE(term); break;
+            case 'CEASA': results = await this.searchCEASA(term); break;
             default: results = []; break;
         }
 
