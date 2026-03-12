@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Printer, X } from 'lucide-react';
+import { Eye, Printer, X, Send } from 'lucide-react';
 import DFDListPagination from '../DFD/DFDListPagination';
 
 interface PCAApprovedDFDsListProps {
@@ -12,6 +12,8 @@ interface PCAApprovedDFDsListProps {
   onViewDFD: (dfd: any) => void;
   onPrintDFD: (dfd: any) => void;
   onRemoveFromPCA: (dfd: any) => void;
+  onForwardToEtp: (dfd: any) => void;
+  canEdit?: boolean;
 }
 
 const PCAApprovedDFDsList = ({
@@ -19,7 +21,9 @@ const PCAApprovedDFDsList = ({
   approvedDFDs,
   onViewDFD,
   onPrintDFD,
-  onRemoveFromPCA
+  onRemoveFromPCA,
+  onForwardToEtp,
+  canEdit = true
 }: PCAApprovedDFDsListProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -104,7 +108,18 @@ const PCAApprovedDFDsList = ({
                 <Button variant="ghost" size="sm" onClick={() => onPrintDFD(item)} title="Imprimir">
                   <Printer size={16} />
                 </Button>
-                {item.status !== 'Retirado' && (
+                {canEdit && !item.encaminhado_etp && item.status !== 'Retirado' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onForwardToEtp(item)}
+                    title="Encaminhar para ETP"
+                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                  >
+                    <Send size={16} />
+                  </Button>
+                )}
+                {canEdit && item.status !== 'Retirado' && (
                   <Button variant="ghost" size="sm" onClick={() => onRemoveFromPCA(item)} title="Retirar do PCA">
                     <X size={16} className="text-red-600" />
                   </Button>

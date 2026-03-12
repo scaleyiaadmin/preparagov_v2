@@ -121,6 +121,7 @@ const ETP = () => {
     prevStep,
     canProceed,
     saveETP,
+    saveDraftETP,
     generatePDF,
     loadETP
   } = useETPCreation();
@@ -649,6 +650,18 @@ const ETP = () => {
           <ArrowLeft size={16} className="mr-2" />
           Anterior
         </Button>
+
+        <Button
+          variant="outline"
+          onClick={async () => {
+            await saveDraftETP();
+          }}
+          className="border-orange-200 text-orange-700 hover:bg-orange-50"
+        >
+          <Save size={16} className="mr-2" />
+          Salvar Rascunho
+        </Button>
+
         <Button
           onClick={currentStep === steps.length - 1 ? async () => {
             const success = await saveETP();

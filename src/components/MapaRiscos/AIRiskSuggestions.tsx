@@ -75,11 +75,6 @@ const AIRiskSuggestions = ({ isOpen, onClose, etp, onAcceptRisk }: AIRiskSuggest
 
       setSuggestions(mockSuggestions);
       setIsGenerating(false);
-
-      toast({
-        title: "Sugestões geradas",
-        description: `${mockSuggestions.length} riscos identificados pela IA`,
-      });
     }, 1500);
   };
 

@@ -75,6 +75,7 @@ export interface DbDFD {
     prefeitura_id?: string;
     solicitacao_cancelamento?: boolean;
     justificativa_cancelamento?: string;
+    encaminhado_etp?: boolean;
 }
 
 export interface DbDFDWithRelations extends DbDFD {

@@ -43,7 +43,6 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
   const [editingItem, setEditingItem] = useState<DFDItem | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
-  const [isEditingAI, setIsEditingAI] = useState(false);
   const [globalQuantityJustification, setGlobalQuantityJustification] = useState(editingDFD?.justificativaQuantidade || '');
   const [formData, setFormData] = useState<DFDFormData>({
     objeto: editingDFD?.objeto || '',
@@ -183,13 +182,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
       }));
 
       setAiGenerated(true);
-      setIsEditingAI(false);
       setLoadingAI(false);
-
-      toast({
-        title: "Conteúdo gerado por IA",
-        description: `Sugestões geradas com base em "${nome}" aplicadas com sucesso.`,
-      });
     }, 2000);
   };
 
@@ -249,7 +242,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         prioridade: formData.prioridade as 'Baixo' | 'Médio' | 'Alto',
         justificativa_prioridade: formData.justificativaPrioridade,
         status: 'Rascunho' as const,
-        ano_contratacao: new Date().getFullYear(),
+        ano_contratacao: formData.dataPrevista ? parseInt(formData.dataPrevista.split('-')[0]) : new Date().getFullYear(),
         valor_estimado_total: formData.itens.reduce((acc, item) => acc + (Number(item.quantidade) * Number(item.valorReferencia)), 0),
         created_by: user?.id,
         prefeitura_id: user?.prefeituraId,
@@ -341,7 +334,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
           prioridade: formData.prioridade as 'Baixo' | 'Médio' | 'Alto',
           justificativa_prioridade: formData.justificativaPrioridade,
           status: 'Pendente' as const, // Envia como Pendente para aprovação
-          ano_contratacao: new Date().getFullYear(),
+          ano_contratacao: formData.dataPrevista ? parseInt(formData.dataPrevista.split('-')[0]) : new Date().getFullYear(),
           valor_estimado_total: formData.itens.reduce((acc, item) => acc + (Number(item.quantidade) * Number(item.valorReferencia)), 0),
           created_by: user?.id,
           prefeitura_id: user?.prefeituraId,
@@ -568,17 +561,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
             <div className="space-y-2 md:col-span-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="descricaoDemanda">Descrição da Demanda *</Label>
-                {aiGenerated && !isEditingAI && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsEditingAI(true)}
-                    className="h-6 px-2 text-xs text-orange-600 hover:text-orange-700"
-                  >
-                    <Edit size={12} className="mr-1" />
-                    Editar Conteúdo da IA
-                  </Button>
-                )}
+
               </div>
               <div className="relative">
                 <Textarea
@@ -587,8 +570,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
                   onChange={(e) => handleInputChange('descricaoDemanda', e.target.value)}
                   placeholder="Descreva a demanda que motiva a contratação..."
                   rows={4}
-                  readOnly={aiGenerated && !isEditingAI}
-                  className={aiGenerated && !isEditingAI ? "bg-orange-50/50" : ""}
+                  className={aiGenerated ? "bg-orange-50/50" : ""}
                 />
                 {loadingAI && (
                   <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
@@ -607,8 +589,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
               onChange={(e) => handleInputChange('justificativa', e.target.value)}
               placeholder="Descreva a justificativa legal e técnica para a contratação..."
               rows={6}
-              readOnly={aiGenerated && !isEditingAI}
-              className={aiGenerated && !isEditingAI ? "bg-orange-50/50" : ""}
+              className={aiGenerated ? "bg-orange-50/50" : ""}
             />
           </div>
         </CardContent>

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, X, Trash2 } from 'lucide-react';
 
-import { MappedDFD } from '../../pages/DFD';
+import { MappedDFD } from './types';
 
 interface ActionConfirmModalProps {
   open: boolean;

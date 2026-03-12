@@ -11,6 +11,7 @@ import PCAStructuredExportModal from '../components/PCA/PCAStructuredExportModal
 import DFDViewModal from '../components/DFD/DFDViewModal';
 import { consolidateItemsByType } from '../utils/pcaConsolidation';
 import { usePCAData } from '../hooks/usePCAData';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PCA = () => {
   const {
@@ -48,8 +49,12 @@ const PCA = () => {
     handleRemoveFromPCA,
     handleConfirmRemoval,
     handlePrintDFD,
-    handlePublishPNCP
+    handlePublishPNCP,
+    handleForwardToEtp
   } = usePCAData();
+
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('pca');
 
   // O hook usePCAData já retorna consolidatedItems. 
   // O utilitário consolidateItemsByType deve ser usado se precisarmos re-consolidar aqui.
@@ -65,6 +70,7 @@ const PCA = () => {
         onExportClick={() => setShowExportModal(true)}
         onVisualizeClick={() => setShowPCAModal(true)}
         onPublishClick={handlePublishPNCP}
+        canEdit={canEdit}
       />
 
       {/* Cards de Estatísticas */}
@@ -76,6 +82,7 @@ const PCA = () => {
         solicitacoesCancelamento={cancellationRequests.length}
         onPendentesClick={() => setShowPendingModal(true)}
         onSolicitacoesClick={() => setShowCancellationModal(true)}
+        canEdit={canEdit}
       />
 
       <PCAApprovedDFDsList
@@ -84,6 +91,8 @@ const PCA = () => {
         onViewDFD={handleViewDFD}
         onPrintDFD={handlePrintDFD}
         onRemoveFromPCA={handleRemoveFromPCA}
+        onForwardToEtp={handleForwardToEtp}
+        canEdit={canEdit}
       />
 
       {/* Modais */}
@@ -94,6 +103,7 @@ const PCA = () => {
         onView={handleViewDFD}
         onApprove={handleApproveDFD}
         onReject={handleRejectDFD}
+        canEdit={canEdit}
       />
 
       <CancellationRequestsModal
@@ -103,6 +113,7 @@ const PCA = () => {
         onView={handleViewDFD}
         onApprove={handleApproveCancellation}
         onDeny={handleDenyCancellation}
+        canEdit={canEdit}
       />
 
       <PCAVisualizationModal

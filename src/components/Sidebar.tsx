@@ -69,6 +69,9 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
 
     // Verifica permissão específica do módulo
     if (item.permissionKey) {
+      if (item.permissionKey === 'pca') {
+        return hasPermission('pca') || hasPermission('dfd');
+      }
       return hasPermission(item.permissionKey);
     }
 

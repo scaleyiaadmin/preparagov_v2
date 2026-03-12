@@ -85,9 +85,9 @@ export const usePCAData = () => {
             dfd.dfd_items.forEach((item) => {
               // Normalize priority
               let normalizedPriority: 'Alta' | 'Média' | 'Baixa' = 'Média';
-              if (dfd.prioridade === 'Alto' || dfd.prioridade === 'Alta') normalizedPriority = 'Alta';
-              else if (dfd.prioridade === 'Médio' || dfd.prioridade === 'Média') normalizedPriority = 'Média';
-              else if (dfd.prioridade === 'Baixo' || dfd.prioridade === 'Baixa') normalizedPriority = 'Baixa';
+              if ((dfd.prioridade as string) === 'Alto' || (dfd.prioridade as string) === 'Alta') normalizedPriority = 'Alta';
+              else if ((dfd.prioridade as string) === 'Médio' || (dfd.prioridade as string) === 'Média') normalizedPriority = 'Média';
+              else if ((dfd.prioridade as string) === 'Baixo' || (dfd.prioridade as string) === 'Baixa') normalizedPriority = 'Baixa';
 
               allItems.push({
                 id: item.id,
@@ -129,9 +129,9 @@ export const usePCAData = () => {
 
         // Normalize priority
         let normalizedPriority: 'Alta' | 'Média' | 'Baixa' = 'Média';
-        if (dfd.prioridade === 'Alto' || dfd.prioridade === 'Alta') normalizedPriority = 'Alta';
-        else if (dfd.prioridade === 'Médio' || dfd.prioridade === 'Média') normalizedPriority = 'Média';
-        else if (dfd.prioridade === 'Baixo' || dfd.prioridade === 'Baixa') normalizedPriority = 'Baixa';
+        if ((dfd.prioridade as string) === 'Alto' || (dfd.prioridade as string) === 'Alta') normalizedPriority = 'Alta';
+        else if ((dfd.prioridade as string) === 'Médio' || (dfd.prioridade as string) === 'Média') normalizedPriority = 'Média';
+        else if ((dfd.prioridade as string) === 'Baixo' || (dfd.prioridade as string) === 'Baixa') normalizedPriority = 'Baixa';
 
         return {
           ...dfd,
@@ -309,8 +309,8 @@ export const usePCAData = () => {
       tipoDFD: dfd.tipo_dfd,
       status: dfd.status,
       data: dfd.created_at,
-      prioridade: (dfd.prioridade === 'Alto' || dfd.prioridade === 'Alta') ? 'Alto' :
-        (dfd.prioridade === 'Baixo' || dfd.prioridade === 'Baixa') ? 'Baixo' : 'Médio',
+      prioridade: ((dfd.prioridade as string) === 'Alto' || (dfd.prioridade as string) === 'Alta') ? 'Alto' :
+        ((dfd.prioridade as string) === 'Baixo' || (dfd.prioridade as string) === 'Baixa') ? 'Baixo' : 'Médio',
       anoContratacao: dfd.ano_contratacao?.toString(),
       descricaoDemanda: dfd.descricao_demanda,
       justificativa: dfd.justificativa,
@@ -354,6 +354,29 @@ export const usePCAData = () => {
     }
   };
 
+  const handleForwardToEtp = async (dfd: DbDFDWithRelations) => {
+    try {
+      await dfdService.forwardToEtp(dfd.id);
+
+      // Update local state
+      setApprovedDFDs(prev => prev.map(d =>
+        d.id === dfd.id ? { ...d, encaminhado_etp: true } : d
+      ));
+
+      toast({
+        title: "Sucesso",
+        description: "DFD encaminhado para o ETP com sucesso!",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro ao encaminhar",
+        description: "Não foi possível encaminhar o DFD para o ETP.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const totalItens = approvedDFDs.length;
   const valorTotal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
     approvedDFDs.reduce((acc, dfd) => {
@@ -381,6 +404,7 @@ export const usePCAData = () => {
     handleApproveCancellation, handleDenyCancellation,
     handleRemoveFromPCA, handleConfirmRemoval,
     handleGenerateSchedule, handlePrintSchedule,
-    handlePrintDFD, handlePublishPNCP
+    handlePrintDFD, handlePublishPNCP,
+    handleForwardToEtp
   };
 };

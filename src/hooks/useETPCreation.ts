@@ -79,7 +79,8 @@ export const useETPCreation = () => {
         const { data, error } = await supabase
           .from('dfd')
           .select('*')
-          .eq('status', 'Aprovado');
+          .eq('status', 'Aprovado')
+          .eq('encaminhado_etp', true);
 
         if (error) throw error;
 
@@ -312,11 +313,7 @@ A alternativa escolhida foi a aquisição por meio de licitação pública, gara
     const generator = aiContent[field];
     if (generator) {
       updateFormData(field, generator());
-
-      toast({
-        title: "Conteúdo Gerado por IA",
-        description: "Conteúdo sugerido com base nos DFDs selecionados.",
-      });
+      // Toast de sucesso removido intencionalmente — processo silencioso
     } else {
       toast({
         title: "Erro na Geração",
@@ -483,6 +480,69 @@ A alternativa escolhida foi a aquisição por meio de licitação pública, gara
     }
   };
 
+  const saveDraftETP = async () => {
+    try {
+      if (!user) {
+        toast({
+          title: "Erro de Autenticação",
+          description: "Você precisa estar logado para salvar um rascunho.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      const prefeituraId = (user as any).prefeitura_id || (user as any).prefeituraId || null;
+      const dfdIds = formData.selectedDFDs.map(d => d.id);
+
+      const etpData: any = {
+        objeto: formData.objeto,
+        descricao_sucinta: formData.descricaoSucinta,
+        status: 'Em Elaboração' as const,
+        descricao_demanda: formData.descricaoDemanda,
+        requisitos_contratacao: formData.requisitosContratacao,
+        alternativas_existem: formData.alternativasExistem,
+        alternativas_descricao: formData.alternativasDescricao,
+        descricao_solucao: formData.descricaoSolucao,
+        justificativa_parcelamento: formData.justificativaParcelamento,
+        resultados_pretendidos: formData.resultadosPretendidos,
+        providencias_existem: formData.providenciasExistem,
+        providencias_descricao: formData.providenciasDescricao,
+        contratacoes_correlatas: formData.contratacoesCorrelatas,
+        contratacoes_descricao: formData.contratacoesDescricao,
+        impactos_ambientais: formData.impactosAmbientais,
+        impactos_descricao: formData.impactosDescricao,
+        observacoes_gerais: formData.observacoesGerais,
+        conclusao_tecnica: formData.conclusaoTecnica,
+        created_by: user.id,
+        prefeitura_id: prefeituraId
+      };
+
+      if (editingEtpId) {
+        await etpService.update(editingEtpId, etpData, dfdIds.length > 0 ? dfdIds : undefined);
+      } else {
+        const numeroETP = await generateETPNumber(prefeituraId);
+        etpData.numero_etp = numeroETP;
+        const newEtp = await etpService.create(etpData, dfdIds);
+        setEditingEtpId(newEtp.id);
+      }
+
+      toast({
+        title: "Rascunho Salvo",
+        description: "O ETP foi salvo como rascunho. Você pode continuar de onde parou.",
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao salvar rascunho ETP:', error);
+      toast({
+        title: "Erro ao salvar rascunho",
+        description: "Não foi possível salvar o rascunho. Verifique sua conexão.",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   const generatePDF = (filename: string = 'ETP_Documento.pdf') => {
     const element = document.getElementById('etp-preview');
     if (!element) {
@@ -524,6 +584,7 @@ A alternativa escolhida foi a aquisição por meio de licitação pública, gara
     prevStep,
     canProceed,
     saveETP,
+    saveDraftETP,
     generatePDF,
     loadETP
   };

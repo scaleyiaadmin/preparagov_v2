@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, Printer } from 'lucide-react';
-import { MappedDFD } from '../../pages/DFD';
+import { MappedDFD } from './types';
 
 type DFDData = MappedDFD;
 
@@ -41,9 +41,6 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
               <Button variant="outline" size="sm" onClick={handlePrint}>
                 <Printer size={16} className="mr-2" />
                 Imprimir
-              </Button>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X size={16} />
               </Button>
             </div>
           </div>

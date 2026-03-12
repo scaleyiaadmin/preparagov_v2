@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { FileText, DollarSign, Clock, AlertTriangle } from 'lucide-react';
 
@@ -12,6 +13,7 @@ interface PCAStatsCardsProps {
   solicitacoesCancelamento: number;
   onPendentesClick: () => void;
   onSolicitacoesClick: () => void;
+  canEdit?: boolean;
 }
 
 const PCAStatsCards = ({
@@ -21,7 +23,8 @@ const PCAStatsCards = ({
   pendentesAprovacao,
   solicitacoesCancelamento,
   onPendentesClick,
-  onSolicitacoesClick
+  onSolicitacoesClick,
+  canEdit = true
 }: PCAStatsCardsProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -51,7 +54,10 @@ const PCAStatsCards = ({
         </CardContent>
       </Card>
 
-      <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onPendentesClick}>
+      <Card
+        className={cn(canEdit ? "cursor-pointer hover:shadow-md transition-shadow" : "opacity-80")}
+        onClick={canEdit ? onPendentesClick : undefined}
+      >
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center space-x-2 text-sm">
             <Clock size={16} className="text-orange-600" />
@@ -60,13 +66,18 @@ const PCAStatsCards = ({
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold text-orange-600">{pendentesAprovacao}</div>
-          <Button variant="link" className="p-0 h-auto text-sm text-orange-600">
-            Clique para gerenciar
-          </Button>
+          {canEdit && (
+            <Button variant="link" className="p-0 h-auto text-sm text-orange-600">
+              Clique para gerenciar
+            </Button>
+          )}
         </CardContent>
       </Card>
 
-      <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onSolicitacoesClick}>
+      <Card
+        className={cn(canEdit ? "cursor-pointer hover:shadow-md transition-shadow" : "opacity-80")}
+        onClick={canEdit ? onSolicitacoesClick : undefined}
+      >
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center space-x-2 text-sm">
             <AlertTriangle size={16} className="text-red-600" />
@@ -75,9 +86,11 @@ const PCAStatsCards = ({
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold text-red-600">{solicitacoesCancelamento}</div>
-          <Button variant="link" className="p-0 h-auto text-sm text-red-600">
-            Clique para gerenciar
-          </Button>
+          {canEdit && (
+            <Button variant="link" className="p-0 h-auto text-sm text-red-600">
+              Clique para gerenciar
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>

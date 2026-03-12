@@ -97,7 +97,7 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
         { id: 'NFE', name: 'BANCO DE NFe' },
         { id: 'SIMPRO', name: 'SIMPRO', status: 'EM BREVE' },
         { id: 'SIGTAP', name: 'SIGTAP', status: 'EM BREVE' },
-        { id: 'CEASA', name: 'CEASA', status: 'EM BREVE' },
+        { id: 'CEASA', name: 'CEASA' },
         { id: 'LICITACOES', name: 'LICITAÇÕES SIMILARES', status: 'EM BREVE' },
     ], []);
 
@@ -243,58 +243,54 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-[1400px] h-[90vh] overflow-hidden flex flex-col p-0">
-                <DialogHeader className="px-6 py-4 border-b flex flex-row items-center justify-between space-y-0 bg-white z-10">
-                    <div className="flex items-center space-x-4">
-                        <Button variant="ghost" onClick={onClose} size="sm" className="h-8 px-2 text-gray-500">
-                            <ArrowLeft size={16} className="mr-2" />
-                            Voltar
+            <DialogContent className="max-w-5xl h-[80vh] overflow-hidden flex flex-col p-0 shadow-2xl">
+                <DialogHeader className="px-4 py-2 border-b flex flex-row items-center justify-between space-y-0 bg-white z-10 shrink-0">
+                    <div className="flex items-center space-x-2">
+                        <Button variant="ghost" onClick={onClose} size="sm" className="h-7 w-7 p-0 text-gray-400 hover:text-gray-600 rounded-full">
+                            <ArrowLeft size={14} />
                         </Button>
-                        <DialogTitle className="text-xl font-bold text-gray-900 leading-none">
+                        <DialogTitle className="text-sm font-bold text-gray-800 leading-none tracking-tight">
                             Banco de Preços Inteligente
                         </DialogTitle>
                     </div>
-                    <div className="flex items-center space-x-2 mr-6 text-gray-400">
-                        <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-100 font-bold">V 2.5 PREMIUM</Badge>
-                    </div>
                 </DialogHeader>
 
-                <div className="flex-1 flex overflow-hidden bg-gray-50/50 p-6">
-                    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+                <div className="flex-1 overflow-hidden bg-gray-50/30">
+                    <div className="h-full max-w-full mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-3 p-3">
 
                         {/* LEFT COLUMN (Fontes + Busca + Resultados) */}
-                        <div className="lg:col-span-7 flex flex-col space-y-6 overflow-y-auto pr-2 pb-6 custom-scrollbar">
+                        <div className="lg:col-span-8 flex flex-col space-y-3 h-full overflow-hidden">
 
-                            {/* Fontes de Pesquisa */}
-                            <Card className="border-gray-200 shadow-sm shrink-0 bg-white">
-                                <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-                                    <div className="flex items-center space-x-2">
-                                        <Database className="text-orange-600" size={18} />
-                                        <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-700">Fontes de Pesquisa</CardTitle>
+                            {/* Fontes de Pesquisa - ULTRA COMPACT */}
+                            <Card className="border-gray-200 shadow-none shrink-0 bg-white">
+                                <CardHeader className="py-1.5 px-3 flex flex-row items-center justify-between space-y-0 border-b border-gray-50">
+                                    <div className="flex items-center space-x-1.5">
+                                        <Database className="text-orange-500/70" size={12} />
+                                        <CardTitle className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Fontes</CardTitle>
                                     </div>
-                                    <Badge variant="outline" className="text-[10px] text-gray-400 font-normal">
-                                        {selectedSources.length} selecionadas
+                                    <Badge variant="outline" className="text-[8px] text-gray-400 font-normal px-1 h-3.5 border-none">
+                                        {selectedSources.length} ativos
                                     </Badge>
                                 </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-wrap gap-2">
+                                <CardContent className="p-2">
+                                    <div className="flex flex-wrap gap-1">
                                         {sources.map(source => (
                                             <div key={source.id} className="relative">
                                                 <Button
                                                     variant={selectedSources.includes(source.id) ? "default" : "outline"}
                                                     size="sm"
                                                     onClick={() => toggleSource(source.id)}
-                                                    className={`h-9 text-xs transition-all duration-200 border-2 ${selectedSources.includes(source.id)
-                                                        ? "bg-orange-600 border-orange-600 hover:bg-orange-700 text-white shadow-md"
+                                                    className={`h-6 px-2 text-[9px] transition-all border ${selectedSources.includes(source.id)
+                                                        ? "bg-orange-600 border-orange-600 hover:bg-orange-700 text-white shadow-sm"
                                                         : source.status
-                                                            ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100 cursor-not-allowed opacity-90 shadow-sm"
-                                                            : "hover:border-orange-200 hover:bg-orange-50 text-gray-600 border-gray-100"
+                                                            ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100 cursor-not-allowed opacity-90"
+                                                            : "hover:border-orange-200 hover:bg-orange-50 text-gray-500 border-gray-100"
                                                         }`}
                                                 >
                                                     {source.name}
                                                 </Button>
                                                 {source.status && (
-                                                    <span className="absolute -top-2 -right-2 px-1.5 bg-amber-500 text-[8px] font-black text-white rounded-full border-2 border-white shadow-sm ring-2 ring-amber-500/20 animate-pulse">
+                                                    <span className="absolute -top-1 -right-0.5 px-0.5 bg-amber-500 text-[6px] font-black text-white rounded-full border border-white">
                                                         {source.status}
                                                     </span>
                                                 )}
@@ -304,78 +300,102 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                                 </CardContent>
                             </Card>
 
-                            {/* Search and Filters Card */}
-                            <Card className="border-gray-200 shadow-sm shrink-0 bg-white">
-                                <CardContent className="p-6 space-y-6">
-                                    <div className="space-y-2">
-                                        <h3 className="text-lg font-bold text-gray-900">Buscar Itens</h3>
-                                        <div className="flex space-x-3">
-                                            <div className="relative flex-1">
-                                                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                                <Input
-                                                    placeholder="Caneta, Arroz, Medicamento..."
-                                                    value={searchTerm}
-                                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                                    className="h-14 pl-12 pr-4 text-lg border-gray-200 focus:ring-orange-500 focus:border-orange-500 rounded-xl bg-white shadow-sm"
-                                                />
-                                            </div>
-                                            <Button
-                                                onClick={() => setShowFilters(!showFilters)}
-                                                size="icon"
-                                                className={`h-14 w-14 rounded-xl shadow-lg transition-all duration-300 ${showFilters ? 'bg-orange-700' : 'bg-orange-600 hover:bg-orange-700 shadow-orange-200'}`}
-                                            >
-                                                <Filter size={24} />
-                                            </Button>
+                            {/* Search and Filters Card - ULTRA COMPACT */}
+                            <Card className="border-gray-200 shadow-none shrink-0 bg-white">
+                                <CardContent className="p-3 space-y-3">
+                                    <div className="flex space-x-2">
+                                        <div className="relative flex-1">
+                                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                            <Input
+                                                placeholder="Buscar itens..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="h-9 pl-9 pr-3 text-xs border-gray-200 focus:ring-orange-500 focus:border-orange-500 rounded-md bg-white shadow-none"
+                                            />
                                         </div>
-                                        <p className="text-xs text-gray-500 ml-1">
-                                            Os resultados respeitam as fontes e regiões selecionadas
-                                        </p>
+                                        <Button
+                                            onClick={() => setShowFilters(!showFilters)}
+                                            size="icon"
+                                            className={`h-9 w-9 rounded-md shadow-sm transition-all ${showFilters ? 'bg-orange-700' : 'bg-orange-600 hover:bg-orange-700'}`}
+                                        >
+                                            <Filter size={16} />
+                                        </Button>
                                     </div>
 
                                     {showFilters && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-gray-100 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <div className="space-y-4">
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Unidade Padrão</span>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {units.map(unit => (
-                                                        <Button
-                                                            key={unit}
-                                                            variant={selectedUnit === unit ? "default" : "outline"}
-                                                            size="sm"
-                                                            onClick={() => setSelectedUnit(selectedUnit === unit ? null : unit)}
-                                                            className={`h-9 px-4 text-[10px] font-bold rounded-lg transition-all border-gray-200 ${selectedUnit === unit
-                                                                ? "bg-gray-800 text-white shadow-sm border-gray-800"
-                                                                : "hover:bg-gray-50 text-gray-600 bg-white"
-                                                                }`}
-                                                        >
-                                                            {unit}
-                                                        </Button>
-                                                    ))}
+                                        <div className="space-y-3 pt-3 border-t border-gray-50 animate-in fade-in slide-in-from-top-1 duration-200">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block">Unidade</span>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {units.map(unit => (
+                                                            <Button
+                                                                key={unit}
+                                                                variant={selectedUnit === unit ? "default" : "outline"}
+                                                                size="sm"
+                                                                onClick={() => setSelectedUnit(selectedUnit === unit ? null : unit)}
+                                                                className={`h-6 px-2 text-[8px] font-bold rounded transition-all border-gray-100 ${selectedUnit === unit
+                                                                    ? "bg-gray-800 text-white border-gray-800"
+                                                                    : "hover:bg-gray-50 text-gray-500 bg-white"
+                                                                    }`}
+                                                            >
+                                                                {unit}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block">Preço</span>
+                                                    <div className="flex items-center space-x-1.5">
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[9px]">R$</span>
+                                                            <Input
+                                                                placeholder="Mín."
+                                                                value={priceRange.min}
+                                                                onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
+                                                                className="pl-6 h-7 border-gray-200 rounded text-[10px] bg-white"
+                                                            />
+                                                        </div>
+                                                        <span className="text-gray-300">-</span>
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[9px]">R$</span>
+                                                            <Input
+                                                                placeholder="Máx."
+                                                                value={priceRange.max}
+                                                                onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
+                                                                className="pl-6 h-7 border-gray-200 rounded text-[10px] bg-white"
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-4">
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Filtrar por preço</span>
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="relative flex-1">
-                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">R$</span>
-                                                        <Input
-                                                            placeholder="Mín."
-                                                            value={priceRange.min}
-                                                            onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
-                                                            className="pl-8 h-10 border-gray-200 rounded-lg text-sm bg-white"
-                                                        />
-                                                    </div>
-                                                    <span className="text-gray-300">-</span>
-                                                    <div className="relative flex-1">
-                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">R$</span>
-                                                        <Input
-                                                            placeholder="Máx."
-                                                            value={priceRange.max}
-                                                            onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
-                                                            className="pl-8 h-10 border-gray-200 rounded-lg text-sm bg-white"
-                                                        />
-                                                    </div>
+                                            <div className="space-y-1.5">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block">Estados</span>
+                                                    <Badge variant="outline" className="text-[8px] text-gray-400 font-normal h-3.5 border-none p-0">
+                                                        {selectedStates.length} selecionados
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {states.map(state => (
+                                                        <Button
+                                                            key={state}
+                                                            variant={selectedStates.includes(state) ? "default" : "outline"}
+                                                            size="sm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleState(state);
+                                                            }}
+                                                            className={`h-5 w-8 text-[8px] p-0 transition-all ${selectedStates.includes(state)
+                                                                ? "bg-gray-800 hover:bg-gray-900 text-white shadow-sm"
+                                                                : "hover:border-gray-300 text-gray-500 bg-white"
+                                                                }`}
+                                                        >
+                                                            {state}
+                                                        </Button>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </div>
@@ -383,165 +403,129 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                                 </CardContent>
                             </Card>
 
-                            {/* Results Area */}
-                            <div className="space-y-4 flex-1">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-bold text-gray-700">
-                                        {filteredItems.length} itens encontrados
+                            {/* Results Area - SCROLLABLE */}
+                            <div className="flex-1 flex flex-col space-y-2 overflow-hidden min-h-0">
+                                <div className="flex items-center justify-between shrink-0 px-1">
+                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
+                                        {filteredItems.length} RESULTADOS
                                         {totalPortal > filteredItems.length && (
-                                            <span className="ml-2 text-[10px] text-orange-500 font-normal">
-                                                (Exibindo {filteredItems.length} de {totalPortal} no Portal)
+                                            <span className="ml-1 text-[8px] text-orange-500 font-normal normal-case">
+                                                (de {totalPortal} no Portal)
                                             </span>
                                         )}
                                     </h4>
                                 </div>
 
-                                <div className="divide-y divide-gray-100 border-t border-gray-100 bg-white rounded-lg shadow-sm">
-                                    {loading ? (
-                                        <div className="py-20 flex flex-col items-center justify-center space-y-4">
-                                            <Loader2 className="animate-spin text-orange-600 h-10 w-10" />
-                                            <p className="text-gray-500 font-medium">Buscando inteligência de preços...</p>
-                                        </div>
-                                    ) : filteredItems.length > 0 ? (
-                                        filteredItems.map(item => (
-                                            <div key={item.id} className="py-4 flex items-center justify-between group hover:bg-gray-50/50 px-4 transition-colors border-b border-gray-50 last:border-0">
-                                                <div className="flex-1 min-w-0 pr-4">
-                                                    <h5 className="font-medium text-gray-900 uppercase text-[14px] leading-tight mb-1">
-                                                        {item.descricao}
-                                                    </h5>
-                                                    <div className="flex items-center space-x-2 text-[12px] font-normal text-gray-600 mb-1">
-                                                        <span className="uppercase font-medium">{item.unidade}</span>
-                                                        <span className="text-gray-300">•</span>
-                                                        <span className={`font-bold uppercase ${item.fonte === 'PNCP (Portal)' ? 'text-orange-600' : 'text-gray-600'}`}>
-                                                            {item.fonte}
-                                                        </span>
-                                                        {item.fonte === 'PNCP (Portal)' && (
-                                                            <Badge className="bg-orange-100 text-orange-600 border-orange-200 text-[8px] h-4 px-1 ml-1">Portal Oficial</Badge>
-                                                        )}
-                                                        <span className="text-gray-300">•</span>
-                                                        <span className="text-gray-900 font-bold">
-                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor)}
-                                                        </span>
+                                <ScrollArea className="flex-1 rounded-md border border-gray-200 bg-white shadow-none custom-scrollbar overflow-hidden">
+                                    <div className="divide-y divide-gray-100 px-2.5">
+                                        {loading ? (
+                                            <div className="py-10 flex flex-col items-center justify-center space-y-2">
+                                                <Loader2 className="animate-spin text-orange-600 h-6 w-6" />
+                                                <p className="text-[10px] text-gray-400 font-medium">Buscando inteligência de preços...</p>
+                                            </div>
+                                        ) : filteredItems.length > 0 ? (
+                                            filteredItems.map(item => (
+                                                <div key={item.id} className="py-2.5 flex items-center justify-between group hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0 -mx-2.5 px-2.5">
+                                                    <div className="flex-1 min-w-0 pr-2">
+                                                        <h5 className="font-bold text-gray-800 uppercase text-[11px] leading-tight mb-0.5 line-clamp-2">
+                                                            {item.descricao}
+                                                        </h5>
+                                                        <div className="flex items-center space-x-1.5 text-[9px] font-normal text-gray-500">
+                                                            <span className="font-black text-orange-600">{item.fonte.split(' ')[0]}</span>
+                                                            <span className="text-gray-300">•</span>
+                                                            <span className="font-bold uppercase">{item.unidade}</span>
+                                                            <span className="text-gray-300">•</span>
+                                                            <span className="text-gray-900 font-black">
+                                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-[8px] text-gray-400 font-normal uppercase truncate max-w-[300px] mt-0.5">
+                                                            {item.orgao} • {item.data}
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center space-x-2 text-[11px] text-gray-400 font-normal uppercase tracking-tight">
-                                                        <span>{item.orgao}</span>
-                                                        <span className="text-gray-200">•</span>
-                                                        <span>{item.data}</span>
-                                                    </div>
-                                                </div>
 
+                                                    <Button
+                                                        onClick={() => handleSelectItem(item)}
+                                                        className="h-7 w-7 bg-orange-600 hover:bg-orange-700 text-white rounded shadow-sm shrink-0"
+                                                        size="icon"
+                                                    >
+                                                        <Plus size={14} />
+                                                    </Button>
+                                                </div>
+                                            ))
+                                        ) : debouncedSearch ? (
+                                            <div className="py-10 text-center space-y-2">
+                                                <Search className="text-gray-200 mx-auto" size={20} />
+                                                <h3 className="text-xs font-bold text-gray-800">Sem resultados</h3>
+                                            </div>
+                                        ) : (
+                                            <div className="py-10 text-center space-y-2">
+                                                <Database className="text-orange-100 mx-auto" size={20} />
+                                                <h3 className="text-xs font-bold text-gray-800">Inicie a busca</h3>
+                                            </div>
+                                        )}
+
+                                        {totalPortal > portalItems.length && (
+                                            <div className="p-2 flex justify-center border-t border-gray-50">
                                                 <Button
-                                                    onClick={() => handleSelectItem(item)}
-                                                    className="h-10 w-10 bg-orange-600 hover:bg-orange-700 text-white rounded-lg shadow-sm shrink-0"
-                                                    size="icon"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleLoadMorePortal}
+                                                    disabled={loadingPortalMore}
+                                                    className="h-6 text-[9px] text-orange-600 border-orange-200 hover:bg-orange-50 px-3"
                                                 >
-                                                    <Plus size={20} />
+                                                    {loadingPortalMore ? (
+                                                        <Loader2 className="animate-spin mr-1.5" size={10} />
+                                                    ) : (
+                                                        <Plus className="mr-1.5" size={10} />
+                                                    )}
+                                                    Ver mais ({totalPortal - portalItems.length})
                                                 </Button>
                                             </div>
-                                        ))
-                                    ) : debouncedSearch ? (
-                                        <div className="py-20 text-center space-y-3">
-                                            {/* ... conteúdo existente ... */}
-                                        </div>
-                                    ) : (
-                                        <div className="py-20 text-center space-y-3">
-                                            {/* ... conteúdo existente ... */}
-                                        </div>
-                                    )}
-
-                                    {totalPortal > portalItems.length && (
-                                        <div className="p-4 flex justify-center border-t border-gray-50">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={handleLoadMorePortal}
-                                                disabled={loadingPortalMore}
-                                                className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                                            >
-                                                {loadingPortalMore ? (
-                                                    <Loader2 className="animate-spin mr-2" size={14} />
-                                                ) : (
-                                                    <Plus className="mr-2" size={14} />
-                                                )}
-                                                Carregar mais do Portal PNCP ({totalPortal - portalItems.length} restantes)
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
+                                        )}
+                                    </div>
+                                </ScrollArea>
                             </div>
                         </div>
 
-                        {/* RIGHT COLUMN (Abrangência + Selecionados) */}
-                        <div className="lg:col-span-5 flex flex-col space-y-6 overflow-hidden h-full pb-6">
+                        {/* RIGHT COLUMN (Selecionados) - LOCAL SCROLL */}
+                        <div className="lg:col-span-4 flex flex-col h-full overflow-hidden">
 
-                            {/* Abrangência Regional */}
-                            <Card className="border-gray-200 shadow-sm shrink-0 bg-white">
-                                <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-                                    <div className="flex items-center space-x-2">
-                                        <MapPin className="text-orange-600" size={18} />
-                                        <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-700">Abrangência Regional</CardTitle>
-                                    </div>
-                                    <Badge variant="outline" className="text-[10px] text-gray-400 font-normal">
-                                        {selectedStates.length} estados
-                                    </Badge>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {states.map(state => (
-                                            <Button
-                                                key={state}
-                                                variant={selectedStates.includes(state) ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => toggleState(state)}
-                                                className={`h-8 w-10 text-[10px] p-0 transition-all ${selectedStates.includes(state)
-                                                    ? "bg-gray-800 hover:bg-gray-900 text-white shadow-sm"
-                                                    : "hover:border-gray-300 text-gray-600 bg-white"
-                                                    }`}
-                                            >
-                                                {state}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Selected Items Sidebar (now a Card) */}
-                            <Card className="flex-1 border-gray-200 shadow-sm overflow-hidden flex flex-col bg-white">
-                                <div className="p-4 border-b bg-white shrink-0">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="font-bold text-lg text-gray-900">Itens Selecionados ({selectedItems.length})</h3>
-                                    </div>
+                            {/* Selected Items Sidebar - ULTRA COMPACT */}
+                            <Card className="flex flex-col h-full border-gray-200 shadow-none overflow-hidden bg-white">
+                                <div className="p-2.5 border-b bg-white shrink-0">
+                                    <h3 className="font-black text-[10px] text-gray-400 uppercase tracking-widest">Selecionados ({selectedItems.length})</h3>
                                 </div>
 
-                                <ScrollArea className="flex-1 p-4 bg-gray-50/30">
-                                    <div className="space-y-3">
+                                <ScrollArea className="flex-1 p-2 bg-gray-50/20">
+                                    <div className="space-y-2">
                                         {selectedItems.length > 0 ? (
                                             selectedItems.map((item, index) => (
-                                                <Card key={item.id} className="border-gray-200 bg-white shadow-sm overflow-hidden animate-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${index * 50}ms` }}>
-                                                    <CardContent className="p-3 flex items-start space-x-3">
-                                                        <div className="h-7 w-7 bg-orange-100 rounded flex items-center justify-center text-orange-600 font-bold text-[10px] shrink-0">
+                                                <Card key={item.id} className="border-gray-100 bg-white shadow-none overflow-hidden animate-in slide-in-from-right-2 duration-300">
+                                                    <CardContent className="p-2 flex items-start space-x-2">
+                                                        <div className="h-5 w-5 bg-orange-50 rounded flex items-center justify-center text-orange-600 font-black text-[8px] shrink-0 border border-orange-100">
                                                             {index + 1}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-[11px] font-bold text-gray-900 uppercase line-clamp-2 leading-tight">{item.descricao}</p>
-                                                            <div className="flex items-center justify-between mt-2">
-                                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{item.unidade} • {item.tabelaReferencia}</span>
-                                                                <span className="text-xs font-bold text-green-600">
+                                                            <p className="text-[9px] font-black text-gray-800 uppercase line-clamp-1 leading-tight">{item.descricao}</p>
+                                                            <div className="flex items-center justify-between mt-0.5">
+                                                                <span className="text-[8px] font-bold text-gray-400 uppercase">{item.unidade}</span>
+                                                                <span className="text-[9px] font-black text-green-600">
                                                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorReferencia)}
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center space-x-1 ml-2 shrink-0">
+                                                        <div className="flex items-center space-x-1 shrink-0">
                                                             <Button
                                                                 variant="outline"
                                                                 size="icon"
-                                                                className="h-8 w-8 text-gray-500 rounded-md"
+                                                                className="h-5 w-5 text-gray-400 border-gray-100 hover:bg-gray-50"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     updateItemQuantity(item.id, -1);
                                                                 }}
                                                             >
-                                                                -
+                                                                <span className="text-[10px]">-</span>
                                                             </Button>
                                                             <Input
                                                                 type="number"
@@ -551,58 +535,55 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                                                                     const val = parseInt(e.target.value) || 1;
                                                                     updateItemQuantity(item.id, val - item.quantidade);
                                                                 }}
-                                                                className="h-8 w-12 text-center text-xs p-0 hide-spin-button bg-white"
+                                                                className="h-5 w-7 text-center text-[9px] p-0 hide-spin-button bg-white border-gray-100"
                                                             />
                                                             <Button
                                                                 variant="outline"
                                                                 size="icon"
-                                                                className="h-8 w-8 text-gray-500 rounded-md"
+                                                                className="h-5 w-5 text-gray-400 border-gray-100 hover:bg-gray-50"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     updateItemQuantity(item.id, 1);
                                                                 }}
                                                             >
-                                                                +
+                                                                <span className="text-[10px]">+</span>
                                                             </Button>
                                                         </div>
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="h-8 w-8 text-gray-300 hover:text-red-500 hover:bg-red-50 shrink-0 ml-1"
+                                                            className="h-5 w-5 text-gray-300 hover:text-red-500 hover:bg-red-50 shrink-0"
                                                             onClick={() => removeSelectedItem(item.id)}
                                                         >
-                                                            <X size={14} />
+                                                            <X size={10} />
                                                         </Button>
                                                     </CardContent>
                                                 </Card>
                                             ))
                                         ) : (
-                                            <div className="py-20 text-center px-6">
-                                                <div className="h-14 w-14 bg-white rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center mx-auto mb-4">
-                                                    <Plus className="text-gray-200" size={20} />
-                                                </div>
-                                                <p className="text-sm font-medium text-gray-400">Nenhum item selecionado ainda</p>
+                                            <div className="py-8 text-center px-2">
+                                                <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Vazio</p>
                                             </div>
                                         )}
                                     </div>
                                 </ScrollArea>
 
-                                <div className="p-4 bg-white border-t space-y-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0">
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-gray-500 font-medium">Investimento Estimado</span>
-                                        <span className="font-bold text-gray-900 text-lg">
+                                <div className="p-3 bg-white border-t space-y-2 shrink-0">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-tight">TOTAL</span>
+                                        <span className="font-black text-gray-900 text-sm">
                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                                                 selectedItems.reduce((acc, item) => acc + (item.valorReferencia * item.quantidade), 0)
                                             )}
                                         </span>
                                     </div>
                                     <Button
-                                        className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg shadow-orange-100 flex items-center justify-center space-x-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                        className="w-full h-8 bg-orange-600 hover:bg-orange-700 text-white font-black rounded shadow-sm text-[10px] uppercase tracking-wider"
                                         disabled={selectedItems.length === 0}
                                         onClick={handleFinish}
                                     >
-                                        <Check size={20} />
-                                        <span>Fixar Demanda ({selectedItems.length})</span>
+                                        <Check size={12} className="mr-1.5" />
+                                        <span>Fixar ({selectedItems.length})</span>
                                     </Button>
                                 </div>
                             </Card>

@@ -20,6 +20,7 @@ interface DFDApprovalModalProps {
   onView: (dfd: any) => void;
   onApprove: (dfd: any) => void;
   onReject: (dfd: any, justification: string) => void;
+  canEdit?: boolean;
 }
 
 const DFDApprovalModal = ({
@@ -28,7 +29,8 @@ const DFDApprovalModal = ({
   pendingDFDs,
   onView,
   onApprove,
-  onReject
+  onReject,
+  canEdit = true
 }: DFDApprovalModalProps) => {
   const [rejectingDFD, setRejectingDFD] = useState<any>(null);
   const [justification, setJustification] = useState('');
@@ -117,22 +119,26 @@ const DFDApprovalModal = ({
                       <Eye size={16} className="mr-1" />
                       Visualizar
                     </Button>
-                    <Button
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => onApprove(dfd)}
-                    >
-                      <Check size={16} className="mr-1" />
-                      Aprovar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => setRejectingDFD(dfd)}
-                    >
-                      <X size={16} className="mr-1" />
-                      Recusar
-                    </Button>
+                    {canEdit && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => onApprove(dfd)}
+                        >
+                          <Check size={16} className="mr-1" />
+                          Aprovar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setRejectingDFD(dfd)}
+                        >
+                          <X size={16} className="mr-1" />
+                          Recusar
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))

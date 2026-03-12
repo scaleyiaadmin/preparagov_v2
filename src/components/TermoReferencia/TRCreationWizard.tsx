@@ -139,6 +139,7 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [currentTrId, setCurrentTrId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     // Etapa 1
     numero: generateTRNumber(),
@@ -333,10 +334,6 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
 
     if (aiContent[field]) {
       handleInputChange(field, aiContent[field]);
-      toast({
-        title: "Campo preenchido com IA",
-        description: "Conteúdo gerado automaticamente.",
-      });
     }
   };
 
@@ -405,19 +402,31 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
 
       const trData: Omit<DbTermoReferencia, 'id' | 'created_at' | 'updated_at'> = {
         numero_tr: formData.numero,
-        etp_id: null, // Pode ser preenchido se vier de um ETP
-        objeto: formData.objeto,
+        etp_id: null,
+        objeto: formData.objeto || `TR ${formData.numero}`,
         status: 'Em Elaboração',
         tipo: formData.naturezaObjeto,
         valor_estimado: valorEstimado,
-        secretaria_id: user?.secretaria_id || null,
+        secretaria_id: (user as any)?.secretariaId || null,
         prefeitura_id: user?.prefeituraId || null,
         dados_json: formData,
         created_by: user?.id || null,
       };
 
-      const result = await termoReferenciaService.createTermoReferencia(trData);
-      onSave(result);
+      if (currentTrId) {
+        await termoReferenciaService.updateTermoReferencia(currentTrId, trData);
+        toast({
+          title: "Rascunho Atualizado",
+          description: "As alterações foram salvas com sucesso.",
+        });
+      } else {
+        const result = await termoReferenciaService.createTermoReferencia(trData);
+        setCurrentTrId(result.id);
+        toast({
+          title: "Rascunho Criado",
+          description: "O Termo de Referência foi criado como rascunho.",
+        });
+      }
     } catch (error) {
       console.error('Erro ao salvar TR:', error);
       toast({
@@ -442,14 +451,19 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
         status: 'Concluído',
         tipo: formData.naturezaObjeto,
         valor_estimado: valorEstimado,
-        secretaria_id: user?.secretaria_id || null,
+        secretaria_id: (user as any)?.secretariaId || null,
         prefeitura_id: user?.prefeituraId || null,
         dados_json: formData,
         created_by: user?.id || null,
       };
 
-      const result = await termoReferenciaService.createTermoReferencia(trData);
-      onSave(result);
+      if (currentTrId) {
+        await termoReferenciaService.updateTermoReferencia(currentTrId, trData);
+        onSave({ ...trData, id: currentTrId });
+      } else {
+        const result = await termoReferenciaService.createTermoReferencia(trData);
+        onSave(result);
+      }
     } catch (error) {
       console.error('Erro ao finalizar TR:', error);
       toast({
@@ -1473,22 +1487,26 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
                 Anterior
               </Button>
 
+              <Button
+                variant="outline"
+                onClick={handleSave}
+                disabled={loading}
+                className="border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
+                {loading ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Save size={16} className="mr-2" />}
+                Salvar Rascunho
+              </Button>
+
               {currentStep < steps.length - 1 ? (
                 <Button onClick={nextStep}>
                   Próximo
                   <ArrowRight size={16} className="ml-2" />
                 </Button>
               ) : (
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" onClick={handleSave}>
-                    <Save size={16} className="mr-2" />
-                    Salvar Rascunho
-                  </Button>
-                  <Button onClick={handleFinalize}>
-                    <CheckCircle size={16} className="mr-2" />
-                    Finalizar TR
-                  </Button>
-                </div>
+                <Button onClick={handleFinalize} disabled={loading}>
+                  {loading ? <Loader2 size={16} className="mr-2 animate-spin" /> : <CheckCircle size={16} className="mr-2" />}
+                  Finalizar TR
+                </Button>
               )}
             </div>
 

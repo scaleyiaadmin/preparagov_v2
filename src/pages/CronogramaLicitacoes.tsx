@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,6 +31,7 @@ import { useCronogramaData, CronogramaItem } from '../hooks/useCronogramaData';
 import { formatDate, getPriorityColor } from '../utils/pcaConsolidation';
 
 const CronogramaLicitacoes = () => {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({
     ano: '2024',
     secretaria: 'all',
@@ -75,10 +77,8 @@ const CronogramaLicitacoes = () => {
   };
 
   const handleCreateTR = (licitacao: CronogramaItem) => {
-    toast({
-      title: "Redirecionando para TR",
-      description: `Criando Termo de Referência para: ${licitacao.tipoDFD}`,
-    });
+    // Navega para o módulo de Termo de Referência
+    navigate('/termo');
   };
 
   const handleExportPDF = () => {

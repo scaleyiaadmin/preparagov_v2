@@ -55,11 +55,8 @@ const ItemDetailsModal = ({ open, onClose, item, onAddItem }: ItemDetailsModalPr
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Detalhes do Item</span>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X size={16} />
-            </Button>
+          <DialogTitle>
+            Detalhes do Item
           </DialogTitle>
         </DialogHeader>
 

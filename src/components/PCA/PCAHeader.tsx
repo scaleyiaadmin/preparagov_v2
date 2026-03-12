@@ -11,6 +11,7 @@ interface PCAHeaderProps {
   onExportClick: () => void;
   onVisualizeClick: () => void;
   onPublishClick: () => void;
+  canEdit?: boolean;
 }
 
 const PCAHeader = ({
@@ -19,7 +20,8 @@ const PCAHeader = ({
   pcaPublished,
   onExportClick,
   onVisualizeClick,
-  onPublishClick
+  onPublishClick,
+  canEdit = true
 }: PCAHeaderProps) => {
   return (
     <div className="flex items-center justify-between">
@@ -55,13 +57,15 @@ const PCAHeader = ({
           <Eye size={16} className="mr-2" />
           Visualizar PCA
         </Button>
-        <Button
-          className="bg-orange-500 hover:bg-orange-600"
-          onClick={onPublishClick}
-        >
-          <Upload size={16} className="mr-2" />
-          {pcaPublished ? 'Atualizar no PNCP' : 'Publicar no PNCP'}
-        </Button>
+        {canEdit && (
+          <Button
+            className="bg-orange-500 hover:bg-orange-600"
+            onClick={onPublishClick}
+          >
+            <Upload size={16} className="mr-2" />
+            {pcaPublished ? 'Atualizar no PNCP' : 'Publicar no PNCP'}
+          </Button>
+        )}
       </div>
     </div>
   );

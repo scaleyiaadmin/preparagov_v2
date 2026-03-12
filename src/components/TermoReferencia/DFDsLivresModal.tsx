@@ -18,7 +18,7 @@ import {
 import DFDViewModal from '../DFD/DFDViewModal';
 import { dfdService } from '@/services/dfdService';
 import { useAuth } from '@/contexts/AuthContext';
-import { DbDFD } from '@/types/database';
+import { DbDFD, DbDFDWithRelations } from '@/types/database';
 
 interface DFDsLivresModalProps {
   open: boolean;
@@ -28,7 +28,7 @@ interface DFDsLivresModalProps {
 
 const DFDsLivresModal = ({ open, onClose, onContinuar }: DFDsLivresModalProps) => {
   const { user } = useAuth();
-  const [dfds, setDfds] = useState<DbDFD[]>([]);
+  const [dfds, setDfds] = useState<DbDFDWithRelations[]>([]);
   const [loading, setLoading] = useState(false);
   const [filtros, setFiltros] = useState({
     secretaria: 'todos',
@@ -65,9 +65,9 @@ const DFDsLivresModal = ({ open, onClose, onContinuar }: DFDsLivresModalProps) =
       const matchesBusca = !filtros.busca ||
         dfd.numero_dfd?.toLowerCase().includes(filtros.busca.toLowerCase()) ||
         dfd.descricao_sucinta?.toLowerCase().includes(filtros.busca.toLowerCase()) ||
-        dfd.area_requisitante?.toLowerCase().includes(filtros.busca.toLowerCase());
+        dfd.secretarias?.nome?.toLowerCase().includes(filtros.busca.toLowerCase());
 
-      const matchesSecretaria = filtros.secretaria === 'todos' || dfd.area_requisitante === filtros.secretaria;
+      const matchesSecretaria = filtros.secretaria === 'todos' || dfd.secretarias?.nome === filtros.secretaria;
       const matchesTipo = filtros.tipoDFD === 'todos' || dfd.tipo_dfd === filtros.tipoDFD;
       const matchesPrioridade = filtros.prioridade === 'todas' || dfd.prioridade === filtros.prioridade;
       const matchesAno = filtros.anoContratacao === 'todos' || dfd.ano_contratacao?.toString() === filtros.anoContratacao;
@@ -107,7 +107,7 @@ const DFDsLivresModal = ({ open, onClose, onContinuar }: DFDsLivresModalProps) =
     }
   };
 
-  const secretarias = [...new Set(dfds.map(d => d.area_requisitante).filter(Boolean))];
+  const secretarias = [...new Set(dfds.map(d => d.secretarias?.nome).filter(Boolean))];
   const tipos = [...new Set(dfds.map(d => d.tipo_dfd).filter(Boolean))];
 
   return (
@@ -115,14 +115,11 @@ const DFDsLivresModal = ({ open, onClose, onContinuar }: DFDsLivresModalProps) =
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
+            <DialogTitle>
               <div className="flex items-center">
                 <FileText size={20} className="mr-2 text-blue-600" />
                 DFDs Livres - Seleção para TR
               </div>
-              <Button variant="ghost" onClick={onClose} className="h-8 w-8 p-0">
-                <X size={20} />
-              </Button>
             </DialogTitle>
           </DialogHeader>
 
@@ -212,7 +209,7 @@ const DFDsLivresModal = ({ open, onClose, onContinuar }: DFDsLivresModalProps) =
                     <TableHead className="font-bold">Área Requisitante</TableHead>
                     <TableHead className="font-bold">Descrição</TableHead>
                     <TableHead className="font-bold">Tipo</TableHead>
-                    <TableHead className="font-bold">Data Contratação</TableHead>
+                    <TableHead className="font-bold">Ano Contratação</TableHead>
                     <TableHead className="font-bold">Prioridade</TableHead>
                     <TableHead className="font-bold">Valor Total</TableHead>
                     <TableHead className="font-bold text-right">Ações</TableHead>
@@ -244,13 +241,13 @@ const DFDsLivresModal = ({ open, onClose, onContinuar }: DFDsLivresModalProps) =
                         <TableCell className="font-bold text-blue-600">
                           {dfd.numero_dfd}
                         </TableCell>
-                        <TableCell className="text-sm">{dfd.area_requisitante}</TableCell>
+                        <TableCell className="text-sm">{dfd.secretarias?.nome || '-'}</TableCell>
                         <TableCell className="text-xs max-w-xs truncate">{dfd.descricao_sucinta}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-[10px]">{dfd.tipo_dfd}</Badge>
                         </TableCell>
                         <TableCell className="text-xs">
-                          {dfd.data_contratacao ? new Date(dfd.data_contratacao).toLocaleDateString('pt-BR') : '-'}
+                          {dfd.ano_contratacao || '-'}
                         </TableCell>
                         <TableCell>
                           <Badge className={`${getPriorityColor(dfd.prioridade)} text-[10px]`}>

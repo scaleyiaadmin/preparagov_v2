@@ -158,5 +158,14 @@ export const dfdService = {
 
         // Aqui poderíamos chamar uma função de notificação se o serviço existisse
         console.log('Notificação enviada ao responsável pelo DFD', id);
+    },
+
+    async forwardToEtp(id: string) {
+        const { error } = await supabase
+            .from('dfd')
+            .update({ encaminhado_etp: true })
+            .eq('id', id);
+
+        if (error) throw error;
     }
 };

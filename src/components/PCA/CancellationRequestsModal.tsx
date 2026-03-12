@@ -20,6 +20,7 @@ interface CancellationRequestsModalProps {
   onView: (dfd: any) => void;
   onApprove: (dfd: any) => void;
   onDeny: (dfd: any, justification: string) => void;
+  canEdit?: boolean;
 }
 
 const CancellationRequestsModal = ({
@@ -28,7 +29,8 @@ const CancellationRequestsModal = ({
   cancellationRequests,
   onView,
   onApprove,
-  onDeny
+  onDeny,
+  canEdit = true
 }: CancellationRequestsModalProps) => {
   const [denyingDFD, setDenyingDFD] = useState<any>(null);
   const [justification, setJustification] = useState('');
@@ -122,22 +124,26 @@ const CancellationRequestsModal = ({
                       <Eye size={16} className="mr-1" />
                       Visualizar
                     </Button>
-                    <Button
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => onApprove(dfd)}
-                    >
-                      <Check size={16} className="mr-1" />
-                      Aprovar Cancelamento
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => setDenyingDFD(dfd)}
-                    >
-                      <X size={16} className="mr-1" />
-                      Negar
-                    </Button>
+                    {canEdit && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => onApprove(dfd)}
+                        >
+                          <Check size={16} className="mr-1" />
+                          Aprovar Cancelamento
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setDenyingDFD(dfd)}
+                        >
+                          <X size={16} className="mr-1" />
+                          Negar
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))

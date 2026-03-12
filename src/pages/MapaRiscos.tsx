@@ -28,6 +28,7 @@ import MapaRiscosPreview from '../components/MapaRiscos/MapaRiscosPreview';
 import AIRiskSuggestions from '../components/MapaRiscos/AIRiskSuggestions';
 import ETPSummaryCard from '../components/MapaRiscos/ETPSummaryCard';
 import { mapaRiscosService } from '@/services/mapaRiscosService';
+import { etpService } from '@/services/etpService';
 import { useAuth } from '@/contexts/AuthContext';
 import { DbMapaRiscos, DbMapaRiscosItem } from '@/types/database';
 
@@ -200,10 +201,29 @@ const MapaRiscos = () => {
     setEtpDFDs([]);
   };
 
-  const handleSelectETP = (etp: ETP) => {
+  const handleSelectETP = async (etp: ETP) => {
     setSelectedETP(etp);
     setStep('create-risks');
     setEtpSelectionOpen(false);
+
+    // Buscar os DFDs vinculados ao ETP selecionado
+    try {
+      const etpData = await etpService.getById(etp.id);
+      if (etpData?.etp_dfd && Array.isArray(etpData.etp_dfd)) {
+        const dfds: DFD[] = etpData.etp_dfd.map((rel: any) => ({
+          id: rel.dfd.id,
+          numero: rel.dfd.numero_dfd || 'N/A',
+          nome: rel.dfd.objeto || 'Sem título',
+          valor: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+            .format(rel.dfd.valor_estimado_total || 0),
+          tipo: rel.dfd.tipo_dfd || 'Não informado',
+        }));
+        setEtpDFDs(dfds);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar DFDs do ETP:', error);
+    }
+
     toast({
       title: "ETP Selecionado",
       description: `Mapa de Riscos será criado para o ${etp.numeroETP}.`,
