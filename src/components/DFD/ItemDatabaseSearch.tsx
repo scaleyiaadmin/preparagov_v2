@@ -243,7 +243,7 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-5xl h-[80vh] overflow-hidden flex flex-col p-0 shadow-2xl">
+            <DialogContent className="max-w-6xl h-[85vh] overflow-hidden flex flex-col p-0 shadow-2xl">
                 <DialogHeader className="px-4 py-2 border-b flex flex-row items-center justify-between space-y-0 bg-white z-10 shrink-0">
                     <div className="flex items-center space-x-2">
                         <Button variant="ghost" onClick={onClose} size="sm" className="h-7 w-7 p-0 text-gray-400 hover:text-gray-600 rounded-full">
