@@ -226,20 +226,20 @@ export const referenciaService = {
         const { data, error } = await externalSupabase
             .from('referencia_ceasa')
             .select('*')
-            .ilike('produto', `%${term}%`)
+            .ilike('item_nome', `%${term}%`)
             .limit(10000);
 
         if (error) throw error;
 
         return (data || []).map(item => ({
             id: `ceasa-${item.id}`,
-            codigo: item.id.substring(0, 8),
-            descricao: `${item.produto} ${item.variedade ? `(${item.variedade})` : ''}`,
+            codigo: item.id.toString().substring(0, 8),
+            descricao: item.item_nome,
             unidade: item.unidade || 'KG',
-            valor: parseFloat(item.preco_medio) || 0,
+            valor: parseFloat(item.preco_unitario) || 0,
             fonte: 'CEASA',
-            data: item.data || '2025',
-            orgao: item.mercado || 'CEASA',
+            data: item.data_referencia || '2025',
+            orgao: item.ceasa || 'CEASA',
             detalhes: item
         }));
     },
