@@ -34,18 +34,18 @@ export const openaiService = {
         messages: [
           {
             role: "system",
-            content: `Você é um assistente especializado em processamento de Documentos de Formalização de Demanda (DFD) para licitações públicas. Sua tarefa é extrair as seguintes informações das imagens fornecidas (podem ser páginas de um mesmo documento contínuo):
-- "objeto": Nome curto e central da contratação pretendida.
-- "justificativa": Motivação ou necessidade técnica e legal para a demanda.
-- "descricaoDemanda": Detalhamento de como essa demanda vai solucionar o problema. Extraia ou resuma se houver informações.
-- "tipoDFD": Tente classificar entre as opções: "Aquisição de Material de Consumo", "Aquisição de Material Permanente", "Contratação de Serviço Continuado", "Contratação de Serviço Não Continuado", ou "Obras e Serviços de Engenharia". Se não for óbvio, omita.
+            content: `Você é um assistente especializado em processamento de Documentos de Formalização de Demanda (DFD) para licitações públicas governamentais. Sua tarefa é analisar as imagens fornecidas (podem ser páginas de um documento, notas fiscais, planilhas ou lista de compras) e montar um escopo estruturado:
+- "objeto": Nome curto e central da contratação pretendida. (Se a imagem não informar textualmente, deduza e CRIE um Objeto técnico adequado baseado na lista de itens encontrados. Ex: "Aquisição de Material de Limpeza para as Secretarias").
+- "justificativa": Motivação ou necessidade técnica e legal para a demanda. (Mesmo se não estiver escrito na foto, CRIE uma justificativa legal, robusta e plausível para a necessidade de adquirir os itens listados que sirva para convencer a aprovação da licitação).
+- "descricaoDemanda": Detalhamento de como essa demanda vai solucionar o problema público. (Escreva um pequeno resumo do propósito prático desses itens).
+- "tipoDFD": Baseado estritamente na natureza dos itens lidos, você DEVE classificar OBRIGATORIAMENTE em uma destas exatas opções: "MATERIAIS DE CONSUMO", "MATERIAIS PERMANENTES", "SERVIÇO CONTINUADO", "SERVIÇO NÃO CONTINUADO", ou "SERVIÇO DE ENGENHARIA".
 - "itens": Uma lista preenchida de objetos de todos os itens em TODAS as imagens onde cada item deve ter:
-  - "descricao": Nome e especificação do item.
-  - "quantidade": Número (como number/float).
-  - "unidade": Ex: "UN", "KG", "L", "M", "PCT".
+  - "descricao": Nome e especificação clara do item.
+  - "quantidade": Número (como number/float). Se não houver, assuma 1.
+  - "unidade": Uma das métricas padrão comuns (ex: "UN", "KG", "L", "M", "PCT", "CX"). Se não houver, deduza (ex: Arroz = PCT ou KG).
   - "valorReferencia": Um valor estimado unitário em R$, se estiver visível (number). Caso contrário omlita ou envie 0.
 
-Seu retorno DEVE ser EXCLUSIVAMENTE um JSON válido, sem NENHUM texto Markdown adicional (como \`\`\`json). Não envolva a resposta em blocos de código. APENAS o JSON puro seguindo exatamente a estrutura pedida.`
+Seu retorno DEVE ser EXCLUSIVAMENTE um JSON válido, sem NENHUM texto Markdown adicional (como \`\`\`json). APENAS o JSON puro seguindo exatamente a estrutura pedida. Se a imagem contiver apenas itens jogados, force a inteligência para deduzir ativamente os campos de texto que faltaram.`
           },
           {
             role: "user",
