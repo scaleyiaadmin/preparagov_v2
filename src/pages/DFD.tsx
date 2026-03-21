@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, FileText, Clock, CheckCircle, Building, ScanLine } from 'lucide-react';
+import { Plus, FileText, Clock, CheckCircle, Building, UploadCloud } from 'lucide-react';
 import DFDForm from '@/components/DFD/DFDForm';
 import DFDList from '../components/DFD/DFDList';
 import { MappedDFD } from '@/components/DFD/types';
@@ -253,9 +253,10 @@ const DFD = () => {
           <p className="text-gray-600">Gerencie as demandas de contratação</p>
         </div>
         <div className="flex items-center space-x-3">
-          <Button onClick={() => setShowImportModal(true)} variant="outline" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 bg-white">
-            <ScanLine size={16} className="mr-2" />
-            Escanear
+          <Button onClick={() => setShowImportModal(true)} variant="outline" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 bg-white relative">
+            <UploadCloud size={16} className="mr-2" />
+            Upload
+            <span className="absolute -top-2 -right-2 bg-indigo-100 text-indigo-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-indigo-200">Em breve</span>
           </Button>
           <Button onClick={() => setShowNameModal(true)} className="bg-orange-500 hover:bg-orange-600">
             <Plus size={16} className="mr-2" />
