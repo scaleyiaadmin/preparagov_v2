@@ -19,6 +19,7 @@ export interface DbUser {
     matricula?: string | null;
     cargo_funcional?: string | null;
     unidade?: string | null;
+    data_expiracao?: string | null;
 }
 
 // Tabela: prefeituras
@@ -35,6 +36,7 @@ export interface DbPrefeitura {
     telefone?: string | null;
     cargo?: string | null;
     status: 'ativa' | 'inativa';
+    campos_extras_dfd?: { label: string; obrigatorio: boolean }[] | null;
 }
 
 // Tabela: secretarias
@@ -76,6 +78,7 @@ export interface DbDFD {
     solicitacao_cancelamento?: boolean;
     justificativa_cancelamento?: string;
     encaminhado_etp?: boolean;
+    campos_extras?: Record<string, string> | null;
 }
 
 export interface DbDFDWithRelations extends DbDFD {

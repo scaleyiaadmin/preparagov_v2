@@ -11,6 +11,8 @@ import {
   DollarSign
 } from 'lucide-react';
 import { DbMapaRiscosItem } from '@/types/database';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface ETP {
   id: string;
@@ -32,6 +34,29 @@ interface MapaRiscosPreviewProps {
 }
 
 const MapaRiscosPreview = ({ isOpen, onClose, etp, riscos, onExportPDF }: MapaRiscosPreviewProps) => {
+  const { user } = useAuth();
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
+  const [prefeituraNome, setPrefeituraNome] = React.useState<string>('Prefeitura Municipal');
+
+  React.useEffect(() => {
+    const fetchPrefeituraData = async () => {
+      if (!user?.prefeituraId) return;
+      try {
+        const { data } = await supabase
+          .from('prefeituras')
+          .select('nome, logo_url')
+          .eq('id', user.prefeituraId)
+          .single();
+        if (data) {
+          setPrefeituraNome(data.nome || 'Prefeitura Municipal');
+          setLogoUrl(data.logo_url);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados da prefeitura:', error);
+      }
+    };
+    if (isOpen) fetchPrefeituraData();
+  }, [isOpen, user?.prefeituraId]);
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR');
@@ -105,11 +130,20 @@ const MapaRiscosPreview = ({ isOpen, onClose, etp, riscos, onExportPDF }: MapaRi
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)] print:max-h-none print:p-0" id="mapa-riscos-content">
           {/* Cabeçalho do Documento */}
           <div className="text-center mb-8">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-16 mx-auto mb-4 object-contain" />
+            ) : (
+              <div className="flex justify-center mb-4">
+                <div className="p-2 bg-gray-50 rounded-full border border-gray-100">
+                  <Building size={24} className="text-gray-300" />
+                </div>
+              </div>
+            )}
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               MAPA DE RISCOS
             </h1>
             <h2 className="text-lg font-semibold text-gray-700 mb-4">
-              PreparaGov - Gestão de Contratações
+              PreparaGov - {prefeituraNome}
             </h2>
             <div className="text-xs text-gray-500">
               <p>Documento gerado em: {new Date().toLocaleString('pt-BR')}</p>

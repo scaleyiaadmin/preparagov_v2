@@ -1,9 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Download, Loader2 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 import { DFDItem, DFDFormData } from './types';
 
@@ -17,6 +19,33 @@ interface DFDPreviewProps {
 const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPreviewProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const { getCurrentUser, getPrefeituraById } = useAuth();
+  const user = getCurrentUser();
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [prefeituraNome, setPrefeituraNome] = useState<string>('Prefeitura Municipal');
+
+  // Buscar logo e nome da prefeitura
+  useEffect(() => {
+    const fetchPrefeituraData = async () => {
+      if (!user?.prefeituraId) return;
+      try {
+        const { data } = await supabase
+          .from('prefeituras')
+          .select('nome, logo_url')
+          .eq('id', user.prefeituraId)
+          .single();
+        if (data) {
+          setPrefeituraNome(data.nome || 'Prefeitura Municipal');
+          if (data.logo_url) {
+            setLogoUrl(data.logo_url);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados da prefeitura:', error);
+      }
+    };
+    if (open) fetchPrefeituraData();
+  }, [open, user?.prefeituraId]);
 
   const getTotal = () => {
     return formData.itens.reduce((total, item) => total + (item.quantidade * item.valorReferencia), 0);
@@ -43,7 +72,7 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
         filename: `${dfdNumber}_${formData.objeto.replace(/\s+/g, '_')}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
       };
 
       await html2pdf().set(opt).from(element).save();
@@ -53,6 +82,11 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
       setIsGenerating(false);
     }
   };
+
+  // Campos extras preenchidos
+  const camposExtrasPreenchidos = formData.camposExtras
+    ? Object.entries(formData.camposExtras).filter(([_, value]) => value && value.trim() !== '')
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -67,13 +101,23 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
         <div className="flex-1 overflow-y-auto space-y-6 p-1">
           {/* Container for PDF Generation */}
           <div ref={contentRef} className="bg-white p-8">
-            {/* Cabeçalho do documento */}
+            {/* Cabeçalho do documento com logo */}
             <div className="text-center border-b pb-4">
+              {logoUrl && (
+                <div className="mb-3 flex justify-center">
+                  <img
+                    src={logoUrl}
+                    alt={`Logo ${prefeituraNome}`}
+                    className="h-20 object-contain"
+                    crossOrigin="anonymous"
+                  />
+                </div>
+              )}
               <h1 className="text-2xl font-bold text-gray-900">
                 DOCUMENTO DE FORMALIZAÇÃO DA DEMANDA - DFD
               </h1>
               <p className="text-lg font-semibold text-orange-600 mt-2">{dfdNumber}</p>
-              <p className="text-gray-600 mt-1">Sistema PreparaGov - Prefeitura Municipal</p>
+              <p className="text-gray-600 mt-1">Sistema PreparaGov - {prefeituraNome}</p>
             </div>
 
             {/* Informações básicas */}
@@ -127,6 +171,19 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
                 </div>
               )}
 
+              {/* Campos Extras da Prefeitura - Agora integrados diretamente sem linha */}
+              {camposExtrasPreenchidos.length > 0 && (
+                <div className="mt-2">
+                  <div className="grid grid-cols-1 gap-2">
+                    {camposExtrasPreenchidos.map(([label, value]) => (
+                      <div key={label} className="text-sm">
+                        <p><strong>{label}:</strong> {value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {formData.prioridade === 'Alto' && formData.justificativaPrioridade && (
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-2">Justificativa da Prioridade Alta:</h3>
@@ -134,6 +191,8 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
                 </div>
               )}
             </div>
+
+
 
             {/* Itens da demanda */}
             {formData.itens.length > 0 && (
@@ -196,10 +255,8 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-semibold text-gray-900 mb-2">Solicitante</h3>
-                  <p className="text-sm"><strong>Nome:</strong> João Silva</p>
-                  <p className="text-sm"><strong>Cargo:</strong> Coordenador de Compras</p>
-                  <p className="text-sm"><strong>Secretaria:</strong> Secretaria de Administração</p>
-                  <p className="text-sm"><strong>Email:</strong> joao.silva@prefeitura.gov.br</p>
+                  <p className="text-sm"><strong>Nome:</strong> {user?.nome || 'Não informado'}</p>
+                  <p className="text-sm"><strong>Email:</strong> {user?.email || 'Não informado'}</p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-semibold text-gray-900 mb-2">Dados da Criação</h3>
@@ -217,9 +274,8 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
                 <div className="text-center">
                   <div className="border-b border-gray-800 mb-2 mx-8"></div>
-                  <p className="font-semibold">João Silva</p>
+                  <p className="font-semibold">{user?.nome || 'Solicitante'}</p>
                   <p className="text-sm text-gray-600">Solicitante</p>
-                  <p className="text-sm text-gray-600">Secretaria de Administração</p>
                   <p className="text-sm text-gray-600 mt-2">Data: {new Date().toLocaleDateString('pt-BR')}</p>
                 </div>
                 <div className="text-center">
@@ -235,7 +291,7 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
             <div className="text-center text-xs text-gray-500 mt-12 pt-4 border-t-2 border-gray-100" style={{ pageBreakInside: 'avoid' }}>
               <p>Documento gerado pelo Sistema PreparaGov em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}</p>
               <p className="font-semibold">{dfdNumber}</p>
-              <p className="mt-1">Este documento contém: Descrição Sucinta, Tipo de DFD, Lista Completa de Itens, Justificativa Global, Dados do Responsável e Data de Criação</p>
+              <p className="mt-1">{prefeituraNome}</p>
             </div>
           </div>
         </div>

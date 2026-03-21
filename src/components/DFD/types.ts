@@ -19,6 +19,7 @@ export interface DFDFormData {
     prioridade: string;
     justificativaPrioridade: string;
     itens: DFDItem[];
+    camposExtras?: Record<string, string>;
 }
 
 export interface MappedDFD {
@@ -44,4 +45,5 @@ export interface MappedDFD {
         cargo: string;
         secretaria: string;
     };
+    camposExtras?: Record<string, string>;
 }

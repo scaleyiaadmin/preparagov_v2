@@ -323,91 +323,128 @@ export const referenciaService = {
         });
     },
 
-    async searchMultisource(context: { objeto: string; descricaoDemanda?: string; justificativa?: string }): Promise<ReferenciaItem[]> {
-        const fullContext = `${context.objeto} ${context.descricaoDemanda || ''} ${context.justificativa || ''}`.toLowerCase();
+    async searchMultisource(context: { objeto: string; descricaoDemanda?: string; justificativa?: string; tipoDFD?: string; descricaoSucinta?: string }): Promise<ReferenciaItem[]> {
+        const fullContext = `${context.objeto} ${context.descricaoDemanda || ''} ${context.justificativa || ''} ${context.tipoDFD || ''} ${context.descricaoSucinta || ''}`.toLowerCase();
 
-        // --- EXTRAÇÃO INTELIGENTE DE PALAVRAS-CHAVE ---
-        // Remove stop words e termos genéricos para focar no que importa
-        const stopWords = ['de', 'da', 'do', 'com', 'para', 'em', 'um', 'uma', 'os', 'as', 'e', 'a', 'o', 'aquisição', 'compra', 'contratação', 'fornecimento', 'prestação', 'serviço', 'locação', 'diversos', 'conforme', 'descrito', 'necessidade', 'atendimento', 'secretaria', 'municipal', 'prefeitura'];
-
-        const extractKeywords = (text: string) => {
-            return text.toLowerCase()
-                .replace(/[^\w\sà-ú]/g, ' ')
-                .split(/\s+/)
-                .filter(word => word.length > 3 && !stopWords.includes(word));
-        };
-
-        const keywords = extractKeywords(context.objeto);
-        if (context.descricaoDemanda) keywords.push(...extractKeywords(context.descricaoDemanda));
-
-        // Remove duplicatas e limita a 5 palavras-chave principais
-        const uniqueKeywords = [...new Set(keywords)].slice(0, 5);
-
-        // --- DEFINIÇÃO DOS TERMOS DE BUSCA ---
-        const searchTerms: string[] = [];
-
-        // Termo base: o objeto limpo
-        const baseTerm = context.objeto
-            .replace(/^(Aquisição|Compra|Contratação|Fornecimento|Prestação|Locação|Serviço) de /i, '')
+        // --- 1. Extração do Termo Principal ---
+        // Limpar prefixos genéricos de DFDs
+        const cleanContext = context.objeto
+            .replace(/^(aquisi[çc][ãa]o|compra|contrata[çc][ãa]o|fornecimento|presta[çc][ãa]o|loca[çc][ãa]o|servi[çc]o)( de | para )?/i, '')
             .trim();
+        
+        // Extrair palavras com mais de 3 letras
+        const words = cleanContext.split(/[\s,.;]+/).filter(w => w.length > 3);
+        if (words.length === 0) return []; // Fallback se o objeto for vazio ou muito curto
 
-        if (baseTerm.length > 3) searchTerms.push(baseTerm);
+        const genericWords = ['materiais', 'equipamentos', 'serviços', 'itens', 'diversos', 'peças', 'kit', 'sistema', 'projeto'];
+        let primaryTerm = words[0];
+        let secondaryTerms = words.slice(1);
 
-        // Adiciona as palavras-chave individuais como termos de busca secundários
-        uniqueKeywords.forEach(kw => {
-            if (!baseTerm.toLowerCase().includes(kw)) {
-                searchTerms.push(kw);
-            }
-        });
+        // Se a primeira palavra for muito genérica e houver mais palavras, usar a próxima como termo principal
+        if (genericWords.includes(primaryTerm.toLowerCase()) && words.length > 1) {
+             primaryTerm = words[1];
+             secondaryTerms = words.slice(2);
+        }
 
-        // Limita a 4 termos variados para otimizar as queries
-        const termsToSearch = searchTerms.slice(0, 4);
-
-        // --- BUSCA PARALELA EM TODAS AS FONTES ---
+        // --- 2. Busca Paralela Direcionada ---
         const promises: Promise<ReferenciaItem[]>[] = [];
+        const tipo = (context.tipoDFD || '').toUpperCase();
 
-        for (const term of termsToSearch) {
-            // Prioriza fontes baseadas no contexto
-            promises.push(this.searchPNCP(term).catch(() => []));
-            promises.push(this.searchNFE(term).catch(() => []));
+        const searchMaterial = tipo.includes('MATERIAL') || !tipo || tipo === 'TERMO ADITIVO';
+        const searchServico = tipo.includes('SERVIÇO') && !tipo.includes('ENGENHARIA');
+        const searchEngenharia = tipo.includes('ENGENHARIA');
+        const searchSaude = fullContext.includes('medicamento') || fullContext.includes('saúde') || fullContext.includes('hospital') || fullContext.includes('fármaco') || fullContext.includes('clínic');
 
-            // Saúde -> CMED
-            if (fullContext.includes('medicamento') || fullContext.includes('saúde') || fullContext.includes('farmácia') || fullContext.includes('remedio')) {
-                promises.push(this.searchCMED(term).catch(() => []));
-            }
+        if (searchMaterial) {
+            promises.push(this.searchPNCP(primaryTerm).catch(() => []));
+            promises.push(this.searchNFE(primaryTerm).catch(() => []));
+            promises.push(this.searchCATMAT(primaryTerm).catch(() => []));
+        }
 
-            // Construção -> SINAPI
-            if (fullContext.includes('obra') || fullContext.includes('construção') || fullContext.includes('reforma') || fullContext.includes('engenhari')) {
-                promises.push(this.searchSINAPI(term).catch(() => []));
-            }
+        if (searchServico) {
+            promises.push(this.searchPNCP(primaryTerm).catch(() => []));
+            promises.push(this.searchCATSER(primaryTerm).catch(() => []));
+            // Muitas vezes serviços usam NFE ou estão listados misturados
+            promises.push(this.searchNFE(primaryTerm).catch(() => []));
+        }
+
+        if (searchEngenharia) {
+            promises.push(this.searchSINAPI(primaryTerm).catch(() => []));
+            promises.push(this.searchSETOP(primaryTerm).catch(() => []));
+            promises.push(this.searchPNCP(primaryTerm).catch(() => [])); 
+        }
+
+        if (searchSaude) {
+            promises.push(this.searchCMED(primaryTerm).catch(() => []));
+            promises.push(this.searchBPS(primaryTerm).catch(() => []));
+            promises.push(this.searchSIMPRO(primaryTerm).catch(() => []));
+            promises.push(this.searchSIGTAP(primaryTerm).catch(() => []));
+            promises.push(this.searchPNCP(primaryTerm).catch(() => [])); 
         }
 
         const results = await Promise.allSettled(promises);
-        const flattened: ReferenciaItem[] = [];
-        const seenSignatures = new Set<string>();
-
+        let flattened: ReferenciaItem[] = [];
+        
         results.forEach(result => {
             if (result.status === 'fulfilled') {
-                result.value.forEach(item => {
-                    if (!item.descricao) return; // ignora itens sem descrição
-                    const signature = `${item.fonte}-${item.descricao.toLowerCase().trim()}`;
-                    if (!seenSignatures.has(signature)) {
-                        flattened.push(item);
-                        seenSignatures.add(signature);
-                    }
-                });
+                flattened.push(...result.value);
             }
         });
 
-        // Ordena priorizando itens com valor definido e os mais recentes
-        flattened.sort((a, b) => {
-            if (a.valor > 0 && b.valor === 0) return -1;
-            if (a.valor === 0 && b.valor > 0) return 1;
+        // --- 3. Filtragem Inteligente (Scoring Dinâmico) ---
+        const scoredItems = flattened.map(item => {
+            let score = 0;
+            const desc = item.descricao.toLowerCase();
+            
+            // A. Exact match do contexto limpo original (bônus muito alto)
+            if (desc.includes(cleanContext.toLowerCase())) score += 50;
+
+            // B. Para cada termo secundário presente na descrição (bônus cumulativo)
+            secondaryTerms.forEach(term => {
+                 if (desc.includes(term.toLowerCase())) score += 10;
+            });
+
+            // C. Se a descrição do item cruzar com partes da demanda ou justificativa
+            if (context.descricaoDemanda && desc.includes((context.descricaoDemanda.split(' ')[0] || '').toLowerCase())) score += 5;
+            if (context.descricaoSucinta && desc.includes((context.descricaoSucinta.split(' ')[0] || '').toLowerCase())) score += 5;
+
+            // D. Bônus por ter valor preenchido (itens sem preço têm menos peso)
+            if (item.valor > 0) score += 2;
+
+            return { item, score };
+        });
+
+        const maxScore = scoredItems.length > 0 ? Math.max(...scoredItems.map(s => s.score)) : 0;
+        let filtered = scoredItems;
+        
+        // Se encontramos itens super relevantes (score alto), cortamos o lixo genérico que pontuou baixo
+        if (maxScore >= 10) {
+             filtered = scoredItems.filter(s => s.score >= 10);
+        } else if (maxScore > 0) {
+             filtered = scoredItems.filter(s => s.score > 0);
+        }
+
+        // Ordenar por score (descendente)
+        filtered.sort((a, b) => {
+            if (a.score !== b.score) return b.score - a.score;
+            if (a.item.valor > 0 && b.item.valor === 0) return -1;
+            if (a.item.valor === 0 && b.item.valor > 0) return 1;
             return 0;
         });
 
-        // Retorna até 100 itens no total
-        return flattened.slice(0, 100);
+        // Remover duplicatas exatas pela descrição
+        const finalItems: ReferenciaItem[] = [];
+        const seenDesc = new Set<string>();
+
+        for (const { item } of filtered) {
+             const lowerDesc = item.descricao.toLowerCase().trim();
+             if (!seenDesc.has(lowerDesc)) {
+                 seenDesc.add(lowerDesc);
+                 finalItems.push(item);
+             }
+        }
+
+        return finalItems.slice(0, 50); // Múltiplas opções limitadas por qualidade
     }
 };
 

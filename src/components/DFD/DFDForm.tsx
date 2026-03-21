@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ import ItemJustificationForm from './ItemJustificationForm';
 import { dfdService } from '@/services/dfdService';
 import { useAuth } from '@/contexts/AuthContext';
 import { DbDFDItem } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 
 import { DFDItem, DFDFormData, MappedDFD } from './types';
 
@@ -53,13 +54,35 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
     dataPrevista: editingDFD?.dataPrevista || '',
     prioridade: editingDFD?.prioridade || '',
     justificativaPrioridade: editingDFD?.justificativaPrioridade || '',
-    itens: editingDFD?.itens || []
+    itens: editingDFD?.itens || [],
+    camposExtras: editingDFD?.camposExtras || {}
   });
 
   const { toast } = useToast();
   const { getCurrentUser } = useAuth();
   const user = getCurrentUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [camposExtrasConfig, setCamposExtrasConfig] = useState<{ label: string; obrigatorio: boolean }[]>([]);
+
+  // Buscar campos extras da prefeitura
+  useEffect(() => {
+    const fetchCamposExtras = async () => {
+      if (!user?.prefeituraId) return;
+      try {
+        const { data, error } = await supabase
+          .from('prefeituras')
+          .select('campos_extras_dfd')
+          .eq('id', user.prefeituraId)
+          .single();
+        if (data?.campos_extras_dfd && Array.isArray(data.campos_extras_dfd)) {
+          setCamposExtrasConfig(data.campos_extras_dfd);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar campos extras:', error);
+      }
+    };
+    fetchCamposExtras();
+  }, [user?.prefeituraId]);
 
   const objetoOptions = [
     'Aquisição de Gêneros Alimentícios',
@@ -246,7 +269,8 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         valor_estimado_total: formData.itens.reduce((acc, item) => acc + (Number(item.quantidade) * Number(item.valorReferencia)), 0),
         created_by: user?.id,
         prefeitura_id: user?.prefeituraId,
-        secretaria_id: user?.secretariaId
+        secretaria_id: user?.secretariaId,
+        campos_extras: formData.camposExtras || {}
       };
 
       const itemsData = formData.itens.map(item => ({
@@ -338,7 +362,8 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
           valor_estimado_total: formData.itens.reduce((acc, item) => acc + (Number(item.quantidade) * Number(item.valorReferencia)), 0),
           created_by: user?.id,
           prefeitura_id: user?.prefeituraId,
-          secretaria_id: user?.secretariaId
+          secretaria_id: user?.secretariaId,
+          campos_extras: formData.camposExtras || {}
         };
 
         const itemsData = formData.itens.map(item => ({
@@ -592,6 +617,32 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
               className={aiGenerated ? "bg-orange-50/50" : ""}
             />
           </div>
+
+          {/* Campos Extras da Prefeitura - Agora integrados diretamente sem linha */}
+          {camposExtrasConfig.length > 0 && (
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-1 gap-4">
+                {camposExtrasConfig.map((campo) => (
+                  <div key={campo.label} className="space-y-2">
+                    <Label>
+                      {campo.label} {campo.obrigatorio && <span className="text-red-500">*</span>}
+                    </Label>
+                    <Input
+                      value={formData.camposExtras?.[campo.label] || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        camposExtras: {
+                          ...prev.camposExtras,
+                          [campo.label]: e.target.value
+                        }
+                      }))}
+                      placeholder={`Preencha ${campo.label.toLowerCase()}...`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -613,6 +664,8 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
           />
         </CardContent>
       </Card>
+
+
 
       {/* Global quantity justification form - appears when items are added */}
       {formData.itens.length > 0 && (
@@ -655,6 +708,8 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         objeto={formData.objeto}
         descricaoDemanda={formData.descricaoDemanda}
         justificativa={formData.justificativa}
+        tipoDFD={formData.tipoDFD}
+        descricaoSucinta={formData.descricaoSucinta}
         onAddItems={(items) => {
           setFormData(prev => ({
             ...prev,

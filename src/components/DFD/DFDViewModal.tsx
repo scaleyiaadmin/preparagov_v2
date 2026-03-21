@@ -1,10 +1,16 @@
-
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { X, Printer, Loader2, Building2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { X, Printer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { MappedDFD } from './types';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 type DFDData = MappedDFD;
 
@@ -18,6 +24,34 @@ interface DFDViewModalProps {
 }
 
 const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
+  const { user } = useAuth();
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
+  const [prefeituraNome, setPrefeituraNome] = React.useState<string>('Prefeitura Municipal');
+  const [loadingConfig, setLoadingConfig] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchPrefeituraData = async () => {
+      if (!user?.prefeituraId) return;
+      setLoadingConfig(true);
+      try {
+        const { data } = await supabase
+          .from('prefeituras')
+          .select('nome, logo_url')
+          .eq('id', user.prefeituraId)
+          .single();
+        if (data) {
+          setPrefeituraNome(data.nome || 'Prefeitura Municipal');
+          setLogoUrl(data.logo_url);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados da prefeitura:', error);
+      } finally {
+        setLoadingConfig(false);
+      }
+    };
+    if (open) fetchPrefeituraData();
+  }, [open, user?.prefeituraId]);
+
   if (!dfd) return null;
 
   const getTotal = () => {
@@ -47,12 +81,21 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-6 p-1">
-          <div className="text-center border-b pb-4">
+          <div className="text-center border-b pb-6">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-20 mx-auto mb-4 object-contain" />
+            ) : (
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-gray-50 rounded-full border border-gray-100">
+                  <Building2 size={32} className="text-gray-300" />
+                </div>
+              </div>
+            )}
             <h1 className="text-2xl font-bold text-gray-900">
               DOCUMENTO DE FORMALIZAÇÃO DA DEMANDA - DFD
             </h1>
             <p className="text-lg font-semibold text-orange-600 mt-2">{dfdNumber}</p>
-            <p className="text-gray-600 mt-1">Sistema PreparaGov - Prefeitura Municipal</p>
+            <p className="text-gray-600 mt-1">Sistema PreparaGov - {prefeituraNome}</p>
           </div>
 
           <div className="space-y-4">
@@ -112,6 +155,20 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Justificativa da Contratação:</h3>
                 <p className="text-gray-700 leading-relaxed">{dfd.justificativa}</p>
+              </div>
+            )}
+
+            {/* Campos Extras da Prefeitura */}
+            {dfd.camposExtras && Object.entries(dfd.camposExtras).length > 0 && (
+              <div className="space-y-3">
+                {Object.entries(dfd.camposExtras)
+                  .filter(([_, value]) => value && (value as string).trim() !== '')
+                  .map(([label, value]) => (
+                    <div key={label}>
+                      <h3 className="font-semibold text-gray-900 mb-1">{label}:</h3>
+                      <p className="text-gray-700 leading-relaxed">{value as string}</p>
+                    </div>
+                  ))}
               </div>
             )}
 
@@ -194,7 +251,7 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
             </div>
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="font-semibold text-gray-900 mb-2">Dados da Criação</h3>
-              <p><strong>Data de Criação:</strong> {new Date(dfd.data).toLocaleDateString('pt-BR')}</p>
+              <p><strong>Data de Criação:</strong> {dfd.data}</p>
               <p><strong>Sistema:</strong> PreparaGov v1.0</p>
               <p><strong>Número do DFD:</strong> {dfdNumber}</p>
             </div>

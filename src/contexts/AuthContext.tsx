@@ -179,6 +179,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (dbUser) {
+        // Verificar se a conta expirou (período de teste)
+        if (dbUser.data_expiracao && new Date(dbUser.data_expiracao) < new Date()) {
+          toast({
+            title: "Acesso Expirado",
+            description: "Seu período de teste expirou. Entre em contato com o suporte para renovar o acesso.",
+            variant: "destructive"
+          });
+          return false;
+        }
+
         const role = isGlobalAdmin ? 'super_admin' : (dbUser.tipo_perfil as UserRole) || 'operator';
 
         const user: User = {

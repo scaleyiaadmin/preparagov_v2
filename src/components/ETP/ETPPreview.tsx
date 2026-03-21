@@ -12,7 +12,9 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { Download, Printer } from 'lucide-react';
+import { Download, Printer, Building2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface ETPFormData {
   selectedDFDs: any[];
@@ -42,6 +44,30 @@ interface ETPPreviewProps {
 }
 
 const ETPPreview = ({ formData, onGeneratePDF, user }: ETPPreviewProps) => {
+  const { user: currentUser } = useAuth();
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
+  const [prefeituraNome, setPrefeituraNome] = React.useState<string>('Prefeitura Municipal');
+
+  React.useEffect(() => {
+    const fetchPrefeituraData = async () => {
+      const prefeituraId = currentUser?.prefeituraId;
+      if (!prefeituraId) return;
+      try {
+        const { data } = await supabase
+          .from('prefeituras')
+          .select('nome, logo_url')
+          .eq('id', prefeituraId)
+          .single();
+        if (data) {
+          setPrefeituraNome(data.nome || 'Prefeitura Municipal');
+          setLogoUrl(data.logo_url);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados da prefeitura:', error);
+      }
+    };
+    fetchPrefeituraData();
+  }, [currentUser?.prefeituraId]);
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'Alta':
@@ -79,8 +105,20 @@ const ETPPreview = ({ formData, onGeneratePDF, user }: ETPPreviewProps) => {
       <Card>
         <CardContent className="p-8">
           <div className="text-center space-y-4">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-20 mx-auto mb-4 object-contain" />
+            ) : (
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-gray-50 rounded-full border border-gray-100">
+                  <Building2 size={32} className="text-gray-300" />
+                </div>
+              </div>
+            )}
             <div className="text-2xl font-bold text-gray-900">
               ESTUDO TÉCNICO PRELIMINAR - ETP
+            </div>
+            <div className="text-lg font-semibold text-orange-600">
+              {prefeituraNome}
             </div>
             <div className="text-lg text-gray-700">
               {etpId}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import AITipCard from './AITipCard';
 import {
   Home,
   FileText,
@@ -90,7 +91,7 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-50 transition-all duration-300 ease-in-out",
+        "fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-50 transition-all duration-300 ease-in-out flex flex-col",
         isCollapsed ? "w-16 lg:translate-x-0" : "w-64 lg:translate-x-0",
         isOpen ? "translate-x-0" : (isCollapsed ? "lg:translate-x-0 -translate-x-full" : "-translate-x-full")
       )}>
@@ -114,25 +115,24 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
           </div>
         </div>
 
-        <nav className="mt-6">
+        <nav className="mt-6 flex-1 overflow-y-auto pb-4">
           {visibleMenuItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center transition-colors group relative",
+                  "flex items-center transition-all duration-200 group relative rounded-lg",
                   isCollapsed
-                    ? "px-3 py-4 mx-2 my-1 rounded-lg justify-center"
-                    : "px-6 py-3",
-                  "text-gray-700 hover:bg-orange-50 hover:text-orange-600",
-                  isActive && "bg-orange-100 text-orange-600",
-                  isActive && !isCollapsed && "border-r-2 border-orange-500"
+                    ? "px-3 py-3 mx-2 my-1 justify-center"
+                    : "px-4 py-2.5 mx-3 my-1",
+                  "text-[13px] font-medium text-gray-500 hover:bg-gray-50 hover:text-orange-600 hover:-translate-y-0.5",
+                  isActive && "bg-orange-50/80 text-orange-600 font-semibold shadow-sm",
                 )
               }
               title={isCollapsed ? item.label : undefined}
             >
-              <item.icon size={20} className={isCollapsed ? "" : "mr-3"} />
+              <item.icon size={18} className={cn(isCollapsed ? "" : "mr-3", "transition-transform group-hover:scale-110")} />
               {!isCollapsed && <span>{item.label}</span>}
               {isCollapsed && (
                 <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
@@ -142,6 +142,12 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
             </NavLink>
           ))}
         </nav>
+
+        {!isCollapsed && (
+          <div className="mt-auto bg-white pt-2 pb-4">
+            <AITipCard />
+          </div>
+        )}
       </div>
     </>
   );

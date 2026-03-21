@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { referenciaService, ReferenciaItem } from '@/services/referenciaService';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, CheckCircle2, Edit, X, Search } from 'lucide-react';
+
+import { Loader2, Sparkles, CheckCircle2, Edit, X } from 'lucide-react';
 
 import { DFDItem } from './types';
 
@@ -16,10 +16,12 @@ interface AISuggestionsModalProps {
   objeto: string;
   descricaoDemanda?: string;
   justificativa?: string;
+  tipoDFD?: string;
+  descricaoSucinta?: string;
   onAddItems: (items: DFDItem[]) => void;
 }
 
-const AISuggestionsModal = ({ open, onClose, objeto, descricaoDemanda, justificativa, onAddItems }: AISuggestionsModalProps) => {
+const AISuggestionsModal = ({ open, onClose, objeto, descricaoDemanda, justificativa, tipoDFD, descricaoSucinta, onAddItems }: AISuggestionsModalProps) => {
   const [suggestedItems, setSuggestedItems] = useState<DFDItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -35,7 +37,9 @@ const AISuggestionsModal = ({ open, onClose, objeto, descricaoDemanda, justifica
         const results = await referenciaService.searchMultisource({
           objeto,
           descricaoDemanda,
-          justificativa
+          justificativa,
+          tipoDFD,
+          descricaoSucinta
         });
 
         const mappedResults: DFDItem[] = results.map(item => ({
@@ -61,16 +65,9 @@ const AISuggestionsModal = ({ open, onClose, objeto, descricaoDemanda, justifica
     };
 
     fetchSuggestions();
-  }, [open, objeto, descricaoDemanda, justificativa]);
+  }, [open, objeto, descricaoDemanda, justificativa, tipoDFD, descricaoSucinta]);
 
-  const fixedSources = ['PNCP', 'BPS', 'CMED', 'SINAPI', 'NFE'];
 
-  const groupedItems = suggestedItems.reduce((acc, item) => {
-    const source = item.tabelaReferencia;
-    if (!acc[source]) acc[source] = [];
-    acc[source].push(item);
-    return acc;
-  }, {} as Record<string, DFDItem[]>);
 
   const handleItemToggle = (itemCodigo: string) => {
     setSelectedItems(prev =>
@@ -168,7 +165,7 @@ const AISuggestionsModal = ({ open, onClose, objeto, descricaoDemanda, justifica
             </div>
           </div>
 
-          {/* Lista de itens agrupados */}
+          {/* Lista de itens - Lista única sem abas */}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="h-10 w-10 animate-spin text-orange-500 mb-4" />
@@ -181,126 +178,107 @@ const AISuggestionsModal = ({ open, onClose, objeto, descricaoDemanda, justifica
               <p className="text-sm text-gray-400">Tente ajustar a descrição do objeto no DFD.</p>
             </div>
           ) : (
-            <Tabs defaultValue="PNCP" className="w-full">
-              <div className="sticky top-0 bg-white z-10 pb-2 mb-4 border-b">
-                <TabsList className="w-full justify-start overflow-x-auto bg-gray-50 flex-nowrap h-auto p-1">
-                  {fixedSources.map((source) => (
-                    <TabsTrigger
-                      key={source}
-                      value={source}
-                      className="flex items-center space-x-2 whitespace-nowrap px-4 py-2 data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-sm"
-                    >
-                      <span className="font-bold">{source === 'NFE' ? 'Banco de NFe' : source}</span>
-                      <Badge variant="secondary" className="ml-2 bg-gray-200 text-gray-700">
-                        {groupedItems[source]?.length || 0}
-                      </Badge>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </div>
-
-              {fixedSources.map((source) => (
-                <TabsContent key={source} value={source} className="space-y-3 mt-0">
-                  {groupedItems[source] && groupedItems[source].length > 0 ? (
-                    groupedItems[source].map((item) => (
-                      <div
-                        key={item.codigo}
-                        className={`border rounded-lg p-4 transition-colors ${selectedItems.includes(item.codigo)
-                          ? 'border-orange-300 bg-orange-50/50'
-                          : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <Checkbox
-                            checked={selectedItems.includes(item.codigo)}
-                            onCheckedChange={() => handleItemToggle(item.codigo)}
-                            className="mt-1"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center space-x-2">
-                                <Badge variant="outline" className="text-xs bg-white">{item.codigo}</Badge>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-semibold text-green-700">
-                                  R$ {item.valorReferencia.toFixed(2)} / {item.unidade}
-                                </p>
-                              </div>
-                            </div>
-                            <h4 className="font-medium text-gray-900 mb-3 text-sm leading-relaxed">{item.descricao}</h4>
-
-                            {/* Seção de quantidade editável */}
-                            <div className="flex items-center justify-between bg-white p-2 rounded-md border border-gray-100">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-500 font-medium">Qtd:</span>
-                                {editingQuantity === item.codigo ? (
-                                  <div className="flex items-center space-x-2">
-                                    <Input
-                                      type="number"
-                                      min="1"
-                                      value={tempQuantities[item.codigo] || item.quantidade}
-                                      onChange={(e) => setTempQuantities(prev => ({
-                                        ...prev,
-                                        [item.codigo]: parseInt(e.target.value) || item.quantidade
-                                      }))}
-                                      className="w-20 h-8 text-sm"
-                                    />
-                                    <span className="text-sm text-gray-500 font-medium">{item.unidade}</span>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handleSaveQuantity(item.codigo)}
-                                      className="h-7 w-7 p-0 hover:bg-green-50"
-                                    >
-                                      <CheckCircle2 size={16} className="text-green-600" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={handleCancelEditQuantity}
-                                      className="h-7 w-7 p-0 hover:bg-red-50"
-                                    >
-                                      <X size={16} className="text-red-500" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center space-x-2 group">
-                                    <span className="font-bold text-orange-600">
-                                      {getItemQuantity(item)}
-                                      <span className="text-sm font-medium ml-1">{item.unidade}</span>
-                                    </span>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handleEditQuantity(item.codigo, getItemQuantity(item))}
-                                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                      <Edit size={14} className="text-gray-400 hover:text-orange-500" />
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex flex-col items-end">
-                                <span className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Total do Item</span>
-                                <span className="font-bold text-gray-900">
-                                  R$ {(getItemQuantity(item) * item.valorReferencia).toFixed(2)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+            <div className="space-y-3">
+              {suggestedItems.map((item) => (
+                <div
+                  key={item.codigo}
+                  className={`border rounded-lg p-4 transition-colors ${selectedItems.includes(item.codigo)
+                    ? 'border-orange-300 bg-orange-50/50'
+                    : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      checked={selectedItems.includes(item.codigo)}
+                      onCheckedChange={() => handleItemToggle(item.codigo)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className="text-xs bg-white">{item.codigo}</Badge>
+                          <Badge className={`text-xs ${
+                            item.tabelaReferencia === 'PNCP' ? 'bg-blue-100 text-blue-800' :
+                            item.tabelaReferencia === 'BPS' ? 'bg-purple-100 text-purple-800' :
+                            item.tabelaReferencia === 'CMED' ? 'bg-green-100 text-green-800' :
+                            item.tabelaReferencia === 'SINAPI' ? 'bg-yellow-100 text-yellow-800' :
+                            item.tabelaReferencia === 'NFE' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {item.tabelaReferencia === 'NFE' ? 'Banco de NFe' : item.tabelaReferencia}
+                          </Badge>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-green-700">
+                            R$ {item.valorReferencia.toFixed(2)} / {item.unidade}
+                          </p>
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                      <Search size={40} className="text-gray-300 mb-4" />
-                      <p className="text-gray-500 font-medium">Nenhum item encontrado nesta fonte.</p>
-                      <p className="text-sm text-gray-400">A busca automática não retornou resultados para {source} com base neste objeto.</p>
+                      <h4 className="font-medium text-gray-900 mb-3 text-sm leading-relaxed">{item.descricao}</h4>
+
+                      {/* Seção de quantidade editável */}
+                      <div className="flex items-center justify-between bg-white p-2 rounded-md border border-gray-100">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-500 font-medium">Qtd:</span>
+                          {editingQuantity === item.codigo ? (
+                            <div className="flex items-center space-x-2">
+                              <Input
+                                type="number"
+                                min="1"
+                                value={tempQuantities[item.codigo] || item.quantidade}
+                                onChange={(e) => setTempQuantities(prev => ({
+                                  ...prev,
+                                  [item.codigo]: parseInt(e.target.value) || item.quantidade
+                                }))}
+                                className="w-20 h-8 text-sm"
+                              />
+                              <span className="text-sm text-gray-500 font-medium">{item.unidade}</span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleSaveQuantity(item.codigo)}
+                                className="h-7 w-7 p-0 hover:bg-green-50"
+                              >
+                                <CheckCircle2 size={16} className="text-green-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={handleCancelEditQuantity}
+                                className="h-7 w-7 p-0 hover:bg-red-50"
+                              >
+                                <X size={16} className="text-red-500" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2 group">
+                              <span className="font-bold text-orange-600">
+                                {getItemQuantity(item)}
+                                <span className="text-sm font-medium ml-1">{item.unidade}</span>
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditQuantity(item.codigo, getItemQuantity(item))}
+                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Edit size={14} className="text-gray-400 hover:text-orange-500" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Total do Item</span>
+                          <span className="font-bold text-gray-900">
+                            R$ {(getItemQuantity(item) * item.valorReferencia).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </TabsContent>
+                  </div>
+                </div>
               ))}
-            </Tabs>
+            </div>
           )}
 
           {/* Resumo de seleção */}

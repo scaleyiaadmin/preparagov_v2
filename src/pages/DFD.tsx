@@ -107,7 +107,8 @@ const DFD = () => {
               email: criador?.email || 'Não informado',
               cargo: criador?.cargo_funcional || criador?.tipo_perfil || 'Não informado',
               secretaria: (criador?.secretarias as any)?.nome || d.secretarias?.nome || 'Não informada'
-            }
+            },
+            camposExtras: (d as any).campos_extras || {}
           };
         });
         setDfds(mappedData);
@@ -195,6 +196,7 @@ const DFD = () => {
   const handleFormBack = () => {
     setShowForm(false);
     setEditingDFD(null);
+    fetchDFDs(); // Auto-refresh: recarrega a lista ao voltar do formulário
   };
 
   const handleFilterChange = (filter: string) => {

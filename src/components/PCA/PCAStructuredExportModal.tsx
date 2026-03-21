@@ -12,6 +12,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { formatCurrency, formatDate, getAllSecretarias } from '@/utils/pcaConsolidation';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface ConsolidatedItemByType {
   id: string;
@@ -40,7 +42,31 @@ interface PCAStructuredExportModalProps {
 }
 
 const PCAStructuredExportModal = ({ open, onClose, itemsByType, selectedYear }: PCAStructuredExportModalProps) => {
+  const { user } = useAuth();
   const [exportFormat, setExportFormat] = useState('pdf');
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
+  const [prefeituraNome, setPrefeituraNome] = React.useState<string>('Prefeitura Municipal');
+
+  React.useEffect(() => {
+    const fetchPrefeituraData = async () => {
+      if (!user?.prefeituraId) return;
+      try {
+        const { data } = await supabase
+          .from('prefeituras')
+          .select('nome, logo_url')
+          .eq('id', user.prefeituraId)
+          .single();
+        if (data) {
+          setPrefeituraNome(data.nome || 'Prefeitura Municipal');
+          setLogoUrl(data.logo_url);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados da prefeitura:', error);
+      }
+    };
+    if (open) fetchPrefeituraData();
+  }, [open, user?.prefeituraId]);
+
   const allSecretarias = getAllSecretarias(itemsByType);
 
   const generateCSVData = () => {
@@ -161,7 +187,9 @@ const PCAStructuredExportModal = ({ open, onClose, itemsByType, selectedYear }: 
         </head>
         <body>
           <div class="header">
+            ${logoUrl ? `<img src="${logoUrl}" style="height: 60px; margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto;">` : ''}
             <h1>PCA - Plano de Contratações Anual ${selectedYear}</h1>
+            <p>${prefeituraNome}</p>
             <p>Documento Estruturado para Publicação no PNCP</p>
           </div>
           

@@ -22,8 +22,18 @@ import {
   FileText,
   Gavel,
   Camera,
-  Loader2
+  Loader2,
+  Building2,
+  Image as ImageIcon,
+  Trash2,
+  Plus,
+  Settings
 } from 'lucide-react';
+
+interface CampoExtra {
+  label: string;
+  obrigatorio: boolean;
+}
 
 const Perfil = () => {
   const { user, logout } = useAuth();
@@ -40,16 +50,7 @@ const Perfil = () => {
     isGestor: user?.role === 'super_admin' || user?.role === 'admin'
   });
 
-  const [userPermissions] = useState({
-    criarDFD: true,
-    acessarPCA: false,
-    criarETP: true,
-    criarMapaRiscos: true,
-    criarTR: true,
-    criarEdital: true,
-    editarDadosInstitucionais: true,
-    visualizarRelatorios: true
-  });
+
 
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
@@ -67,6 +68,16 @@ const Perfil = () => {
   const [stats, setStats] = useState({ dfds: 0, etps: 0, editais: 0, loading: true });
   const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados da Prefeitura (Admin)
+  const [loadingPrefeitura, setLoadingPrefeitura] = useState(false);
+  const [savingPrefeitura, setSavingPrefeitura] = useState(false);
+  const [prefeituraName, setPrefeituraName] = useState('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [camposExtras, setCamposExtras] = useState<CampoExtra[]>([]);
+  const [newCampoLabel, setNewCampoLabel] = useState('');
+  const [newCampoObrigatorio, setNewCampoObrigatorio] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -98,6 +109,32 @@ const Perfil = () => {
     };
 
     fetchStats();
+
+    // Fetch Prefeitura Config if Admin
+    if (user?.role === 'admin' || user?.role === 'super_admin') {
+      const fetchPrefeituraConfig = async () => {
+        if (!user?.prefeituraId) return;
+        setLoadingPrefeitura(true);
+        try {
+          const { data, error } = await supabase
+            .from('prefeituras')
+            .select('nome, logo_url, campos_extras_dfd')
+            .eq('id', user.prefeituraId)
+            .single();
+
+          if (data) {
+            setPrefeituraName(data.nome || '');
+            setLogoUrl(data.logo_url || null);
+            setCamposExtras(Array.isArray(data.campos_extras_dfd) ? data.campos_extras_dfd : []);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar configs da prefeitura:', error);
+        } finally {
+          setLoadingPrefeitura(false);
+        }
+      };
+      fetchPrefeituraConfig();
+    }
   }, [user]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,16 +221,57 @@ const Perfil = () => {
     }, 500);
   };
 
-  const getPermissionsSummary = (permissions: any): { name: string, icon: any }[] => {
-    const activePermissions = [];
-    if (permissions.criarDFD) activePermissions.push({ name: 'DFD', icon: FileText });
-    if (permissions.acessarPCA) activePermissions.push({ name: 'PCA', icon: CalendarDays });
-    if (permissions.criarETP) activePermissions.push({ name: 'ETP', icon: MenuSquare });
-    if (permissions.criarMapaRiscos) activePermissions.push({ name: 'Mapa de Riscos', icon: Shield });
-    if (permissions.criarTR) activePermissions.push({ name: 'TR', icon: FileText });
-    if (permissions.criarEdital) activePermissions.push({ name: 'Edital', icon: FileText });
-    return activePermissions;
+  const handleAddCampo = () => {
+    if (!newCampoLabel.trim()) {
+      toast({ title: 'Erro', description: 'Informe o nome do campo.', variant: 'destructive' });
+      return;
+    }
+    if (camposExtras.some(c => c.label.toLowerCase() === newCampoLabel.trim().toLowerCase())) {
+      toast({ title: 'Erro', description: 'Já existe um campo com esse nome.', variant: 'destructive' });
+      return;
+    }
+    setCamposExtras(prev => [...prev, { label: newCampoLabel.trim(), obrigatorio: newCampoObrigatorio }]);
+    setNewCampoLabel('');
+    setNewCampoObrigatorio(false);
   };
+
+  const handleRemoveCampo = (index: number) => {
+    setCamposExtras(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: 'Erro', description: 'A imagem deve ter no máximo 2MB.', variant: 'destructive' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoUrl(reader.result as string);
+      toast({ title: 'Logo carregada', description: 'Clique em "Salvar Configurações" para aplicar.' });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSavePrefeitura = async () => {
+    if (!user?.prefeituraId) return;
+    setSavingPrefeitura(true);
+    try {
+      const { error } = await supabase
+        .from('prefeituras')
+        .update({ logo_url: logoUrl, campos_extras_dfd: camposExtras })
+        .eq('id', user.prefeituraId);
+      if (error) throw error;
+      toast({ title: 'Configurações salvas!', description: 'As informações da prefeitura foram atualizadas.' });
+    } catch (error: any) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } finally {
+      setSavingPrefeitura(false);
+    }
+  };
+
+
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto">
@@ -209,15 +287,12 @@ const Perfil = () => {
       </div>
 
       <Tabs defaultValue="meus-dados" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-gray-100/50 p-1.5 rounded-xl h-auto">
+        <TabsList className={`grid w-full ${(user?.role === 'admin' || user?.role === 'super_admin') ? 'grid-cols-4' : 'grid-cols-3'} bg-gray-100/50 p-1.5 rounded-xl h-auto`}>
           <TabsTrigger value="meus-dados" className="flex items-center space-x-2 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all text-sm font-medium">
             <User size={16} />
             <span>Meus Dados</span>
           </TabsTrigger>
-          <TabsTrigger value="permissoes" className="flex items-center space-x-2 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all text-sm font-medium">
-            <UserCheck size={16} />
-            <span>Permissões</span>
-          </TabsTrigger>
+
           <TabsTrigger value="notificacoes" className="flex items-center space-x-2 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all text-sm font-medium">
             <Bell size={16} />
             <span>Notificações</span>
@@ -226,6 +301,12 @@ const Perfil = () => {
             <Shield size={16} />
             <span>Segurança</span>
           </TabsTrigger>
+          {(user?.role === 'admin' || user?.role === 'super_admin') && (
+            <TabsTrigger value="entidade" className="flex items-center space-x-2 py-3 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all text-sm font-medium">
+              <Building2 size={16} />
+              <span>Entidade</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <div className="mt-8">
@@ -349,32 +430,7 @@ const Perfil = () => {
             </div>
           </TabsContent>
 
-          {/* ABA 2: PERMISSÕES */}
-          <TabsContent value="permissoes" className="m-0 border-none p-0 outline-none">
-            <Card className="border-none shadow-md bg-white max-w-4xl">
-              <CardHeader className="pb-4 border-b border-gray-100">
-                <CardTitle className="text-lg flex items-center">
-                  <UserCheck className="mr-2 text-blue-500" size={20} />
-                  Módulos Autorizados
-                </CardTitle>
-                <CardDescription>
-                  Estes são os módulos que seu administrador liberou para sua conta. Se precisar de mais acessos, contate a gestão.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-8">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {getPermissionsSummary(userPermissions).map((permission) => (
-                    <div key={permission.name} className="flex items-center p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all group">
-                      <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center mr-3 group-hover:border-blue-200 group-hover:bg-blue-50 transition-colors">
-                        <permission.icon size={18} className="text-gray-500 group-hover:text-blue-600" />
-                      </div>
-                      <span className="font-medium text-gray-700 group-hover:text-gray-900">{permission.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+
 
           {/* ABA 3: NOTIFICAÇÕES */}
           <TabsContent value="notificacoes" className="m-0 border-none p-0 outline-none">
@@ -484,6 +540,104 @@ const Perfil = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ABA 5: ENTIDADE (SÓ ADMIN) */}
+          <TabsContent value="entidade" className="m-0 border-none p-0 outline-none space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <Settings className="text-orange-500" />
+                  Configurações da Prefeitura
+                </CardTitle>
+                <CardDescription>Gerencie a identidade visual e campos personalizados para {prefeituraName}</CardDescription>
+              </div>
+              <Button onClick={handleSavePrefeitura} disabled={savingPrefeitura} className="bg-orange-500 hover:bg-orange-600 font-semibold px-6">
+                {savingPrefeitura ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+                Salvar Configurações
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <Card className="border-none shadow-md">
+                  <CardHeader className="border-b border-gray-100">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <ImageIcon size={18} className="text-orange-500" />
+                      Logo Oficial
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-6 text-center">
+                    <div
+                      className="relative group cursor-pointer border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-orange-400 transition-all bg-gray-50/50"
+                      onClick={() => logoInputRef.current?.click()}
+                    >
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" className="h-32 mx-auto object-contain" />
+                      ) : (
+                        <div className="h-32 flex flex-col items-center justify-center text-gray-400">
+                          <Camera size={32} className="mb-2" />
+                          <span className="text-xs">Enviar Logo</span>
+                        </div>
+                      )}
+                      <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                    </div>
+                    {logoUrl && (
+                      <Button variant="ghost" size="sm" onClick={() => setLogoUrl(null)} className="mt-4 text-red-500 hover:text-red-600 hover:bg-red-50">
+                        <Trash2 size={14} className="mr-2" /> Remover Logo
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="lg:col-span-2 space-y-6">
+                <Card className="border-none shadow-md">
+                  <CardHeader className="border-b border-gray-100">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText size={18} className="text-orange-500" />
+                      Campos Personalizados do DFD
+                    </CardTitle>
+                    <CardDescription>Estes campos aparecerão no formulário para todos os usuários</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-4">
+                    {camposExtras.map((campo, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50/50">
+                        <div className="flex items-center gap-3">
+                          <FileText size={16} className="text-gray-400" />
+                          <div>
+                            <p className="font-medium text-sm">{campo.label}</p>
+                            {campo.obrigatorio && <Badge className="bg-red-50 text-red-600 border-red-100 text-[10px] h-4">Obrigatório</Badge>}
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => handleRemoveCampo(idx)} className="text-gray-400 hover:text-red-500">
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    ))}
+
+                    <div className="pt-4 border-t border-gray-100 mt-6">
+                      <Label className="text-sm font-semibold mb-3 block">Adicionar Novo Campo</Label>
+                      <div className="flex gap-3">
+                        <Input
+                          placeholder="Ex: Dotação Orçamentária"
+                          value={newCampoLabel}
+                          onChange={e => setNewCampoLabel(e.target.value)}
+                          className="flex-1"
+                        />
+                        <div className="flex items-center gap-2 px-3 border rounded-md">
+                          <Switch checked={newCampoObrigatorio} onCheckedChange={setNewCampoObrigatorio} />
+                          <span className="text-xs text-gray-500 whitespace-nowrap">Obrigatório</span>
+                        </div>
+                        <Button onClick={handleAddCampo} className="bg-orange-500 hover:bg-orange-600">
+                          <Plus size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
         </div>
       </Tabs>
