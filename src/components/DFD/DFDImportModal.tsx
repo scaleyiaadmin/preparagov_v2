@@ -4,6 +4,10 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ScanLine, UploadCloud, Loader2, FileImage, CheckCircle, AlertCircle, Camera, X, ImagePlus } from 'lucide-react';
 import { openaiService, ExtractedDFDData } from '@/services/openaiService';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Define the worker location so PDF.js functions properly without complex bundler config
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface DFDImportModalProps {
   open: boolean;
@@ -88,15 +92,63 @@ const DFDImportModal = ({ open, onClose, onExtracted }: DFDImportModalProps) => 
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const convertPdfToImages = async (file: File): Promise<File[]> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const numPages = pdf.numPages;
+    const extractedFiles: File[] = [];
+
+    for (let i = 1; i <= numPages; i++) {
+       const page = await pdf.getPage(i);
+       const viewport = page.getViewport({ scale: 1.5 }); // Scale tradeoff for OCR legibility vs output size
+
+       const canvas = document.createElement('canvas');
+       const context = canvas.getContext('2d');
+       if (!context) continue;
+
+       canvas.height = viewport.height;
+       canvas.width = viewport.width;
+
+       await page.render({ canvasContext: context, viewport: viewport }).promise;
+       
+       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+       
+       if (blob) {
+         const fileName = `${file.name.replace(/\.pdf$/i, '')}-pag-${i}.jpg`;
+         extractedFiles.push(new File([blob], fileName, { type: 'image/jpeg' }));
+       }
+    }
+    return extractedFiles;
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
+      // Show loading if we are unpacking a PDF
+      setStatus('processing');
       const selectedFiles = Array.from(e.target.files);
-      const validFiles = selectedFiles.filter(f => f.type.startsWith('image/'));
+      let newFiles: File[] = [];
+      let hasInvalid = false;
       
-      if (validFiles.length !== selectedFiles.length) {
-         toast({ title: "Formato inválido ignorado", description: "Apenas imagens (JPG/PNG) foram adicionadas." });
+      for (const file of selectedFiles) {
+        if (file.type === 'application/pdf') {
+           try {
+              const pdfImages = await convertPdfToImages(file);
+              newFiles.push(...pdfImages);
+           } catch(err) {
+              console.error("PDF Read Error:", err);
+              toast({ title: "Erro no PDF", description: `Incapaz de ler o arquivo: ${file.name}`, variant: "destructive" });
+           }
+        } else if (file.type.startsWith('image/')) {
+           newFiles.push(file);
+        } else {
+           hasInvalid = true;
+        }
       }
-      setFiles(prev => [...prev, ...validFiles]);
+
+      if (hasInvalid) {
+         toast({ title: "Formato inválido", description: "Apenas imagens (JPG/PNG) e PDFs são suportados." });
+      }
+      setFiles(prev => [...prev, ...newFiles]);
       setStatus('idle');
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -199,11 +251,11 @@ const DFDImportModal = ({ open, onClose, onExtracted }: DFDImportModalProps) => 
                     multiple
                     ref={fileInputRef} 
                     onChange={handleFileChange} 
-                    accept="image/jpeg, image/png, image/webp" 
+                    accept="image/jpeg, image/png, image/webp, application/pdf" 
                     className="hidden" 
                   />
                   <ImagePlus size={42} className="text-gray-400 group-hover:text-indigo-500 transition-colors mb-3" />
-                  <p className="text-gray-700 font-semibold text-center mb-1">Adicionar páginas / fotos (JPG, PNG)</p>
+                  <p className="text-gray-700 font-semibold text-center mb-1">Adicionar páginas / fotos (JPG, PNG ou PDF)</p>
                   <p className="text-gray-500 text-sm text-center">Pode adicionar vários arquivos de uma vez</p>
                 </div>
               )}
