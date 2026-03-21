@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, FileText, Clock, CheckCircle, Building } from 'lucide-react';
+import { Plus, FileText, Clock, CheckCircle, Building, ScanLine } from 'lucide-react';
 import DFDForm from '@/components/DFD/DFDForm';
 import DFDList from '../components/DFD/DFDList';
 import { MappedDFD } from '@/components/DFD/types';
@@ -13,6 +13,8 @@ import { dfdService } from '@/services/dfdService';
 import { DbDFDWithRelations } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import DFDImportModal from '@/components/DFD/DFDImportModal';
+import { ExtractedDFDData } from '@/services/openaiService';
 
 
 
@@ -36,6 +38,7 @@ const DFD = () => {
   const [actionJustification, setActionJustification] = useState('');
   const [showNameModal, setShowNameModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const { toast } = useToast();
 
   // Check for filter from dashboard navigation
@@ -214,6 +217,27 @@ const DFD = () => {
     setShowNameModal(false);
   };
 
+  const handleImportExtracted = (data: ExtractedDFDData) => {
+    // Transform ExtractedDFDData into a draft MappedDFD object
+    setEditingDFD({
+      objeto: data.objeto || 'DFD LIDO via Scanner',
+      justificativa: data.justificativa || '',
+      descricaoDemanda: data.descricaoDemanda || '',
+      tipoDFD: data.tipoDFD || '',
+      status: 'Rascunho',
+      valorEstimado: 'R$ 0,00',
+      itens: data.itens.map((item: any, idx) => ({
+         id: `temp-${idx}`,
+         descricao: item.descricao || '',
+         quantidade: item.quantidade || 1,
+         unidade: item.unidade || 'UN',
+         valorReferencia: item.valorReferencia || 0
+      }))
+    } as any);
+    setShowForm(true);
+    setShowImportModal(false);
+  };
+
   if (showForm) {
     console.log('Rendering DFDForm...');
     return <DFDForm onBack={handleFormBack} editingDFD={editingDFD} />;
@@ -228,10 +252,16 @@ const DFD = () => {
           <h1 className="text-2xl font-bold text-gray-900">DFD - Documentos de Formalização</h1>
           <p className="text-gray-600">Gerencie as demandas de contratação</p>
         </div>
-        <Button onClick={() => setShowNameModal(true)} className="bg-orange-500 hover:bg-orange-600">
-          <Plus size={16} className="mr-2" />
-          Novo DFD
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Button onClick={() => setShowImportModal(true)} variant="outline" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 bg-white">
+            <ScanLine size={16} className="mr-2" />
+            Escanear
+          </Button>
+          <Button onClick={() => setShowNameModal(true)} className="bg-orange-500 hover:bg-orange-600">
+            <Plus size={16} className="mr-2" />
+            Novo DFD
+          </Button>
+        </div>
       </div>
 
       <CreationNameModal
@@ -348,6 +378,12 @@ const DFD = () => {
         open={showViewModal}
         onClose={() => setShowViewModal(false)}
         dfd={selectedDFD}
+      />
+
+      <DFDImportModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onExtracted={handleImportExtracted}
       />
     </div>
   );
