@@ -19,7 +19,7 @@ export const referenciaService = {
             .from('referencia_pncp')
             .select('*')
             .or(`item_nome.ilike.%${term}%,municipio.ilike.%${term}%`)
-            .limit(10000);
+            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
@@ -41,7 +41,7 @@ export const referenciaService = {
             .from('referencia_sinapi')
             .select('*')
             .ilike('descricao', `%${term}%`)
-            .limit(10000);
+            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
@@ -63,7 +63,7 @@ export const referenciaService = {
             .from('referencia_cmed')
             .select('*')
             .or(`produto.ilike.%${term}%,substancia.ilike.%${term}%`)
-            .limit(10000);
+            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
@@ -85,7 +85,7 @@ export const referenciaService = {
             .from('referencia_catser')
             .select('*')
             .ilike('descricao', `%${term}%`)
-            .limit(10000);
+            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
@@ -109,7 +109,7 @@ export const referenciaService = {
             .from('referencia_nfe')
             .select('*')
             .ilike('item_nome', `%${term}%`)
-            .limit(10000);
+            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
@@ -132,7 +132,7 @@ export const referenciaService = {
             .from('referencia_setop')
             .select('*')
             .ilike('descricao', `%${term}%`)
-            .limit(10000);
+            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
@@ -155,7 +155,7 @@ export const referenciaService = {
             .from('referencia_simpro')
             .select('*')
             .ilike('descricao', `%${term}%`)
-            .limit(10000);
+            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
@@ -178,7 +178,7 @@ export const referenciaService = {
             .from('referencia_sigtap')
             .select('*')
             .ilike('descricao', `%${term}%`)
-            .limit(10000);
+            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
@@ -204,7 +204,7 @@ export const referenciaService = {
 
         if (uf) query = query.eq('uf', uf.toUpperCase());
 
-        const { data, error } = await query.limit(10000);
+        const { data, error } = await query.limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
@@ -227,7 +227,7 @@ export const referenciaService = {
             .from('referencia_ceasa')
             .select('*')
             .ilike('item_nome', `%${term}%`)
-            .limit(10000);
+            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
@@ -249,7 +249,7 @@ export const referenciaService = {
             .from('referencia_pncp') // Usando PNCP como fallback enquanto a tabela oficial catmat é carregada, ou mudar para a correta se existir
             .select('*')
             .ilike('item_nome', `%${term}%`)
-            .limit(10000);
+            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
 
         if (error) throw error;
 
