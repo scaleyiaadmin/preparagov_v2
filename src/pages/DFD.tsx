@@ -230,7 +230,7 @@ const DFD = () => {
       tipoDFD: data.tipoDFD || '',
       status: 'Rascunho',
       valorEstimado: 'R$ 0,00',
-      itens: data.itens.map((item: any, idx) => ({
+      itens: (data.itens || []).map((item: any, idx) => ({
          id: `temp-${idx}`,
          descricao: item.descricao || '',
          quantidade: item.quantidade || 1,

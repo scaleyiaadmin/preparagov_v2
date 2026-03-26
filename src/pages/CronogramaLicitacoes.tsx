@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -392,7 +392,7 @@ const CronogramaLicitacoes = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {licitacao.secretariasSiglas.slice(0, 3).map((sigla: string, index: number) => (
+                              {(licitacao.secretariasSiglas || []).slice(0, 3).map((sigla: string, index: number) => (
                                 <Tooltip key={index}>
                                   <TooltipTrigger>
                                     <Badge variant="outline" className="text-xs cursor-help">
@@ -400,11 +400,11 @@ const CronogramaLicitacoes = () => {
                                     </Badge>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>{licitacao.secretariasNomes[index]}</p>
+                                    <p>{(licitacao.secretariasNomes || [])[index]}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               ))}
-                              {licitacao.secretariasSiglas.length > 3 && (
+                              {(licitacao.secretariasSiglas || []).length > 3 && (
                                 <Tooltip>
                                   <TooltipTrigger>
                                     <Badge variant="outline" className="text-xs cursor-help">
@@ -413,7 +413,7 @@ const CronogramaLicitacoes = () => {
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <div className="space-y-1">
-                                      {licitacao.secretariasNomes.slice(3).map((nome: string, index: number) => (
+                                      {(licitacao.secretariasNomes || []).slice(3).map((nome: string, index: number) => (
                                         <p key={index}>{nome}</p>
                                       ))}
                                     </div>
