@@ -34,7 +34,17 @@ export const pncpApiService = {
                 params.append('uf', uf);
             }
 
-            const response = await fetch(`${baseUrl}?${params.toString()}`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            let response;
+            try {
+                response = await fetch(`${baseUrl}?${params.toString()}`, {
+                    signal: controller.signal
+                });
+            } finally {
+                clearTimeout(timeoutId);
+            }
 
             if (!response.ok) {
                 throw new Error(`Erro na API do PNCP: ${response.statusText}`);
