@@ -19,6 +19,7 @@ export interface DFDFormData {
     prioridade: string;
     justificativaPrioridade: string;
     itens: DFDItem[];
+    numeroDFD?: string;
     camposExtras?: Record<string, string>;
 }
 

@@ -24,6 +24,7 @@ import FormStep from '../components/ETP/FormStep';
 import SummaryStep from '../components/ETP/SummaryStep';
 import DFDListPagination from '../components/DFD/DFDListPagination';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'react-router-dom';
 
 type ViewMode = 'dashboard' | 'creation' | 'completed' | 'inProgress' | 'view';
 
@@ -37,8 +38,74 @@ const ETP = () => {
   const [inProgressPage, setInProgressPage] = useState(1);
   const { toast } = useToast();
   const { user } = useAuth();
+  const location = useLocation();
+  const state = location.state as any;
+
+  const {
+    currentStep,
+    setCurrentStep,
+    formData,
+    updateFormData,
+    setFormData,
+    steps,
+    availableDFDs,
+    selectDFDs,
+    saveDraftETP,
+    saveETP,
+    loading: creationLoading,
+    generateFieldContent,
+    isGenerating,
+    editingEtpId,
+    setEditingEtpId,
+    handleRegenField,
+    generateWithAI,
+    nextStep,
+    prevStep,
+    canProceed,
+    generatePDF,
+    loadETP
+  } = useETPCreation();
 
   const [etps, setEtps] = useState<any[]>([]);
+  const [camposExtrasConfig, setCamposExtrasConfig] = useState<{label: string, obrigatorio: boolean}[]>([]);
+
+  useEffect(() => {
+    const fetchCamposExtras = async () => {
+      if (!user?.prefeituraId) return;
+      try {
+        const { data } = await supabase
+          .from('prefeituras')
+          .select('campos_extras_etp')
+          .eq('id', user.prefeituraId)
+          .single();
+        if (data?.campos_extras_etp && Array.isArray(data.campos_extras_etp)) {
+          setCamposExtrasConfig(data.campos_extras_etp);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar campos extras:', err);
+      }
+    };
+    fetchCamposExtras();
+  }, [user]);
+
+  useEffect(() => {
+    if (state?.openCreation && availableDFDs.length > 0) {
+      setViewMode('creation');
+      const ids = state.selectedDfdIds || (state.selectedDfdId ? [state.selectedDfdId] : []);
+      if (ids.length > 0) {
+        const selected = availableDFDs.filter(d => ids.includes(d.id));
+        if (selected.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            selectedDFDs: selected,
+            objeto: selected.length === 1 ? selected[0].objeto : prev.objeto
+          }));
+        }
+      }
+      // Clear state to avoid re-triggering
+      window.history.replaceState({}, document.title);
+    }
+  }, [state, availableDFDs, setFormData]);
 
   useEffect(() => {
     const fetchETPs = async () => {
@@ -75,12 +142,13 @@ const ETP = () => {
 
         const { data: usersData } = await usersQuery;
 
-        const formatted = data.map((etp: any) => {
+        const formatted = (data || []).map((etp: any) => {
           const totalValue = etp.etp_dfd?.reduce((acc: number, item: any) => {
             return acc + (item.dfd?.valor_estimado_total || 0);
           }, 0) || 0;
 
           const responsavel = usersData?.find((u: any) => u.id === etp.created_by)?.nome || 'Não identificado';
+          const stepValue = etp.status === 'Concluído' ? 12 : (etp.current_step || 0);
 
           return {
             id: etp.id,
@@ -89,7 +157,7 @@ const ETP = () => {
             status: etp.status,
             totalDFDs: etp.etp_dfd?.length || 0,
             valorTotal: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue),
-            currentStep: etp.status === 'Em Elaboração' ? 12 : 12,
+            currentStep: stepValue,
             responsavel: responsavel,
             dataCriacao: etp.created_at,
             dataUltimaEdicao: etp.created_at
@@ -108,23 +176,7 @@ const ETP = () => {
     fetchETPs();
   }, [viewMode]);
 
-  const {
-    currentStep,
-    setCurrentStep,
-    formData,
-    updateFormData,
-    steps,
-    availableDFDs,
-    selectDFDs,
-    generateWithAI,
-    nextStep,
-    prevStep,
-    canProceed,
-    saveETP,
-    saveDraftETP,
-    generatePDF,
-    loadETP
-  } = useETPCreation();
+
 
   const handleCreateNew = (name: string) => {
     // Definimos um valor inicial para a demanda com o título fornecido
@@ -235,6 +287,30 @@ const ETP = () => {
                     </Select>
                   </div>
                 </div>
+
+                {camposExtrasConfig.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-4">Campos Adicionais</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {camposExtrasConfig.map((campo, index) => (
+                        <div key={index} className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">
+                            {campo.label} {campo.obrigatorio && <span className="text-red-500">*</span>}
+                          </Label>
+                          <Input
+                            value={formData.camposExtras?.[campo.label] || ''}
+                            onChange={(e) => {
+                              const extras = { ...formData.camposExtras, [campo.label]: e.target.value };
+                              updateFormData('camposExtras', extras);
+                            }}
+                            placeholder={`Informe ${campo.label.toLowerCase()}...`}
+                            required={campo.obrigatorio}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
             <DFDSelectionStep

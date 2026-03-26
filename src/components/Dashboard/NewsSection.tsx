@@ -17,8 +17,19 @@ const NewsSection = () => {
     return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+  const formatDate = (dateString: any) => {
+    if (!dateString) return '-';
+    // Check if it's already in pt-BR format (e.g. 15/03/2026)
+    if (typeof dateString === 'string' && dateString.includes('/')) return dateString;
+    
+    // If it's a date only without time, adding T12:00:00 avoids timezone shifts
+    let processedString = dateString;
+    if (typeof dateString === 'string' && !dateString.includes('T')) {
+      processedString = `${dateString}T12:00:00`;
+    }
+    const date = new Date(processedString);
+    if (isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('pt-BR');
   };
 
   return (

@@ -20,6 +20,7 @@ export interface DbUser {
     cargo_funcional?: string | null;
     unidade?: string | null;
     data_expiracao?: string | null;
+    aceitou_termos_ia?: boolean | null;
 }
 
 // Tabela: prefeituras
@@ -37,6 +38,7 @@ export interface DbPrefeitura {
     cargo?: string | null;
     status: 'ativa' | 'inativa';
     campos_extras_dfd?: { label: string; obrigatorio: boolean }[] | null;
+    campos_extras_etp?: { label: string; obrigatorio: boolean }[] | null;
 }
 
 // Tabela: secretarias
@@ -137,6 +139,8 @@ export interface DbETP {
     conclusao_tecnica?: string;
     created_by?: string;
     prefeitura_id?: string;
+    campos_extras?: Record<string, string> | null;
+    current_step?: number;
 }
 
 export interface DbETPWithDFDs extends DbETP {

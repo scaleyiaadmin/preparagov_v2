@@ -377,6 +377,15 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
   };
 
   const getSelectedItems = () => {
+    if (origin === 'cronograma' && selectedData?.itensConsolidados) {
+      return selectedData.itensConsolidados.map((item: any) => ({
+        nome: item.descricao,
+        unidade: item.unidadeMedida,
+        quantidade: item.quantidadeTotal,
+        valorUnitario: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorTotal / item.quantidadeTotal),
+        valorEstimado: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorTotal)
+      }));
+    }
     if (origin === 'itens-especificos' && Array.isArray(selectedData)) {
       return selectedData;
     }
@@ -1068,10 +1077,6 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Endereço de Entrega</Label>
-                <Button size="sm" variant="outline" onClick={() => generateWithAI('enderecoEntrega')}>
-                  <Sparkles size={14} className="mr-1" />
-                  IA
-                </Button>
               </div>
               <Textarea
                 value={formData.enderecoEntrega}

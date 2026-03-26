@@ -35,6 +35,7 @@ interface ETPFormData {
   impactosDescricao: string;
   observacoesGerais: string;
   conclusaoTecnica: string;
+  camposExtras?: Record<string, string>;
 }
 
 interface ETPPreviewProps {
@@ -68,6 +69,11 @@ const ETPPreview = ({ formData, onGeneratePDF, user }: ETPPreviewProps) => {
     };
     fetchPrefeituraData();
   }, [currentUser?.prefeituraId]);
+
+  React.useEffect(() => {
+    setTimeout(() => window.print(), 800);
+  }, []);
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'Alta':
@@ -150,6 +156,16 @@ const ETPPreview = ({ formData, onGeneratePDF, user }: ETPPreviewProps) => {
                 <span className="font-semibold text-gray-800">Descrição Sucinta:</span>
                 <p className="text-gray-700">{formData.descricaoSucinta || 'Não informada'}</p>
               </div>
+              
+              {formData.camposExtras && Object.entries(formData.camposExtras as Record<string, string>).map(
+                ([key, value]) =>
+                  value && value.trim() !== '' && (
+                    <div key={key}>
+                      <span className="font-semibold text-gray-800">{key}:</span>
+                      <p className="text-gray-700">{value}</p>
+                    </div>
+                  )
+              )}
             </div>
           </div>
 

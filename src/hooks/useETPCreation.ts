@@ -42,6 +42,7 @@ interface ETPFormData {
   impactosDescricao: string;
   observacoesGerais: string;
   conclusaoTecnica: string;
+  camposExtras: Record<string, string>;
 }
 
 export const useETPCreation = () => {
@@ -64,7 +65,8 @@ export const useETPCreation = () => {
     impactosAmbientais: false,
     impactosDescricao: '',
     observacoesGerais: '',
-    conclusaoTecnica: ''
+    conclusaoTecnica: '',
+    camposExtras: {}
   });
   const [editingEtpId, setEditingEtpId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -208,12 +210,11 @@ export const useETPCreation = () => {
         impactosAmbientais: etp.impactos_ambientais || false,
         impactosDescricao: etp.impactos_descricao || '',
         observacoesGerais: etp.observacoes_gerais || '',
-        conclusaoTecnica: etp.conclusao_tecnica || ''
+        conclusaoTecnica: etp.conclusao_tecnica || '',
+        camposExtras: etp.campos_extras || {}
       });
-
-      setCurrentStep(0);
+      setCurrentStep(etp.current_step || 0);
     } catch (error) {
-      console.error('Error loading ETP:', error);
       toast({
         title: "Erro ao carregar",
         description: "Não foi possível carregar os dados do ETP.",
@@ -425,7 +426,9 @@ A alternativa escolhida foi a aquisição por meio de licitação pública, gara
         observacoes_gerais: formData.observacoesGerais,
         conclusao_tecnica: formData.conclusaoTecnica,
         created_by: user.id,
-        prefeitura_id: prefeituraId
+        prefeitura_id: prefeituraId,
+        campos_extras: formData.camposExtras,
+        current_step: 12 // Concluído
       };
 
       console.log('Tentando salvar ETP. Mode:', editingEtpId ? 'Update' : 'Create', 'ID:', editingEtpId);
@@ -514,7 +517,9 @@ A alternativa escolhida foi a aquisição por meio de licitação pública, gara
         observacoes_gerais: formData.observacoesGerais,
         conclusao_tecnica: formData.conclusaoTecnica,
         created_by: user.id,
-        prefeitura_id: prefeituraId
+        prefeitura_id: prefeituraId,
+        campos_extras: formData.camposExtras,
+        current_step: currentStep
       };
 
       if (editingEtpId) {
@@ -576,6 +581,7 @@ A alternativa escolhida foi a aquisição por meio de licitação pública, gara
     setCurrentStep,
     formData,
     updateFormData,
+    setFormData,
     steps,
     availableDFDs,
     selectDFDs,

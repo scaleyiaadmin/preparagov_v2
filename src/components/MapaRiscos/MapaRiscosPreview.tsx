@@ -57,9 +57,22 @@ const MapaRiscosPreview = ({ isOpen, onClose, etp, riscos, onExportPDF }: MapaRi
     };
     if (isOpen) fetchPrefeituraData();
   }, [isOpen, user?.prefeituraId]);
-  const formatDate = (dateString: string | undefined) => {
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => window.print(), 800);
+    }
+  }, [isOpen]);
+
+  const formatDate = (dateString: string | undefined | null) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    if (typeof dateString === 'string' && dateString.includes('/')) return dateString;
+    const processedString = (typeof dateString === 'string' && !dateString.includes('T')) 
+      ? `${dateString}T12:00:00` 
+      : dateString;
+    const date = new Date(processedString as string);
+    if (isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('pt-BR');
   };
 
   const getNivelColor = (nivel: string | null) => {

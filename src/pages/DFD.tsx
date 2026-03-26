@@ -64,7 +64,7 @@ const DFD = () => {
       const data = await dfdService.getAll({ prefeituraId: prefId });
       if (data) {
         // Collect unique created_by user IDs to fetch in one query
-        const userIds = [...new Set(data.map((d: any) => d.created_by).filter(Boolean))];
+        const userIds = [...new Set((data || []).map((d: any) => d.created_by).filter(Boolean))];
         let usersMap: Record<string, any> = {};
         if (userIds.length > 0) {
           const { data: usersData } = await supabase
@@ -77,7 +77,7 @@ const DFD = () => {
         }
 
         // Map DB to Frontend Model
-        const mappedData: MappedDFD[] = (data as DbDFDWithRelations[]).map((d) => {
+        const mappedData: MappedDFD[] = ((data || []) as DbDFDWithRelations[]).map((d) => {
           const criador = d.created_by ? usersMap[d.created_by] : null;
           return {
             id: d.id,
@@ -85,7 +85,11 @@ const DFD = () => {
             tipoDFD: d.tipo_dfd,
             valor: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(d.valor_estimado_total || 0),
             status: d.status,
-            data: d.created_at ? new Date(d.created_at).toLocaleDateString('pt-BR') : '-',
+            data: (() => {
+              if (!d.created_at) return '-';
+              const date = new Date(d.created_at);
+              return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('pt-BR');
+            })(),
             prioridade: d.prioridade,
             anoContratacao: d.ano_contratacao?.toString(),
             descricaoDemanda: d.descricao_demanda,
@@ -253,13 +257,15 @@ const DFD = () => {
           <p className="text-gray-600">Gerencie as demandas de contratação</p>
         </div>
         <div className="flex items-center space-x-3">
-          <Button disabled={true} variant="outline" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 bg-white relative disabled:opacity-75 disabled:cursor-not-allowed">
-            <UploadCloud size={16} className="mr-2" />
-            Upload
-            <span className="absolute -top-2 -right-2 bg-indigo-100 text-indigo-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-indigo-200">Em breve</span>
+          <Button 
+            onClick={() => setShowImportModal(true)} 
+            variant="outline" 
+            className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 bg-white shadow-sm transition-colors font-medium">
+            <UploadCloud size={18} className="mr-2" />
+            Upload Inteligente
           </Button>
-          <Button onClick={() => setShowNameModal(true)} className="bg-orange-500 hover:bg-orange-600">
-            <Plus size={16} className="mr-2" />
+          <Button onClick={() => setShowNameModal(true)} className="bg-orange-500 hover:bg-orange-600 font-medium shadow-sm">
+            <Plus size={18} className="mr-2" />
             Novo DFD
           </Button>
         </div>

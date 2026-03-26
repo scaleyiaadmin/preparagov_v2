@@ -42,6 +42,7 @@ export interface User {
   permissions: ModulePermissions;
   createdAt: string;
   status: 'ativo' | 'inativo';
+  aceitouTermosIA?: boolean;
 }
 
 export interface AuthState {

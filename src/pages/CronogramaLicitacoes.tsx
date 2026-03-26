@@ -33,11 +33,13 @@ import { formatDate, getPriorityColor } from '../utils/pcaConsolidation';
 const CronogramaLicitacoes = () => {
   const navigate = useNavigate();
   const [filters, setFilters] = useState({
-    ano: '2024',
+    ano: new Date().getFullYear().toString(),
     secretaria: 'all',
     prioridade: 'all',
     tipoDFD: 'all'
   });
+  const [sortBy, setSortBy] = useState<'data' | 'prioridade'>('data');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentFilter, setCurrentFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [showItemsModal, setShowItemsModal] = useState(false);
@@ -66,10 +68,35 @@ const CronogramaLicitacoes = () => {
     }
   });
 
+  // Apply sorting
+  const sortedData = useMemo(() => {
+    return [...statusFilteredData].sort((a, b) => {
+      if (sortBy === 'data') {
+        const dateA = new Date(a.dataContratacao).getTime();
+        const dateB = new Date(b.dataContratacao).getTime();
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      } else {
+        const priorityScore: Record<string, number> = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
+        const scoreA = priorityScore[a.prioridade] || 0;
+        const scoreB = priorityScore[b.prioridade] || 0;
+        return sortOrder === 'asc' ? scoreA - scoreB : scoreB - scoreA;
+      }
+    });
+  }, [statusFilteredData, sortBy, sortOrder]);
+
   // Pagination
-  const totalPages = Math.ceil(statusFilteredData.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = statusFilteredData.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedData = sortedData.slice(startIndex, startIndex + itemsPerPage);
+
+  const toggleSort = (field: 'data' | 'prioridade') => {
+    if (sortBy === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
 
   const handleViewItems = (licitacao: CronogramaItem) => {
     setSelectedLicitacao(licitacao);
@@ -77,8 +104,8 @@ const CronogramaLicitacoes = () => {
   };
 
   const handleCreateTR = (licitacao: CronogramaItem) => {
-    // Navega para o módulo de Termo de Referência
-    navigate('/termo');
+    // Navega para o módulo de Termo de Referência passando a licitação selecionada
+    navigate('/termo', { state: { fromCronograma: true, licitacao } });
   };
 
   const handleExportPDF = () => {
@@ -330,9 +357,19 @@ const CronogramaLicitacoes = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Tipo de DFD</TableHead>
-                        <TableHead>Data de Contratação</TableHead>
+                        <TableHead className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => toggleSort('data')}>
+                          <div className="flex items-center">
+                            Data de Contratação
+                            <Filter size={14} className={`ml-1 ${sortBy === 'data' ? 'text-blue-600' : 'text-gray-400'}`} />
+                          </div>
+                        </TableHead>
                         <TableHead>Data Sugerida de Abertura</TableHead>
-                        <TableHead>Prioridade</TableHead>
+                        <TableHead className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => toggleSort('prioridade')}>
+                          <div className="flex items-center">
+                            Prioridade
+                            <Filter size={14} className={`ml-1 ${sortBy === 'prioridade' ? 'text-blue-600' : 'text-gray-400'}`} />
+                          </div>
+                        </TableHead>
                         <TableHead>Secretarias Envolvidas</TableHead>
                         <TableHead>Valor Total</TableHead>
                         <TableHead>Ações</TableHead>

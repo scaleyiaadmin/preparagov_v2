@@ -2,8 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Loader2 } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
+import { Download, Loader2, Printer } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
@@ -18,7 +17,6 @@ interface DFDPreviewProps {
 
 const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPreviewProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const { getCurrentUser, getPrefeituraById } = useAuth();
   const user = getCurrentUser();
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -60,27 +58,16 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
 
   const dfdNumber = useRef(generateDFDNumber()).current;
 
-  const handleGeneratePDF = async () => {
-    if (!contentRef.current) return;
-
-    setIsGenerating(true);
-
-    try {
-      const element = contentRef.current;
-      const opt = {
-        margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: `${dfdNumber}_${formData.objeto.replace(/\s+/g, '_')}.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
-      };
-
-      await html2pdf().set(opt).from(element).save();
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-    } finally {
-      setIsGenerating(false);
+  React.useEffect(() => {
+    if (open) {
+      setTimeout(() => {
+        window.print();
+      }, 800);
     }
+  }, [open]);
+
+  const handleGeneratePDF = () => {
+    window.print();
   };
 
   // Campos extras preenchidos
@@ -90,17 +77,17 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col print:h-auto print:max-w-none print:p-0">
+        <DialogHeader className="flex-shrink-0 print:hidden">
           <div className="flex items-center justify-between">
             <DialogTitle>Preview do DFD - {dfdNumber}</DialogTitle>
           </div>
         </DialogHeader>
 
         {/* Conteúdo com scroll */}
-        <div className="flex-1 overflow-y-auto space-y-6 p-1">
+        <div className="flex-1 overflow-y-auto space-y-6 p-1 bg-white print:overflow-visible print:p-0">
           {/* Container for PDF Generation */}
-          <div ref={contentRef} className="bg-white p-8">
+          <div ref={contentRef} className="bg-white p-8 print:p-0 print:text-black">
             {/* Cabeçalho do documento com logo */}
             <div className="text-center border-b pb-4">
               {logoUrl && (
@@ -243,8 +230,8 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
             {globalJustification && (
               <div className="pt-4 mt-4 border-t-2 border-gray-100">
                 <h2 className="text-lg font-semibold text-gray-900 mb-3">3. JUSTIFICATIVA DE QUANTIDADE</h2>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line max-w-none">{globalJustification}</p>
+                <div className="bg-gray-50 print:bg-white p-4 rounded-lg border print:border-gray-300">
+                  <p className="text-gray-700 print:text-black leading-relaxed whitespace-pre-line max-w-none">{globalJustification}</p>
                 </div>
               </div>
             )}
@@ -296,23 +283,17 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
           </div>
         </div>
 
-        {/* Botões fixos */}
-        <div className="flex justify-end space-x-2 pt-4 border-t flex-shrink-0 bg-white">
-          <Button variant="outline" onClick={onClose} disabled={isGenerating}>
-            Fechar
+        {/* Footer com botão */}
+        <div className="flex justify-end pt-4 border-t flex-shrink-0 print:hidden">
+          <Button variant="outline" onClick={onClose} className="mr-2">
+            Voltar
           </Button>
-          <Button onClick={handleGeneratePDF} className="bg-orange-500 hover:bg-orange-600" disabled={isGenerating}>
-            {isGenerating ? (
-              <>
-                <Loader2 size={16} className="mr-2 animate-spin" />
-                Gerando PDF...
-              </>
-            ) : (
-              <>
-                <FileText size={16} className="mr-2" />
-                Gerar PDF Final
-              </>
-            )}
+          <Button
+            onClick={handleGeneratePDF}
+            className="bg-orange-500 hover:bg-orange-600"
+          >
+            <Printer size={16} className="mr-2" />
+            Imprimir / Gerar PDF
           </Button>
         </div>
       </DialogContent>

@@ -30,10 +30,11 @@ interface AIRiskSuggestionsProps {
   isOpen: boolean;
   onClose: () => void;
   etp: ETP | null;
+  existingRisks: DbMapaRiscosItem[];
   onAcceptRisk: (risk: Omit<DbMapaRiscosItem, 'id' | 'mapa_riscos_id'>) => Promise<void>;
 }
 
-const AIRiskSuggestions = ({ isOpen, onClose, etp, onAcceptRisk }: AIRiskSuggestionsProps) => {
+const AIRiskSuggestions = ({ isOpen, onClose, etp, existingRisks, onAcceptRisk }: AIRiskSuggestionsProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const { toast } = useToast();
@@ -73,7 +74,14 @@ const AIRiskSuggestions = ({ isOpen, onClose, etp, onAcceptRisk }: AIRiskSuggest
         }
       ];
 
-      setSuggestions(mockSuggestions);
+      // Filtrar riscos que já existem no mapa para evitar duplicatas
+      const filtered = mockSuggestions.filter(suggestion => 
+        !existingRisks.some(existing => 
+          existing.descricao.toLowerCase().trim() === suggestion.descricao.toLowerCase().trim()
+        )
+      );
+
+      setSuggestions(filtered);
       setIsGenerating(false);
     }, 1500);
   };

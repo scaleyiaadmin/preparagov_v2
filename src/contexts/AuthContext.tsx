@@ -64,6 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : defaultPermissionsByRole[dbUser.tipo_perfil || 'operator'],
         createdAt: dbUser.created_at || new Date().toISOString(),
         status: dbUser.status || 'ativo',
+        aceitouTermosIA: dbUser.aceitou_termos_ia || false,
       }));
       setUsers(mappedUsers);
     } catch (error) {
@@ -205,6 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               : defaultPermissionsByRole[role],
           createdAt: dbUser.created_at || new Date().toISOString(),
           status: dbUser.status || 'ativo',
+          aceitouTermosIA: dbUser.aceitou_termos_ia || false,
         };
 
         setAuthState({
@@ -382,7 +384,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         prefeitura_id: userData.prefeituraId || null,
         secretaria_id: userData.secretariaId || null,
         modulos_acesso: userData.permissions,
-        status: userData.status
+        status: userData.status,
+        aceitou_termos_ia: userData.aceitouTermosIA || false
       };
 
       const { data, error } = await supabase
@@ -406,6 +409,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         permissions: dbUser.modulos_acesso || defaultPermissionsByRole[dbUser.tipo_perfil || 'operator'],
         createdAt: dbUser.created_at,
         status: dbUser.status || 'ativo',
+        aceitouTermosIA: dbUser.aceitou_termos_ia || false,
       };
 
       setUsers(prev => [...prev, newUser]);
@@ -428,6 +432,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (updates.secretariaId !== undefined) dbUpdates.secretaria_id = updates.secretariaId || null;
       if (updates.permissions) dbUpdates.modulos_acesso = updates.permissions;
       if (updates.status) dbUpdates.status = updates.status;
+      if (updates.aceitouTermosIA !== undefined) dbUpdates.aceitou_termos_ia = updates.aceitouTermosIA;
 
       const { error } = await supabase
         .from('usuarios_acesso')

@@ -12,8 +12,9 @@ import DFDViewModal from '../components/DFD/DFDViewModal';
 import { consolidateItemsByType } from '../utils/pcaConsolidation';
 import { usePCAData } from '../hooks/usePCAData';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { useNavigate } from 'react-router-dom';
 const PCA = () => {
+  const navigate = useNavigate();
   const {
     selectedYear,
     setSelectedYear,
@@ -50,7 +51,8 @@ const PCA = () => {
     handleConfirmRemoval,
     handlePrintDFD,
     handlePublishPNCP,
-    handleForwardToEtp
+    handleForwardToEtp,
+    handleBulkForwardToEtp
   } = usePCAData();
 
   const { hasPermission } = useAuth();
@@ -91,7 +93,16 @@ const PCA = () => {
         onViewDFD={handleViewDFD}
         onPrintDFD={handlePrintDFD}
         onRemoveFromPCA={handleRemoveFromPCA}
-        onForwardToEtp={handleForwardToEtp}
+        onForwardToEtp={async (dfd) => {
+          await handleForwardToEtp(dfd);
+          navigate('/etp', { state: { openCreation: true, selectedDfdId: dfd.id } });
+        }}
+        onBulkForwardToEtp={async (dfds) => {
+          const success = await handleBulkForwardToEtp(dfds);
+          if (success) {
+            navigate('/etp', { state: { openCreation: true, selectedDfdIds: dfds.map(d => d.id) } });
+          }
+        }}
         canEdit={canEdit}
       />
 
@@ -120,13 +131,13 @@ const PCA = () => {
         open={showPCAModal}
         onClose={() => setShowPCAModal(false)}
         selectedYear={selectedYear}
-        itemsByType={itemsByType as any}
+        itemsByType={itemsByType}
       />
 
       <PCAStructuredExportModal
         open={showExportModal}
         onClose={() => setShowExportModal(false)}
-        itemsByType={itemsByType as any}
+        itemsByType={itemsByType}
         selectedYear={selectedYear}
       />
 

@@ -52,6 +52,12 @@ const DFDViewModal = ({ open, onClose, dfd }: DFDViewModalProps) => {
     if (open) fetchPrefeituraData();
   }, [open, user?.prefeituraId]);
 
+  React.useEffect(() => {
+    if (open) {
+      setTimeout(() => window.print(), 800);
+    }
+  }, [open]);
+
   if (!dfd) return null;
 
   const getTotal = () => {

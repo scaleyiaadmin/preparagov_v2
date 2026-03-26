@@ -80,7 +80,7 @@ export const usePCAData = () => {
       // Process consolidated items for the summary
       if (approved) {
         const allItems: ConsolidatedPCAItem[] = [];
-        (approved as DbDFDWithRelations[]).forEach((dfd) => {
+        (approved || []).forEach((dfd: DbDFDWithRelations) => {
           if (dfd.dfd_items && Array.isArray(dfd.dfd_items)) {
             dfd.dfd_items.forEach((item) => {
               // Normalize priority
@@ -230,7 +230,39 @@ export const usePCAData = () => {
   }, [fetchData]);
 
   const handleViewDFD = (dfd: DbDFDWithRelations) => {
-    setSelectedDFD(dfd);
+    const normalizedDFD = {
+      ...dfd,
+      objeto: dfd.objeto,
+      tipoDFD: dfd.tipo_dfd,
+      status: dfd.status,
+      data: dfd.created_at,
+      prioridade: ((dfd.prioridade as string) === 'Alto' || (dfd.prioridade as string) === 'Alta') ? 'Alto' :
+        ((dfd.prioridade as string) === 'Baixo' || (dfd.prioridade as string) === 'Baixa') ? 'Baixo' : 'Médio',
+      anoContratacao: dfd.ano_contratacao?.toString(),
+      descricaoDemanda: dfd.descricao_demanda,
+      justificativa: dfd.justificativa,
+      dataPrevista: dfd.data_prevista_contratacao,
+      numeroDFD: dfd.numero_dfd,
+      justificativaPrioridade: dfd.justificativa_prioridade,
+      justificativaQuantidade: dfd.justificativa_quantidade,
+      descricaoSucinta: dfd.descricao_sucinta,
+      itens: dfd.dfd_items?.map((i) => ({
+        id: i.id,
+        codigo: i.codigo_item,
+        descricao: i.descricao_item,
+        unidade: i.unidade,
+        quantidade: Number(i.quantidade),
+        valorReferencia: Number(i.valor_unitario),
+        tabelaReferencia: i.tabela_referencia
+      })) || [],
+      requisitante: dfd.secretarias ? {
+        nome: 'Equipe de Planejamento',
+        email: '-',
+        cargo: '-',
+        secretaria: dfd.secretarias.nome
+      } : undefined
+    };
+    setSelectedDFD(normalizedDFD as any);
     setShowDFDViewModal(true);
   };
 
@@ -358,7 +390,6 @@ export const usePCAData = () => {
     try {
       await dfdService.forwardToEtp(dfd.id);
 
-      // Update local state
       setApprovedDFDs(prev => prev.map(d =>
         d.id === dfd.id ? { ...d, encaminhado_etp: true } : d
       ));
@@ -377,12 +408,34 @@ export const usePCAData = () => {
     }
   };
 
-  const totalItens = approvedDFDs.length;
+  const handleBulkForwardToEtp = async (dfds: DbDFDWithRelations[]) => {
+    try {
+      const ids = dfds.map(d => d.id);
+      await Promise.all(ids.map(id => dfdService.forwardToEtp(id)));
+
+      setApprovedDFDs(prev => prev.map(d =>
+        ids.includes(d.id) ? { ...d, encaminhado_etp: true } : d
+      ));
+
+      toast({
+        title: "Sucesso",
+        description: `${dfds.length} DFDs encaminhados para o ETP com sucesso!`,
+      });
+      return true;
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Erro ao encaminhar",
+        description: "Ocorreu um erro ao encaminhar os DFDs selecionados.",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
+  const totalItens = consolidatedItems.length;
   const valorTotal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-    approvedDFDs.reduce((acc, dfd) => {
-      const itemsVal = (dfd.dfd_items || []).reduce((sum, i) => sum + (Number(i.quantidade) * Number(i.valor_unitario)), 0);
-      return acc + itemsVal;
-    }, 0)
+    consolidatedItems.reduce((acc, item) => acc + (item.quantidade * item.valor), 0)
   );
 
   return {
@@ -405,6 +458,6 @@ export const usePCAData = () => {
     handleRemoveFromPCA, handleConfirmRemoval,
     handleGenerateSchedule, handlePrintSchedule,
     handlePrintDFD, handlePublishPNCP,
-    handleForwardToEtp
+    handleForwardToEtp, handleBulkForwardToEtp
   };
 };

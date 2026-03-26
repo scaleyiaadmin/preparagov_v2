@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,8 +42,10 @@ const Edital = () => {
   const [filters, setFilters] = useState({
     secretaria: 'all',
     status: 'all',
-    ano: '2025'
+    ano: new Date().getFullYear().toString()
   });
+  const [sortBy, setSortBy] = useState<'data' | 'valor'>('data');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentFilter, setCurrentFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
@@ -97,9 +99,32 @@ const Edital = () => {
     }
   });
 
-  const totalPages = Math.ceil(statusFilteredEditais.length / itemsPerPage);
+  const sortedEditais = useMemo(() => {
+    return [...statusFilteredEditais].sort((a, b) => {
+      if (sortBy === 'data') {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      } else {
+        const valA = a.valor_estimado || 0;
+        const valB = b.valor_estimado || 0;
+        return sortOrder === 'asc' ? valA - valB : valB - valA;
+      }
+    });
+  }, [statusFilteredEditais, sortBy, sortOrder]);
+
+  const totalPages = Math.ceil(sortedEditais.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedEditais = statusFilteredEditais.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedEditais = sortedEditais.slice(startIndex, startIndex + itemsPerPage);
+
+  const toggleSort = (field: 'data' | 'valor') => {
+    if (sortBy === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
 
   const handleFilterChange = (filter: string) => {
     setCurrentFilter(filter);
@@ -120,9 +145,15 @@ const Edital = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
-  const formatDate = (dateString: string | undefined) => {
+  const formatDate = (dateString: string | undefined | null) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    if (typeof dateString === 'string' && dateString.includes('/')) return dateString;
+    const processedString = (typeof dateString === 'string' && !dateString.includes('T')) 
+      ? `${dateString}T12:00:00` 
+      : dateString;
+    const date = new Date(processedString as string);
+    if (isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('pt-BR');
   };
 
   const getStatusBadge = (status: string | null) => {
@@ -133,7 +164,6 @@ const Edital = () => {
       case 'Concluído':
         return <Badge className="bg-green-100 text-green-800 border-green-200 shadow-sm">Concluído</Badge>;
       case 'Publicado':
-      case 'Publicado no PNCP':
         return <Badge className="bg-blue-100 text-blue-800 border-blue-200 shadow-sm">Publicado</Badge>;
       default:
         return <Badge variant="outline">{status || 'N/A'}</Badge>;
@@ -340,7 +370,7 @@ const Edital = () => {
             </div>
 
             <div className="flex items-end">
-              <Button variant="outline" onClick={() => { setFilters({ secretaria: 'all', status: 'all', ano: '2025' }); setCurrentFilter('all'); }} className="w-full bg-white">
+              <Button variant="outline" onClick={() => { setFilters({ secretaria: 'all', status: 'all', ano: new Date().getFullYear().toString() }); setCurrentFilter('all'); }} className="w-full bg-white">
                 Limpar Filtros
               </Button>
             </div>
@@ -379,9 +409,19 @@ const Edital = () => {
                 <Table>
                   <TableHeader className="bg-gray-50">
                     <TableRow>
-                      <TableHead className="font-bold">Número / Data</TableHead>
+                      <TableHead className="font-bold cursor-pointer hover:bg-gray-100" onClick={() => toggleSort('data')}>
+                        <div className="flex items-center">
+                          Número / Data
+                          <Filter size={12} className={`ml-1 ${sortBy === 'data' ? 'text-blue-600' : 'text-gray-400'}`} />
+                        </div>
+                      </TableHead>
                       <TableHead className="font-bold">Objeto / Modalidade</TableHead>
-                      <TableHead className="font-bold text-center">Valor Estimado</TableHead>
+                      <TableHead className="font-bold text-center cursor-pointer hover:bg-gray-100" onClick={() => toggleSort('valor')}>
+                        <div className="flex items-center justify-center">
+                          Valor Estimado
+                          <Filter size={12} className={`ml-1 ${sortBy === 'valor' ? 'text-blue-600' : 'text-gray-400'}`} />
+                        </div>
+                      </TableHead>
                       <TableHead className="font-bold text-center">Status</TableHead>
                       <TableHead className="font-bold text-right">AÇÕES</TableHead>
                     </TableRow>
@@ -455,7 +495,7 @@ const Edital = () => {
                               </div>
                             )}
 
-                            {(edital.status === 'Publicado' || edital.status === 'Publicado no PNCP') && (
+                            {edital.status === 'Publicado' && (
                               <Button
                                 variant="ghost"
                                 size="sm"

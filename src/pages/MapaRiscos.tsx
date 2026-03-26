@@ -210,7 +210,7 @@ const MapaRiscos = () => {
     try {
       const etpData = await etpService.getById(etp.id);
       if (etpData?.etp_dfd && Array.isArray(etpData.etp_dfd)) {
-        const dfds: DFD[] = etpData.etp_dfd.map((rel: any) => ({
+        const dfds: DFD[] = etpData.etp_dfd.map((rel: { dfd: any }) => ({
           id: rel.dfd.id,
           numero: rel.dfd.numero_dfd || 'N/A',
           nome: rel.dfd.objeto || 'Sem título',
@@ -881,6 +881,7 @@ const MapaRiscos = () => {
         isOpen={aiSuggestionsOpen}
         onClose={() => setAiSuggestionsOpen(false)}
         etp={selectedETP}
+        existingRisks={riscos}
         onAcceptRisk={handleAcceptAIRisk}
       />
 

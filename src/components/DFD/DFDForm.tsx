@@ -55,6 +55,7 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
     prioridade: editingDFD?.prioridade || '',
     justificativaPrioridade: editingDFD?.justificativaPrioridade || '',
     itens: editingDFD?.itens || [],
+    numeroDFD: editingDFD?.numeroDFD || '',
     camposExtras: editingDFD?.camposExtras || {}
   });
 
@@ -114,11 +115,48 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
   const prioridadeOptions = ['Baixo', 'Médio', 'Alto'];
 
   const handleInputChange = (field: keyof DFDFormData, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Se mudou a dataPrevista e não tem numeroDFD manual ou está mudando de ano, recarregar
+      if (field === 'dataPrevista' && value) {
+        const newYear = new Date(value).getFullYear();
+        const currentYear = prev.dataPrevista ? new Date(prev.dataPrevista).getFullYear() : null;
+        if (newYear !== currentYear) {
+          fetchNextDFDNumber(newYear);
+        }
+      }
+      
+      return newData;
+    });
   };
+
+  const fetchNextDFDNumber = async (year: number) => {
+    try {
+      if (!user?.prefeituraId) return;
+      const { count, error } = await supabase
+        .from('dfd')
+        .select('*', { count: 'exact', head: true })
+        .eq('prefeitura_id', user.prefeituraId)
+        .eq('ano_contratacao', year);
+        
+      if (error) throw error;
+      
+      const nextNumber = (count || 0) + 1;
+      const formatted = `${String(nextNumber).padStart(3, '0')}/${year}`;
+      setFormData(prev => ({ ...prev, numeroDFD: formatted }));
+    } catch (err) {
+      console.error('Erro ao gerar numero DFD:', err);
+    }
+  };
+
+  // Buscar numero na montagem caso seja novo
+  useEffect(() => {
+    if (!editingDFD?.id && !formData.numeroDFD) {
+      const year = formData.dataPrevista ? new Date(formData.dataPrevista).getFullYear() : new Date().getFullYear();
+      fetchNextDFDNumber(year);
+    }
+  }, []);
 
   const isAIButtonEnabled = () => {
     return formData.descricaoSucinta && formData.prioridade && formData.dataPrevista && formData.tipoDFD;
@@ -264,8 +302,9 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         data_prevista_contratacao: formData.dataPrevista,
         prioridade: formData.prioridade as 'Baixo' | 'Médio' | 'Alto',
         justificativa_prioridade: formData.justificativaPrioridade,
+        numero_dfd: formData.numeroDFD,
         status: 'Rascunho' as const,
-        ano_contratacao: formData.dataPrevista ? parseInt(formData.dataPrevista.split('-')[0]) : new Date().getFullYear(),
+        ano_contratacao: formData.dataPrevista ? new Date(formData.dataPrevista).getFullYear() : new Date().getFullYear(),
         valor_estimado_total: formData.itens.reduce((acc, item) => acc + (Number(item.quantidade) * Number(item.valorReferencia)), 0),
         created_by: user?.id,
         prefeitura_id: user?.prefeituraId,
@@ -357,8 +396,9 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
           data_prevista_contratacao: formData.dataPrevista,
           prioridade: formData.prioridade as 'Baixo' | 'Médio' | 'Alto',
           justificativa_prioridade: formData.justificativaPrioridade,
+          numero_dfd: formData.numeroDFD,
           status: 'Pendente' as const, // Envia como Pendente para aprovação
-          ano_contratacao: formData.dataPrevista ? parseInt(formData.dataPrevista.split('-')[0]) : new Date().getFullYear(),
+          ano_contratacao: formData.dataPrevista ? new Date(formData.dataPrevista).getFullYear() : new Date().getFullYear(),
           valor_estimado_total: formData.itens.reduce((acc, item) => acc + (Number(item.quantidade) * Number(item.valorReferencia)), 0),
           created_by: user?.id,
           prefeitura_id: user?.prefeituraId,
@@ -508,14 +548,25 @@ const DFDForm = ({ onBack, editingDFD }: DFDFormProps) => {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="objeto">Nome do DFD *</Label>
-              <Input
-                id="objeto"
-                value={formData.objeto}
-                onChange={(e) => handleInputChange('objeto', e.target.value)}
-                placeholder="Ex: Aquisição de Material de Expediente"
-              />
+            <div className="space-y-2 md:col-span-2 flex gap-4">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="objeto">Nome do DFD *</Label>
+                <Input
+                  id="objeto"
+                  value={formData.objeto}
+                  onChange={(e) => handleInputChange('objeto', e.target.value)}
+                  placeholder="Ex: Aquisição de Material de Expediente"
+                />
+              </div>
+              <div className="w-48 space-y-2">
+                <Label htmlFor="numeroDFD">Nº do DFD</Label>
+                <Input
+                  id="numeroDFD"
+                  value={formData.numeroDFD || ''}
+                  onChange={(e) => handleInputChange('numeroDFD', e.target.value)}
+                  placeholder="001/2026"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

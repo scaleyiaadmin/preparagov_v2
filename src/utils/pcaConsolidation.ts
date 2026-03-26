@@ -216,8 +216,17 @@ export const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-export const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('pt-BR');
+export const formatDate = (dateString: string | undefined | null): string => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '-';
+  // Check if it's already in pt-BR format (e.g. 15/03/2026)
+  if (dateString.includes('/')) return dateString;
+  // If it's a date only without time, adding T00:00:00 avoids timezone shifts
+  const processedString = dateString.includes('T') ? dateString : `${dateString}T00:00:00`;
+  const processedDate = new Date(processedString);
+  if (!isNaN(processedDate.getTime())) return processedDate.toLocaleDateString('pt-BR');
+  return date.toLocaleDateString('pt-BR');
 };
 
 export const getPriorityColor = (priority: string): string => {

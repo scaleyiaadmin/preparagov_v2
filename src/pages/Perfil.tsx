@@ -36,7 +36,7 @@ interface CampoExtra {
 }
 
 const Perfil = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const { toast } = useToast();
 
   const [userData, setUserData] = useState({
@@ -56,7 +56,8 @@ const Perfil = () => {
     emailNotifications: true,
     pushNotifications: false,
     weeklyReport: true,
-    contractReminders: true
+    contractReminders: true,
+    aceitouTermosIA: user?.aceitouTermosIA || false
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -118,7 +119,7 @@ const Perfil = () => {
         try {
           const { data, error } = await supabase
             .from('prefeituras')
-            .select('nome, logo_url, campos_extras_dfd')
+            .select('nome, logo_url, campos_extras_dfd, campos_extras_etp')
             .eq('id', user.prefeituraId)
             .single();
 
@@ -126,6 +127,7 @@ const Perfil = () => {
             setPrefeituraName(data.nome || '');
             setLogoUrl(data.logo_url || null);
             setCamposExtras(Array.isArray(data.campos_extras_dfd) ? data.campos_extras_dfd : []);
+            setCamposExtrasETP(Array.isArray(data.campos_extras_etp) ? data.campos_extras_etp : []);
           }
         } catch (error) {
           console.error('Erro ao carregar configs da prefeitura:', error);
@@ -176,7 +178,10 @@ const Perfil = () => {
     });
   };
 
-  const handleSavePreferences = () => {
+  const handleSavePreferences = async () => {
+    if (user) {
+      await updateUser(user.id, { aceitouTermosIA: preferences.aceitouTermosIA });
+    }
     toast({
       title: "Preferências Salvas",
       description: "Configurações atualizadas com sucesso.",
@@ -239,6 +244,24 @@ const Perfil = () => {
     setCamposExtras(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleAddCampoETP = () => {
+    if (!newCampoLabelETP.trim()) {
+      toast({ title: 'Erro', description: 'Informe o nome do campo ETP.', variant: 'destructive' });
+      return;
+    }
+    if (camposExtrasETP.some(c => c.label.toLowerCase() === newCampoLabelETP.trim().toLowerCase())) {
+      toast({ title: 'Erro', description: 'Já existe um campo com esse nome.', variant: 'destructive' });
+      return;
+    }
+    setCamposExtrasETP(prev => [...prev, { label: newCampoLabelETP.trim(), obrigatorio: newCampoObrigatorioETP }]);
+    setNewCampoLabelETP('');
+    setNewCampoObrigatorioETP(false);
+  };
+
+  const handleRemoveCampoETP = (index: number) => {
+    setCamposExtrasETP(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -260,7 +283,7 @@ const Perfil = () => {
     try {
       const { error } = await supabase
         .from('prefeituras')
-        .update({ logo_url: logoUrl, campos_extras_dfd: camposExtras })
+        .update({ logo_url: logoUrl, campos_extras_dfd: camposExtras, campos_extras_etp: camposExtrasETP })
         .eq('id', user.prefeituraId);
       if (error) throw error;
       toast({ title: 'Configurações salvas!', description: 'As informações da prefeitura foram atualizadas.' });
@@ -475,6 +498,14 @@ const Perfil = () => {
                   <Switch checked={preferences.contractReminders} onCheckedChange={(c) => handlePreferenceChange('contractReminders', c)} />
                 </div>
 
+                <div className="flex items-start justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors border-t border-gray-100">
+                  <div className="space-y-1 pr-6">
+                    <p className="text-sm font-semibold text-gray-900">Treinamento de IA (Termos de Uso)</p>
+                    <p className="text-sm text-gray-500">Permitir, de forma anônima, a utilização dos dados públicos preenchidos para aprimoramento contínuo dos nossos algoritmos de Inteligência Artificial.</p>
+                  </div>
+                  <Switch checked={preferences.aceitouTermosIA} onCheckedChange={(c) => handlePreferenceChange('aceitouTermosIA', c)} />
+                </div>
+
                 <div className="flex justify-end pt-6 border-t border-gray-100">
                   <Button onClick={handleSavePreferences} variant="outline" className="font-semibold px-6 hover:bg-gray-50">
                     <Save size={16} className="mr-2 text-gray-500" />
@@ -592,10 +623,10 @@ const Perfil = () => {
               </div>
 
               <div className="lg:col-span-2 space-y-6">
-                <Card className="border-none shadow-md">
+                <Card className="border-none shadow-md mb-6">
                   <CardHeader className="border-b border-gray-100">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <FileText size={18} className="text-orange-500" />
+                       <FileText size={18} className="text-orange-500" />
                       Campos Personalizados do DFD
                     </CardTitle>
                     <CardDescription>Estes campos aparecerão no formulário para todos os usuários</CardDescription>
@@ -630,6 +661,51 @@ const Perfil = () => {
                           <span className="text-xs text-gray-500 whitespace-nowrap">Obrigatório</span>
                         </div>
                         <Button onClick={handleAddCampo} className="bg-orange-500 hover:bg-orange-600">
+                          <Plus size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-none shadow-md">
+                  <CardHeader className="border-b border-gray-100">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                       <FileText size={18} className="text-orange-500" />
+                      Campos Personalizados do ETP
+                    </CardTitle>
+                    <CardDescription>Estes campos aparecerão no formulário para todos os usuários que preencherem o ETP</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-4">
+                    {camposExtrasETP.map((campo, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50/50">
+                        <div className="flex items-center gap-3">
+                          <FileText size={16} className="text-gray-400" />
+                          <div>
+                            <p className="font-medium text-sm">{campo.label}</p>
+                            {campo.obrigatorio && <Badge className="bg-red-50 text-red-600 border-red-100 text-[10px] h-4">Obrigatório</Badge>}
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => handleRemoveCampoETP(idx)} className="text-gray-400 hover:text-red-500">
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    ))}
+
+                    <div className="pt-4 border-t border-gray-100 mt-6">
+                      <Label className="text-sm font-semibold mb-3 block">Adicionar Novo Campo de ETP</Label>
+                      <div className="flex gap-3">
+                        <Input
+                          placeholder="Ex: Referência Legal"
+                          value={newCampoLabelETP}
+                          onChange={e => setNewCampoLabelETP(e.target.value)}
+                          className="flex-1"
+                        />
+                        <div className="flex items-center gap-2 px-3 border rounded-md">
+                          <Switch checked={newCampoObrigatorioETP} onCheckedChange={setNewCampoObrigatorioETP} />
+                          <span className="text-xs text-gray-500 whitespace-nowrap">Obrigatório</span>
+                        </div>
+                        <Button onClick={handleAddCampoETP} className="bg-orange-500 hover:bg-orange-600">
                           <Plus size={16} />
                         </Button>
                       </div>

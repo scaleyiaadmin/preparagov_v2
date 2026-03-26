@@ -158,11 +158,9 @@ const GerenciarUsuarios = () => {
   };
 
   const handlePermissionToggle = (module: keyof ModulePermissions) => {
-    const currentPermissions = form.getValues('permissions');
+    const currentPermissions = watch('permissions');
     setValue(`permissions.${module}`, !currentPermissions[module]);
   };
-
-  const form = { getValues: (key: any) => watch(key) }; // Mock para compatibilidade temporária
 
 
   const onSubmit = async (data: UserFormData) => {

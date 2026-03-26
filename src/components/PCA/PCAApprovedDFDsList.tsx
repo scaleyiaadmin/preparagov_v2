@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Eye, Printer, X, Send } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import DFDListPagination from '../DFD/DFDListPagination';
 
 interface PCAApprovedDFDsListProps {
@@ -13,6 +14,7 @@ interface PCAApprovedDFDsListProps {
   onPrintDFD: (dfd: any) => void;
   onRemoveFromPCA: (dfd: any) => void;
   onForwardToEtp: (dfd: any) => void;
+  onBulkForwardToEtp: (dfds: any[]) => void;
   canEdit?: boolean;
 }
 
@@ -23,9 +25,11 @@ const PCAApprovedDFDsList = ({
   onPrintDFD,
   onRemoveFromPCA,
   onForwardToEtp,
+  onBulkForwardToEtp,
   canEdit = true
 }: PCAApprovedDFDsListProps) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const itemsPerPage = 5;
 
   const getStatusColor = (status: string) => {
@@ -59,17 +63,64 @@ const PCAApprovedDFDsList = ({
     setCurrentPage(page);
   };
 
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkForward = async () => {
+    const selectedDFDs = approvedDFDs.filter(d => selectedIds.has(d.id));
+    if (selectedDFDs.length > 0) {
+      onBulkForwardToEtp(selectedDFDs);
+      setSelectedIds(new Set());
+    }
+  };
+
+  const { toast } = useToast();
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle>
           DFDs no PCA {selectedYear} ({totalItems})
         </CardTitle>
+        {selectedIds.size > 0 && canEdit && (
+          <Button
+            size="sm"
+            onClick={handleBulkForward}
+            className="bg-orange-600 hover:bg-orange-700 text-white animate-in fade-in zoom-in duration-200"
+          >
+            <Send size={16} className="mr-2" />
+            Encaminhar Selecionados ({selectedIds.size})
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {paginatedDFDs.map((item) => (
-            <div key={item.id} className={`flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 ${item.status === 'Retirado' ? 'opacity-70 bg-gray-50/50' : 'border-gray-200'}`}>
+            <div 
+              key={item.id} 
+              className={`flex items-center space-x-4 p-4 border rounded-lg transition-all hover:shadow-sm ${
+                item.status === 'Retirado' ? 'opacity-70 bg-gray-50/50' : 
+                selectedIds.has(item.id) ? 'border-orange-200 bg-orange-50/30' : 'border-gray-200'
+              }`}
+            >
+              {canEdit && !item.encaminhado_etp && item.status !== 'Retirado' && (
+                <div 
+                  className={`w-5 h-5 rounded border cursor-pointer flex items-center justify-center transition-colors ${
+                    selectedIds.has(item.id) ? 'bg-orange-600 border-orange-600' : 'border-gray-300 bg-white hover:border-orange-400'
+                  }`}
+                  onClick={() => toggleSelect(item.id)}
+                >
+                  {selectedIds.has(item.id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                </div>
+              )}
+              
               <div className="flex-1">
                 <div className="flex items-center space-x-2">
                   <h3 className={`font-medium ${item.status === 'Retirado' ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
@@ -77,6 +128,9 @@ const PCAApprovedDFDsList = ({
                   </h3>
                   {item.status === 'Retirado' && (
                     <Badge variant="outline" className="text-[10px] uppercase">Fora do Plano</Badge>
+                  )}
+                  {item.encaminhado_etp && (
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200">Encaminhado ao ETP</Badge>
                   )}
                 </div>
                 <div className="flex items-center space-x-2 mt-1">
