@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { consolidateItemsByType, formatCurrency, ConsolidatedItemByType, DFDItem } from '../utils/pcaConsolidation';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Mock data - em produção viria do PCA
 
@@ -52,10 +53,11 @@ export interface CronogramaItem {
 
 export const useCronogramaData = (filters: any) => {
   const [consolidatedItems, setConsolidatedItems] = useState<DFDItem[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchItems = async () => {
-      const { data: approved } = await supabase
+      let query = supabase
         .from('dfd')
         .select(`
           *,
@@ -63,6 +65,12 @@ export const useCronogramaData = (filters: any) => {
           secretarias ( nome )
         `)
         .eq('status', 'Aprovado');
+
+      if (user?.role !== 'super_admin' && user?.prefeituraId) {
+        query = query.eq('prefeitura_id', user.prefeituraId);
+      }
+
+      const { data: approved } = await query;
 
       if (approved) {
         const allItems: any[] = [];
