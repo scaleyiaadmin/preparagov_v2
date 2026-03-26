@@ -119,15 +119,30 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
 
             try {
                 setLoading(true);
-                const activeSource = selectedSources.find(s => !sources.find(src => src.id === s)?.status);
 
-                // Busca no Banco de Dados (Cache)
-                if (activeSource) {
-                    const results = await referenciaService.searchAll(debouncedSearch, activeSource);
-                    setItems(results || []);
+                // Todas as fontes ativas sem status "EM BREVE"
+                const activeSources = selectedSources.filter(s => !sources.find(src => src.id === s)?.status);
+
+                // Busca em TODAS as fontes ativas em paralelo (inclui cache PNCP)
+                if (activeSources.length > 0) {
+                    const dbResults = await Promise.all(
+                        activeSources.map(source =>
+                            referenciaService.searchAll(debouncedSearch, source).catch(() => [])
+                        )
+                    );
+                    const combined = dbResults.flat();
+                    // Deduplica por código
+                    const seen = new Set<string>();
+                    setItems(combined.filter(item => {
+                        if (seen.has(item.codigo)) return false;
+                        seen.add(item.codigo);
+                        return true;
+                    }));
+                } else {
+                    setItems([]);
                 }
 
-                // Busca Direta no Portal PNCP se PNCP estiver selecionado
+                // Busca na API pública do PNCP (resultados de processos, complementar ao cache)
                 if (selectedSources.includes('PNCP')) {
                     const ufFilter = selectedStates.length === 1 ? selectedStates[0] : undefined;
                     const portalResult = await pncpApiService.search(debouncedSearch, 1, ufFilter);
