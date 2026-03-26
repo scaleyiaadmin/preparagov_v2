@@ -15,17 +15,18 @@ export interface ReferenciaItem {
 
 export const referenciaService = {
     async searchPNCP(term: string): Promise<ReferenciaItem[]> {
+        const processedTerm = term.trim().toLowerCase();
         const { data, error } = await externalSupabase
             .from('referencia_pncp')
             .select('*')
-            .or(`item_nome.ilike.%${term}%,municipio.ilike.%${term}%`)
-            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+            .or(`item_nome.ilike.%${processedTerm}%,municipio.ilike.%${processedTerm}%`)
+            .limit(1000); 
 
         if (error) throw error;
 
         return (data || []).map(item => ({
             id: item.id,
-            codigo: item.sequencial_compra?.toString() || item.id.substring(0, 8),
+            codigo: item.id, 
             descricao: item.item_nome,
             unidade: item.unidade || 'Unidade',
             valor: parseFloat(item.valor_unitario) || 0,
@@ -41,7 +42,7 @@ export const referenciaService = {
             .from('referencia_sinapi')
             .select('*')
             .ilike('descricao', `%${term}%`)
-            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+            .limit(1000); 
 
         if (error) throw error;
 
@@ -63,7 +64,7 @@ export const referenciaService = {
             .from('referencia_cmed')
             .select('*')
             .or(`produto.ilike.%${term}%,substancia.ilike.%${term}%`)
-            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+            .limit(1000); 
 
         if (error) throw error;
 
@@ -85,7 +86,7 @@ export const referenciaService = {
             .from('referencia_catser')
             .select('*')
             .ilike('descricao', `%${term}%`)
-            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+            .limit(1000); 
 
         if (error) throw error;
 
@@ -109,13 +110,13 @@ export const referenciaService = {
             .from('referencia_nfe')
             .select('*')
             .ilike('item_nome', `%${term}%`)
-            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+            .limit(1000); 
 
         if (error) throw error;
 
         return (data || []).map(item => ({
             id: `bps-${item.id}`,
-            codigo: `BPS-${item.id.substring(0, 8)}`,
+            codigo: item.id,
             descricao: item.item_nome,
             unidade: item.unidade || 'UN',
             valor: parseFloat(item.preco_unitario) || 0,
@@ -132,7 +133,7 @@ export const referenciaService = {
             .from('referencia_setop')
             .select('*')
             .ilike('descricao', `%${term}%`)
-            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+            .limit(1000); 
 
         if (error) throw error;
 
@@ -155,7 +156,7 @@ export const referenciaService = {
             .from('referencia_simpro')
             .select('*')
             .ilike('descricao', `%${term}%`)
-            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+            .limit(1000); 
 
         if (error) throw error;
 
@@ -178,7 +179,7 @@ export const referenciaService = {
             .from('referencia_sigtap')
             .select('*')
             .ilike('descricao', `%${term}%`)
-            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+            .limit(1000); 
 
         if (error) throw error;
 
@@ -204,13 +205,13 @@ export const referenciaService = {
 
         if (uf) query = query.eq('uf', uf.toUpperCase());
 
-        const { data, error } = await query.limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+        const { data, error } = await query.limit(1000); 
 
         if (error) throw error;
 
         return (data || []).map(item => ({
             id: `nfe-${item.id}`,
-            codigo: `NFE-${item.id.substring(0, 8)}`,
+            codigo: item.id,
             descricao: item.item_nome,
             unidade: item.unidade || 'UN',
             valor: parseFloat(item.preco_unitario) || 0,
@@ -227,13 +228,13 @@ export const referenciaService = {
             .from('referencia_ceasa')
             .select('*')
             .ilike('item_nome', `%${term}%`)
-            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+            .limit(1000); 
 
         if (error) throw error;
 
         return (data || []).map(item => ({
             id: `ceasa-${item.id}`,
-            codigo: item.id.toString().substring(0, 8),
+            codigo: item.id.toString(),
             descricao: item.item_nome,
             unidade: item.unidade || 'KG',
             valor: parseFloat(item.preco_unitario) || 0,
@@ -249,13 +250,13 @@ export const referenciaService = {
             .from('referencia_pncp') // Usando PNCP como fallback enquanto a tabela oficial catmat é carregada, ou mudar para a correta se existir
             .select('*')
             .ilike('item_nome', `%${term}%`)
-            .limit(400); // 400 é mais que suficiente e impede o banco Supabase de travar com Timeout (Error 500)
+            .limit(1000); 
 
         if (error) throw error;
 
         return (data || []).map(item => ({
             id: `catmat-${item.id}`,
-            codigo: item.sequencial_compra?.toString() || item.id.substring(0, 8),
+            codigo: item.id,
             descricao: item.item_nome,
             unidade: item.unidade || 'UN',
             valor: parseFloat(item.valor_unitario) || 0,
