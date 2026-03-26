@@ -264,205 +264,243 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] h-[800px] overflow-hidden flex flex-col p-0 shadow-xl border-gray-100 sm:rounded-2xl bg-white">
-                {/* Header Clean */}
-                <DialogHeader className="px-5 py-4 border-b border-gray-100 flex flex-row items-center justify-between bg-white shrink-0">
-                    <div className="flex items-center space-x-3">
-                        <Button variant="ghost" onClick={onClose} size="sm" className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
-                            <ArrowLeft size={16} />
+            <DialogContent className="max-w-6xl h-[85vh] overflow-hidden flex flex-col p-0 shadow-2xl">
+                <DialogHeader className="px-4 py-2 border-b flex flex-row items-center justify-between space-y-0 bg-white z-10 shrink-0">
+                    <div className="flex items-center space-x-2">
+                        <Button variant="ghost" onClick={onClose} size="sm" className="h-7 w-7 p-0 text-gray-400 hover:text-gray-600 rounded-full">
+                            <ArrowLeft size={14} />
                         </Button>
-                        <DialogTitle className="text-base font-semibold text-gray-900 tracking-tight">
+                        <DialogTitle className="text-sm font-bold text-gray-800 leading-none tracking-tight">
                             Banco de Preços Inteligente
                         </DialogTitle>
                     </div>
-                    {/* Buscador Integrado ao Header para economizar espaço */}
-                    <div className="relative w-64 md:w-80">
-                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <Input
-                            placeholder="Pesquisar itens..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="h-10 pl-9 pr-10 text-sm border-gray-200 focus:ring-orange-500 focus:border-orange-500 rounded-full bg-gray-50/50 shadow-sm transition-all"
-                        />
-                        <Button
-                            onClick={() => setShowFilters(!showFilters)}
-                            variant="ghost"
-                            size="icon"
-                            className={`absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full transition-colors ${showFilters ? 'text-orange-600 bg-orange-50' : 'text-gray-400 hover:text-gray-700'}`}
-                        >
-                            <Filter size={14} />
-                        </Button>
-                    </div>
                 </DialogHeader>
 
-                <div className="flex-1 flex overflow-hidden bg-gray-50/30">
-                    {/* Corpo Principal: Dividido em 2 colunas proporcionais num popup menor (2/3 Busca, 1/3 Seleção) */}
-                    <div className="w-full h-full flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100 overflow-hidden">
-                        
-                        {/* COLUNA ESQUERDA: Fontes, Filtros e Resultados */}
-                        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-white">
-                            
-                            {/* Bloco de Fontes de Pesquisa */}
-                            <div className="p-4 border-b border-gray-100 shrink-0">
-                                <div className="flex items-center justify-between mb-2.5">
-                                    <span className="text-xs font-semibold text-gray-500 flex items-center gap-1.5"><Database size={12} className="text-orange-500"/> Fontes de Dados</span>
-                                    <span className="text-xs text-gray-400">{selectedSources.length} ativas</span>
-                                </div>
-                                <ScrollArea className="w-full whitespace-nowrap pb-1">
-                                    <div className="flex w-max space-x-2">
+                <div className="flex-1 overflow-hidden bg-gray-50/30">
+                    <div className="h-full max-w-full mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-3 p-3">
+
+                        {/* LEFT COLUMN (Fontes + Busca + Resultados) */}
+                        <div className="lg:col-span-8 flex flex-col space-y-3 h-full overflow-hidden">
+
+                            {/* Fontes de Pesquisa - ULTRA COMPACT */}
+                            <Card className="border-gray-200 shadow-none shrink-0 bg-white">
+                                <CardHeader className="py-1.5 px-3 flex flex-row items-center justify-between space-y-0 border-b border-gray-50">
+                                    <div className="flex items-center space-x-1.5">
+                                        <Database className="text-orange-500/70" size={12} />
+                                        <CardTitle className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Fontes</CardTitle>
+                                    </div>
+                                    <Badge variant="outline" className="text-[8px] text-gray-400 font-normal px-1 h-3.5 border-none">
+                                        {selectedSources.length} ativos
+                                    </Badge>
+                                </CardHeader>
+                                <CardContent className="p-2">
+                                    <div className="flex flex-wrap gap-1">
                                         {sources.map(source => (
-                                            <div key={source.id} className="relative inline-block">
+                                            <div key={source.id} className="relative">
                                                 <Button
                                                     variant={selectedSources.includes(source.id) ? "default" : "outline"}
                                                     size="sm"
-                                                    disabled={!!source.status}
                                                     onClick={() => toggleSource(source.id)}
-                                                    className={`h-7 px-3 text-xs rounded-full transition-colors border ${selectedSources.includes(source.id)
+                                                    className={`h-6 px-2 text-[9px] transition-all border ${selectedSources.includes(source.id)
                                                         ? "bg-orange-600 border-orange-600 hover:bg-orange-700 text-white shadow-sm"
                                                         : source.status
-                                                            ? "bg-gray-50 border-gray-200 text-gray-400 opacity-80"
-                                                            : "hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 text-gray-600 border-gray-200 bg-white"
+                                                            ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100 cursor-not-allowed opacity-90"
+                                                            : "hover:border-orange-200 hover:bg-orange-50 text-gray-500 border-gray-100"
                                                         }`}
                                                 >
                                                     {source.name}
                                                 </Button>
                                                 {source.status && (
-                                                    <span className="absolute -top-1.5 -right-1 px-1 bg-amber-500 text-[8px] font-bold text-white rounded-md shadow-sm">
+                                                    <span className="absolute -top-1 -right-0.5 px-0.5 bg-amber-500 text-[6px] font-black text-white rounded-full border border-white">
                                                         {source.status}
                                                     </span>
                                                 )}
                                             </div>
                                         ))}
                                     </div>
-                                </ScrollArea>
-                            </div>
+                                </CardContent>
+                            </Card>
 
-                            {/* Bloco de Filtros Expandíveis */}
-                            {showFilters && (
-                                <div className="p-4 bg-gray-50/50 border-b border-gray-100 shrink-0 animate-in slide-in-from-top-2 duration-200">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-medium text-gray-500">Unidade</label>
-                                            <ScrollArea className="w-full whitespace-nowrap">
-                                                <div className="flex space-x-1.5 pb-1">
-                                                    {units.map(unit => (
+                            {/* Search and Filters Card - ULTRA COMPACT */}
+                            <Card className="border-gray-200 shadow-none shrink-0 bg-white">
+                                <CardContent className="p-3 space-y-3">
+                                    <div className="flex space-x-2">
+                                        <div className="relative flex-1">
+                                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                            <Input
+                                                placeholder="Buscar itens..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="h-9 pl-9 pr-3 text-xs border-gray-200 focus:ring-orange-500 focus:border-orange-500 rounded-md bg-white shadow-none"
+                                            />
+                                        </div>
+                                        <Button
+                                            onClick={() => setShowFilters(!showFilters)}
+                                            size="icon"
+                                            className={`h-9 w-9 rounded-md shadow-sm transition-all ${showFilters ? 'bg-orange-700' : 'bg-orange-600 hover:bg-orange-700'}`}
+                                        >
+                                            <Filter size={16} />
+                                        </Button>
+                                    </div>
+
+                                    {showFilters && (
+                                        <div className="space-y-3 pt-3 border-t border-gray-50 animate-in fade-in slide-in-from-top-1 duration-200">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block">Unidade</span>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {units.map(unit => (
+                                                            <Button
+                                                                key={unit}
+                                                                variant={selectedUnit === unit ? "default" : "outline"}
+                                                                size="sm"
+                                                                onClick={() => setSelectedUnit(selectedUnit === unit ? null : unit)}
+                                                                className={`h-6 px-2 text-[8px] font-bold rounded transition-all border-gray-100 ${selectedUnit === unit
+                                                                    ? "bg-gray-800 text-white border-gray-800"
+                                                                    : "hover:bg-gray-50 text-gray-500 bg-white"
+                                                                    }`}
+                                                            >
+                                                                {unit}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block">Preço</span>
+                                                    <div className="flex items-center space-x-1.5">
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[9px]">R$</span>
+                                                            <Input
+                                                                placeholder="Mín."
+                                                                value={priceRange.min}
+                                                                onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
+                                                                className="pl-6 h-7 border-gray-200 rounded text-[10px] bg-white"
+                                                            />
+                                                        </div>
+                                                        <span className="text-gray-300">-</span>
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-[9px]">R$</span>
+                                                            <Input
+                                                                placeholder="Máx."
+                                                                value={priceRange.max}
+                                                                onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
+                                                                className="pl-6 h-7 border-gray-200 rounded text-[10px] bg-white"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest block">Estados</span>
+                                                    <Badge variant="outline" className="text-[8px] text-gray-400 font-normal h-3.5 border-none p-0">
+                                                        {selectedStates.length} selecionados
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {states.map(state => (
                                                         <Button
-                                                            key={unit}
-                                                            variant="outline"
+                                                            key={state}
+                                                            variant={selectedStates.includes(state) ? "default" : "outline"}
                                                             size="sm"
-                                                            onClick={() => setSelectedUnit(selectedUnit === unit ? null : unit)}
-                                                            className={`h-6 px-2.5 text-[11px] rounded transition-colors ${selectedUnit === unit
-                                                                ? "bg-gray-800 text-white border-gray-800 hover:bg-gray-900 hover:text-white"
-                                                                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleState(state);
+                                                            }}
+                                                            className={`h-5 w-8 text-[8px] p-0 transition-all ${selectedStates.includes(state)
+                                                                ? "bg-gray-800 hover:bg-gray-900 text-white shadow-sm"
+                                                                : "hover:border-gray-300 text-gray-500 bg-white"
                                                                 }`}
                                                         >
-                                                            {unit}
+                                                            {state}
                                                         </Button>
                                                     ))}
                                                 </div>
-                                            </ScrollArea>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-medium text-gray-500">Faixa de Preço (R$)</label>
-                                            <div className="flex items-center space-x-2">
-                                                <Input
-                                                    placeholder="Mín"
-                                                    value={priceRange.min}
-                                                    onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
-                                                    className="h-7 text-xs bg-white border-gray-200"
-                                                />
-                                                <span className="text-gray-300">-</span>
-                                                <Input
-                                                    placeholder="Máx"
-                                                    value={priceRange.max}
-                                                    onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
-                                                    className="h-7 text-xs bg-white border-gray-200"
-                                                />
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            )}
+                                    )}
+                                </CardContent>
+                            </Card>
 
-                            {/* Lista de Resultados */}
-                            <div className="flex-1 flex flex-col min-h-0 bg-white">
-                                <div className="px-4 py-3 border-b border-gray-50 flex justify-between items-center shrink-0 bg-white/80 backdrop-blur-sm z-10 shadow-sm">
-                                    <h4 className="text-xs font-semibold text-gray-700">
-                                        {filteredItems.length} {filteredItems.length === 1 ? 'resultado' : 'resultados'} encontrados
+                            {/* Results Area - SCROLLABLE */}
+                            <div className="flex-1 flex flex-col space-y-2 overflow-hidden min-h-0">
+                                <div className="flex items-center justify-between shrink-0 px-1">
+                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
+                                        {filteredItems.length} RESULTADOS
+                                        {totalPortal > filteredItems.length && (
+                                            <span className="ml-1 text-[8px] text-orange-500 font-normal normal-case">
+                                                (de {totalPortal} no Portal)
+                                            </span>
+                                        )}
                                     </h4>
                                 </div>
-                                
-                                <ScrollArea className="flex-1 custom-scrollbar">
-                                    <div className="p-2 space-y-1.5">
+
+                                <ScrollArea className="flex-1 rounded-md border border-gray-200 bg-white shadow-none custom-scrollbar overflow-hidden">
+                                    <div className="divide-y divide-gray-100 px-2.5">
                                         {loading ? (
-                                            <div className="py-16 flex flex-col items-center justify-center space-y-3">
-                                                <Loader2 className="animate-spin text-orange-600 h-8 w-8" />
-                                                <p className="text-sm text-gray-400">Buscando na base de dados...</p>
+                                            <div className="py-10 flex flex-col items-center justify-center space-y-2">
+                                                <Loader2 className="animate-spin text-orange-600 h-6 w-6" />
+                                                <p className="text-[10px] text-gray-400 font-medium">Buscando inteligência de preços...</p>
                                             </div>
                                         ) : filteredItems.length > 0 ? (
                                             filteredItems.map(item => (
-                                                <div key={item.id} className="p-3 bg-white rounded-lg border border-gray-100 hover:border-orange-200 hover:shadow-md transition-all group flex items-start gap-3">
-                                                    <div className="flex-1 min-w-0">
-                                                        <h5 className="font-semibold text-sm text-gray-800 leading-snug mb-1 drop-shadow-sm group-hover:text-orange-900 transition-colors">
+                                                <div key={item.id} className="py-2.5 flex items-center justify-between group hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0 -mx-2.5 px-2.5">
+                                                    <div className="flex-1 min-w-0 pr-2">
+                                                        <h5 className="font-bold text-gray-800 uppercase text-[11px] leading-tight mb-0.5 line-clamp-2">
                                                             {item.descricao}
                                                         </h5>
-                                                        <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                                                            <Badge variant="secondary" className="bg-orange-50 text-orange-700 hover:bg-orange-100 text-[10px] px-1.5 py-0 border-none font-medium">{item.fonte.split(' ')[0]}</Badge>
-                                                            <span className="text-[11px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">{item.unidade}</span>
+                                                        <div className="flex items-center space-x-1.5 text-[9px] font-normal text-gray-500">
+                                                            <span className="font-black text-orange-600">{item.fonte.split(' ')[0]}</span>
+                                                            <span className="text-gray-300">•</span>
+                                                            <span className="font-bold uppercase">{item.unidade}</span>
+                                                            <span className="text-gray-300">•</span>
+                                                            <span className="text-gray-900 font-black">
+                                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor)}
+                                                            </span>
                                                         </div>
-                                                        <div className="text-xs text-gray-500 font-medium truncate flex items-center gap-1">
-                                                            <MapPin size={10} className="text-gray-400"/> {item.orgao} <span className="text-gray-300">•</span> {item.data}
+                                                        <div className="text-[8px] text-gray-400 font-normal uppercase truncate max-w-[300px] mt-0.5">
+                                                            {item.orgao} • {item.data}
                                                         </div>
                                                     </div>
-                                                    
-                                                    <div className="flex flex-col items-end gap-2 shrink-0">
-                                                        <span className="font-bold text-base text-gray-900">
-                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor)}
-                                                        </span>
-                                                        <Button
-                                                            onClick={() => handleSelectItem(item)}
-                                                            className="h-8 w-8 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white rounded-full transition-colors shrink-0"
-                                                            size="icon"
-                                                            title="Adicionar item"
-                                                        >
-                                                            <Plus size={16} />
-                                                        </Button>
-                                                    </div>
+
+                                                    <Button
+                                                        onClick={() => handleSelectItem(item)}
+                                                        className="h-7 w-7 bg-orange-600 hover:bg-orange-700 text-white rounded shadow-sm shrink-0"
+                                                        size="icon"
+                                                    >
+                                                        <Plus size={14} />
+                                                    </Button>
                                                 </div>
                                             ))
                                         ) : debouncedSearch ? (
-                                            <div className="py-16 text-center space-y-3">
-                                                <div className="h-12 w-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
-                                                    <Search className="text-gray-300 h-6 w-6" />
-                                                </div>
-                                                <h3 className="text-sm font-medium text-gray-600">Sem resultados encontrados</h3>
-                                                <p className="text-xs text-gray-400">Tente ajustar seus termos de busca ou remover filtros.</p>
+                                            <div className="py-10 text-center space-y-2">
+                                                <Search className="text-gray-200 mx-auto" size={20} />
+                                                <h3 className="text-xs font-bold text-gray-800">Sem resultados</h3>
                                             </div>
                                         ) : (
-                                            <div className="py-16 text-center space-y-3">
-                                                <div className="h-12 w-12 bg-orange-50 rounded-full flex items-center justify-center mx-auto">
-                                                    <Database className="text-orange-300 h-6 w-6" />
-                                                </div>
-                                                <h3 className="text-sm font-medium text-gray-600">Pronto para buscar</h3>
-                                                <p className="text-xs text-gray-400">Digite no campo lá em cima para encontrar os preços.</p>
+                                            <div className="py-10 text-center space-y-2">
+                                                <Database className="text-orange-100 mx-auto" size={20} />
+                                                <h3 className="text-xs font-bold text-gray-800">Inicie a busca</h3>
                                             </div>
                                         )}
 
                                         {totalPortal > portalItems.length && (
-                                            <div className="py-4 flex justify-center">
+                                            <div className="p-2 flex justify-center border-t border-gray-50">
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={handleLoadMorePortal}
                                                     disabled={loadingPortalMore}
-                                                    className="rounded-full px-6 border-gray-200 text-gray-600 hover:text-orange-600 hover:border-orange-200"
+                                                    className="h-6 text-[9px] text-orange-600 border-orange-200 hover:bg-orange-50 px-3"
                                                 >
                                                     {loadingPortalMore ? (
-                                                        <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                                                        <Loader2 className="animate-spin mr-1.5" size={10} />
                                                     ) : (
-                                                        <Plus className="mr-2 h-4 w-4 text-orange-500" />
+                                                        <Plus className="mr-1.5" size={10} />
                                                     )}
-                                                    Mostrar mais resultados do portal
+                                                    Ver mais ({totalPortal - portalItems.length})
                                                 </Button>
                                             </div>
                                         )}
@@ -471,108 +509,105 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                             </div>
                         </div>
 
-                        {/* COLUNA DIREITA: Itens Selecionados (Carrinho) */}
-                        <div className="w-full md:w-80 flex flex-col bg-gray-50/50 shrink-0 h-full overflow-hidden">
-                            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
-                                <h3 className="font-semibold text-sm text-gray-800">Cesta de Itens</h3>
-                                <Badge variant="secondary" className="bg-orange-100 text-orange-700 font-bold border-none rounded-full px-2">
-                                    {selectedItems.length}
-                                </Badge>
-                            </div>
+                        {/* RIGHT COLUMN (Selecionados) - LOCAL SCROLL */}
+                        <div className="lg:col-span-4 flex flex-col h-full overflow-hidden">
 
-                            <ScrollArea className="flex-1 custom-scrollbar">
-                                <div className="p-4 space-y-3">
-                                    {selectedItems.length > 0 ? (
-                                        selectedItems.map((item) => (
-                                            <div key={item.id} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm relative group animate-in slide-in-from-right-4 duration-300">
-                                                <div className="pr-6">
-                                                    <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-tight mb-2">
-                                                        {item.descricao}
-                                                    </p>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
-                                                            {item.unidade}
-                                                        </span>
-                                                        <span className="text-xs font-bold text-gray-900">
-                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorReferencia)}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between">
-                                                    <span className="text-[10px] font-medium text-gray-400 uppercase">Qtd.</span>
-                                                    <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-100">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-6 w-6 rounded-md hover:bg-white text-gray-500 shadow-none border-none"
-                                                            onClick={() => updateItemQuantity(item.id, -1)}
-                                                        >
-                                                            <span className="text-sm font-medium">-</span>
-                                                        </Button>
-                                                        <Input
-                                                            type="number"
-                                                            min="1"
-                                                            value={item.quantidade}
-                                                            onChange={(e) => {
-                                                                const val = parseInt(e.target.value) || 1;
-                                                                updateItemQuantity(item.id, val - item.quantidade);
-                                                            }}
-                                                            className="h-6 w-10 text-center text-xs p-0 font-medium bg-transparent border-none focus-visible:ring-0 px-1 hide-spin-button"
-                                                        />
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-6 w-6 rounded-md hover:bg-white text-gray-500 shadow-none border-none"
-                                                            onClick={() => updateItemQuantity(item.id, 1)}
-                                                        >
-                                                            <span className="text-sm font-medium">+</span>
-                                                        </Button>
-                                                    </div>
-                                                </div>
-
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="absolute top-2 right-2 h-6 w-6 rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => removeSelectedItem(item.id)}
-                                                    title="Remover item"
-                                                >
-                                                    <Trash2 size={12} />
-                                                </Button>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="py-10 text-center flex flex-col items-center opacity-60">
-                                            <div className="h-10 w-10 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center mb-3">
-                                                <Check size={16} className="text-gray-300" />
-                                            </div>
-                                            <p className="text-xs text-gray-500 font-medium">Cesta vazia</p>
-                                            <p className="text-[10px] text-gray-400 mt-1">Adicione itens clicando no +</p>
-                                        </div>
-                                    )}
+                            {/* Selected Items Sidebar - ULTRA COMPACT */}
+                            <Card className="flex flex-col h-full border-gray-200 shadow-none overflow-hidden bg-white">
+                                <div className="p-2.5 border-b bg-white shrink-0">
+                                    <h3 className="font-black text-[10px] text-gray-400 uppercase tracking-widest">Selecionados ({selectedItems.length})</h3>
                                 </div>
-                            </ScrollArea>
 
-                            {/* Footer do Carrinho (Resumo e Botão Fixar) */}
-                            <div className="p-5 bg-white border-t border-gray-100 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] z-10">
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">Valor Estimado</span>
-                                    <span className="font-black text-orange-600 text-lg">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                            selectedItems.reduce((acc, item) => acc + (item.valorReferencia * item.quantidade), 0)
+                                <ScrollArea className="flex-1 p-2 bg-gray-50/20">
+                                    <div className="space-y-2">
+                                        {selectedItems.length > 0 ? (
+                                            selectedItems.map((item, index) => (
+                                                <Card key={item.id} className="border-gray-100 bg-white shadow-none overflow-hidden animate-in slide-in-from-right-2 duration-300">
+                                                    <CardContent className="p-2 flex items-start space-x-2">
+                                                        <div className="h-5 w-5 bg-orange-50 rounded flex items-center justify-center text-orange-600 font-black text-[8px] shrink-0 border border-orange-100">
+                                                            {index + 1}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-[9px] font-black text-gray-800 uppercase line-clamp-1 leading-tight">{item.descricao}</p>
+                                                            <div className="flex items-center justify-between mt-0.5">
+                                                                <span className="text-[8px] font-bold text-gray-400 uppercase">{item.unidade}</span>
+                                                                <span className="text-[9px] font-black text-green-600">
+                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorReferencia)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center space-x-1 shrink-0">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="h-5 w-5 text-gray-400 border-gray-100 hover:bg-gray-50"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    updateItemQuantity(item.id, -1);
+                                                                }}
+                                                            >
+                                                                <span className="text-[10px]">-</span>
+                                                            </Button>
+                                                            <Input
+                                                                type="number"
+                                                                min="1"
+                                                                value={item.quantidade}
+                                                                onChange={(e) => {
+                                                                    const val = parseInt(e.target.value) || 1;
+                                                                    updateItemQuantity(item.id, val - item.quantidade);
+                                                                }}
+                                                                className="h-5 w-7 text-center text-[9px] p-0 hide-spin-button bg-white border-gray-100"
+                                                            />
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="h-5 w-5 text-gray-400 border-gray-100 hover:bg-gray-50"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    updateItemQuantity(item.id, 1);
+                                                                }}
+                                                            >
+                                                                <span className="text-[10px]">+</span>
+                                                            </Button>
+                                                        </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-5 w-5 text-gray-300 hover:text-red-500 hover:bg-red-50 shrink-0"
+                                                            onClick={() => removeSelectedItem(item.id)}
+                                                        >
+                                                            <X size={10} />
+                                                        </Button>
+                                                    </CardContent>
+                                                </Card>
+                                            ))
+                                        ) : (
+                                            <div className="py-8 text-center px-2">
+                                                <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Vazio</p>
+                                            </div>
                                         )}
-                                    </span>
+                                    </div>
+                                </ScrollArea>
+
+                                <div className="p-3 bg-white border-t space-y-2 shrink-0">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-tight">TOTAL</span>
+                                        <span className="font-black text-gray-900 text-sm">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                                selectedItems.reduce((acc, item) => acc + (item.valorReferencia * item.quantidade), 0)
+                                            )}
+                                        </span>
+                                    </div>
+                                    <Button
+                                        className="w-full h-8 bg-orange-600 hover:bg-orange-700 text-white font-black rounded shadow-sm text-[10px] uppercase tracking-wider"
+                                        disabled={selectedItems.length === 0}
+                                        onClick={handleFinish}
+                                    >
+                                        <Check size={12} className="mr-1.5" />
+                                        <span>Fixar ({selectedItems.length})</span>
+                                    </Button>
                                 </div>
-                                <Button
-                                    className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-md transition-all font-semibold text-sm flex items-center justify-center gap-2"
-                                    disabled={selectedItems.length === 0}
-                                    onClick={handleFinish}
-                                >
-                                    <Check size={16} />
-                                    Exportar para DFD
-                                </Button>
-                            </div>
+                            </Card>
                         </div>
                     </div>
                 </div>

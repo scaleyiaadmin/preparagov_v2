@@ -26,7 +26,7 @@ export const pncpApiService = {
             const baseUrl = 'https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao';
             const params = new URLSearchParams({
                 pagina: page.toString(),
-                tamanhoPagina: '100',
+                tamanhoPagina: '20',
                 termo: term,
             });
 
