@@ -142,18 +142,13 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                     setItems([]);
                 }
 
-                // Busca na API pública do PNCP (resultados de processos, complementar ao cache)
-                if (selectedSources.includes('PNCP')) {
-                    const ufFilter = selectedStates.length === 1 ? selectedStates[0] : undefined;
-                    const portalResult = await pncpApiService.search(debouncedSearch, 1, ufFilter);
-                    setPortalItems(portalResult.items);
-                    setTotalPortal(portalResult.total);
-                    setPortalPage(1);
-                } else {
-                    setPortalItems([]);
-                    setTotalPortal(0);
-                    setPortalPage(1);
-                }
+                // Busca na API pública do PNCP removida temporariamente pois a API do Governo 
+                // está com instabilidade severa (timeouts e CORS failures), o que travava o React.
+                // O sistema usará APENAS o cache rápido do Supabase (referencia_pncp) já retornado acima.
+                setPortalItems([]);
+                setTotalPortal(0);
+                setPortalPage(1);
+
 
             } catch (error) {
                 console.error('Erro ao buscar itens:', error);
