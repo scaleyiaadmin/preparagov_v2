@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Search,
     ArrowLeft,
@@ -16,17 +15,20 @@ import {
     ChevronDown,
     ChevronUp,
     ExternalLink,
-    Loader2
+    Loader2,
+    Info,
+    Tag
 } from 'lucide-react';
-import { referenciaService, ReferenciaItem } from '@/services/referenciaService';
-import { pncpApiService } from '@/services/pncpApiService';
 import { useToast } from '@/hooks/use-toast';
-import { useDebounce } from '@/hooks/use-debounce';
 import {
     Dialog,
     DialogContent,
 } from '@/components/ui/dialog';
 
+// Importa a lógica agressiva de busca copiada do Media Fácil
+import { searchAllSources } from '@/lib/searchAggregator';
+import { PNCPItem } from '@/lib/pncp'; // Mesmo que ItemDisponivel no Media Facil
+import { cn } from '@/lib/utils';
 import { DFDItem } from './types';
 
 interface ItemDatabaseSearchProps {
@@ -35,425 +37,515 @@ interface ItemDatabaseSearchProps {
     onAddItems: (items: DFDItem[]) => void;
 }
 
+const fontesDisponiveis = [
+    { id: "pncp", label: "PNCP" },
+    { id: "nfe", label: "Banco de NFe" },
+    { id: "bps", label: "BPS" },
+    { id: "cmed", label: "CMED" },
+    { id: "sinapi", label: "SINAPI" },
+    { id: "ceasa", label: "CEASA" },
+    { id: "setop", label: "SETOP", emBreve: true },
+    { id: "simpro", label: "SIMPRO", emBreve: true },
+    { id: "sigtap", label: "SIGTAP", emBreve: true },
+    { id: "licitacoes_similares", label: "Licitações Similares", emBreve: true },
+];
+
+function fonteDoItem(fonte: string): string {
+    if (!fonte) return "outro";
+    const f = fonte.toUpperCase();
+    if (f.includes("PNCP")) return "pncp";
+    if (f.includes("NFE") || f.includes("NF-E") || f.includes("NF E") || f.includes("NOTA")) return "nfe";
+    if (f.includes("BPS")) return "bps";
+    if (f.includes("CMED")) return "cmed";
+    if (f.includes("SINAPI")) return "sinapi";
+    if (f.includes("SETOP")) return "setop";
+    if (f.includes("SIMPRO")) return "simpro";
+    if (f.includes("SIGTAP")) return "sigtap";
+    if (f.includes("CEASA")) return "ceasa";
+    if (f.includes("LICITA") || f.includes("SIMILAR")) return "licitacoes_similares";
+    return "outro";
+}
+
+// ResultItem renderiza cada Card como o Média Fácil
+const ResultItem = React.memo(({
+    item,
+    isChecked,
+    onToggle
+}: {
+    item: PNCPItem;
+    isChecked: boolean;
+    onToggle: (id: string) => void;
+}) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    
+    let badgeStyle = "bg-[#fef2f2] text-[#b91c1c]"; // Default warm
+    const f = (item.fonte || "").toUpperCase();
+    if (f.includes("PNCP")) badgeStyle = "bg-[#fff7ed] text-[#c2410c]";
+    if (f.includes("NFE") || f.includes("NF-E")) badgeStyle = "bg-[#f4f4f5] text-[#3f3f46]";
+
+    return (
+        <div
+            className={cn(
+                "flex items-start gap-4 px-6 py-4 transition-all border-b border-border/40 hover:bg-muted/5",
+                isChecked && "bg-primary/[0.03]"
+            )}
+        >
+            <div className="pt-1.5 cursor-pointer shrink-0">
+                <Checkbox
+                    checked={isChecked}
+                    onCheckedChange={() => onToggle(item.id)}
+                    className={cn(
+                        "h-5 w-5 rounded border-muted-foreground/30",
+                        isChecked && "data-[state=checked]:bg-[#c2410c] data-[state=checked]:border-[#c2410c]"
+                    )}
+                />
+            </div>
+
+            <div className="flex-1 min-w-0 space-y-3">
+                {/* Linha 1: Badge e Preço */}
+                <div className="flex items-center justify-between">
+                    <span className={cn("px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider", badgeStyle)}>
+                        {f.includes('NFE') ? 'BANCO DE NFE' : (item.fonte?.split(' ')[0] || 'FONTE')}
+                    </span>
+                    <div className="flex items-center gap-3">
+                        <p className="text-lg font-black text-[#bc4216]">
+                            R$ {(item.preco || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Linha 2: Título */}
+                <div className="flex items-start justify-between gap-4">
+                    <h5 className="text-sm font-black text-[#1a1a1a] leading-tight flex-1">
+                        {item.nome}
+                    </h5>
+                </div>
+
+                {/* Linha 3: 4 Informações Principais */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-4 mt-3 pt-3 border-t border-border/40">
+                    {item.orgao && (
+                        <div className="flex items-start gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground/60 mt-0.5 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Órgão / Entidade</p>
+                                <p className="text-xs font-bold text-foreground leading-tight truncate" title={item.orgao}>{item.orgao}</p>
+                            </div>
+                        </div>
+                    )}
+                    {item.data && (
+                        <div className="flex items-start gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground/60 mt-0.5 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Data de Publicação</p>
+                                <p className="text-xs font-bold text-foreground leading-tight">{item.data}</p>
+                            </div>
+                        </div>
+                    )}
+                    {item.modalidade && (
+                        <div className="flex items-start gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground/60 mt-0.5 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Modalidade</p>
+                                <p className="text-xs font-bold text-foreground leading-tight truncate" title={item.modalidade}>{item.modalidade}</p>
+                            </div>
+                        </div>
+                    )}
+                    {(item.cidadeUf || item.ufOrigem) && (
+                        <div className="flex items-start gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground/60 mt-0.5 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Localidade</p>
+                                <p className="text-xs font-bold text-foreground leading-tight">{item.cidadeUf || item.ufOrigem}</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Linha 4: Informações Detalhadas (Expansível) */}
+                <div className="flex justify-start mt-2">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 text-[10px] font-bold text-muted-foreground hover:text-[#c2410c] px-2 py-0 gap-1 rounded-md bg-muted/20 hover:bg-orange-50"
+                        onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                    >
+                        {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        {isExpanded ? "Ocultar Detalhes" : "Ver Detalhes"}
+                    </Button>
+                </div>
+
+                {isExpanded && (
+                    <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-4 mt-3 pt-3 border-t border-border/20">
+                            {item.cnpj && (
+                                <div className="flex items-start gap-2">
+                                    <Info className="h-4 w-4 text-muted-foreground/60 mt-0.5 shrink-0" />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">CNPJ Órgão</p>
+                                        <p className="text-xs font-bold text-foreground leading-tight">{item.cnpj}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {item.nomeFornecedor && (
+                                <div className="flex items-start gap-2">
+                                    <Tag className="h-4 w-4 text-muted-foreground/60 mt-0.5 shrink-0" />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Fornecedor Vencedor</p>
+                                        <p className="text-xs font-bold text-foreground leading-tight truncate" title={item.nomeFornecedor}>{item.nomeFornecedor}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {f.includes("PNCP") && (
+                                <>
+                                    <div className="flex items-start gap-2">
+                                        <Building2 className="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Unid. Compradora</p>
+                                            <p className="text-[10px] font-bold text-foreground leading-tight truncate" title={item.unidadeCompradora || "Não informada"}>{item.unidadeCompradora || "Não informada"}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <FileText className="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Amparo Legal</p>
+                                            <p className="text-[10px] font-bold text-foreground leading-tight truncate" title={item.amparoLegal || "Não informado"}>{item.amparoLegal || "Não informado"}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <Tag className="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Modo de Disputa</p>
+                                            <p className="text-[10px] font-bold text-foreground leading-tight truncate" title={item.modoDisputa || "Não informado"}>{item.modoDisputa || "Não informado"}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <Info className="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Situação</p>
+                                            <p className="text-[10px] font-bold text-foreground leading-tight">{item.situacaoCompra || "Não informada"}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <Calendar className="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Início Propostas</p>
+                                            <p className="text-[10px] font-bold text-foreground leading-tight">{item.dataInicioPropostas || "Não informada"}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <Calendar className="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Fim Propostas</p>
+                                            <p className="text-[10px] font-bold text-foreground leading-tight">{item.dataFimPropostas || "Não informada"}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <FileText className="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Tipo Edital</p>
+                                            <p className="text-[10px] font-bold text-foreground leading-tight truncate" title={item.tipoEdital || "Não informado"}>{item.tipoEdital || "Não informado"}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <Info className="h-4 w-4 text-muted-foreground/40 mt-0.5 shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter">Fonte Orçamentária</p>
+                                            <p className="text-[10px] font-bold text-foreground leading-tight truncate" title={item.fonteOrcamentaria || "Não informada"}>{item.fonteOrcamentaria || "Não informada"}</p>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Adiciona o objeto da compra se existir para PNCP */}
+                        {f.includes("PNCP") && (
+                            <div className="mt-2 text-[10px] text-muted-foreground/80 leading-snug border-l-2 border-[#bc4216]/40 pl-2">
+                                <span className="font-bold text-foreground/80">Objeto: </span>
+                                {item.objetoCompra || item.nome}
+                            </div>
+                        )}
+
+                        {item.metadata && (
+                            <p className="text-[10px] text-muted-foreground/70 italic mt-2 font-medium bg-muted/20 p-2 rounded-md border border-border/50">
+                                Inf. Adicional: {item.metadata}
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {/* Rodapé com botão Ver no PNCP */}
+                {f.includes("PNCP") && item.link && (
+                    <div className="flex justify-end w-full mt-3 pt-2">
+                        <Button
+                            variant="default"
+                            size="sm"
+                            className="h-8 px-4 text-[11px] font-bold gap-1.5 shrink-0 bg-[#bc4216] hover:bg-[#a03813] text-white"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(item.link, '_blank', 'noopener,noreferrer');
+                            }}
+                        >
+                            Ver no PNCP
+                            <ExternalLink className="h-3.5 w-3.5 ml-0.5" />
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+});
+
+
 const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchProps) => {
     const { toast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
-    const debouncedSearch = useDebounce(searchTerm, 800);
+    const [searchTermAtivo, setSearchTermAtivo] = useState("");
+    const [itensOnline, setItensOnline] = useState<PNCPItem[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     
-    const [items, setItems] = useState<ReferenciaItem[]>([]);
-    const [portalItems, setPortalItems] = useState<ReferenciaItem[]>([]);
-    
-    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-    
-    const [showFilters, setShowFilters] = useState(false);
+    // Filtros de Fonte (Interface Media Fácil style)
+    const [selecionadasFontes, setSelecionadasFontes] = useState<Set<string>>(new Set(["pncp", "nfe"]));
 
-    // Filtros
-    const [selectedSources, setSelectedSources] = useState<string[]>(['PNCP']);
-    const [totalPortal, setTotalPortal] = useState(0);
+    // Seleção via checkbox
+    const [idsSelecionadosTemp, setIdsSelecionadosTemp] = useState<Set<string>>(new Set());
 
-    const sources = useMemo(() => [
-        { id: 'PNCP', name: 'PNCP' },
-        { id: 'NFE', name: 'BANCO DE NFE' },
-        { id: 'BPS', name: 'BPS' },
-        { id: 'CMED', name: 'CMED' },
-        { id: 'SINAPI', name: 'SINAPI' },
-        { id: 'CEASA', name: 'CEASA' },
-        { id: 'SETOP', name: 'SETOP', status: 'EM BREVE' },
-        { id: 'SIMPRO', name: 'SIMPRO', status: 'EM BREVE' },
-        { id: 'SIGTAP', name: 'SIGTAP', status: 'EM BREVE' },
-        { id: 'LICITACOES', name: 'LICITAÇÕES SIMILARES', status: 'EM BREVE' },
-    ], []);
+    const executarBusca = useCallback(async () => {
+        const termo = searchTerm.trim();
+        if (termo.length < 3) return;
+        
+        setIsSearching(true);
+        setSearchTermAtivo(termo);
+        setIdsSelecionadosTemp(new Set()); // zera selaçao atual
 
-    const allItems = useMemo(() => {
-        const combined = [...items, ...portalItems];
-        // Remover duplicatas por codigo/descricao para nao encher a tela
-        const seen = new Set();
-        return combined.filter(item => {
-            const key = `${item.codigo}-${item.fonte}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
-    }, [items, portalItems]);
+        try {
+            // Usa as configs importadas do Media Fácil (searchAllSources que traz as camadas ricas)
+            const result = await searchAllSources(termo, {
+                includePNCP: true,
+                includeBPS: true,
+                includeCMED: true,
+                includeSINAPI: true,
+                includeCATSER: false,
+                includeSETOP: false,
+                includeSIMPRO: false,
+                includeSIGTAP: false,
+                includeNFe: true,
+                includeCeasa: true,
+                limitPerSource: 1000 // Traz o máximo possível
+            });
+            
+            setItensOnline(result);
+            if (result.length === 0) {
+                toast({ title: 'Nenhum resultado encontrado para este item.', variant: 'default' });
+            }
+        } catch (error) {
+            console.error(error);
+            toast({ title: 'Erro ao buscar no banco.', variant: 'destructive' });
+        } finally {
+            setIsSearching(false);
+        }
+    }, [searchTerm, toast]);
 
+    // Buscador automático com Debounce manual (idêntico ao Media Fácil)
     useEffect(() => {
-        const fetchItems = async () => {
-            if (!debouncedSearch || debouncedSearch.length < 2) {
-                setItems([]);
-                setPortalItems([]);
-                setTotalPortal(0);
-                return;
-            }
-
-            try {
-                setIsSearching(true);
-                const activeSources = selectedSources.filter(s => !sources.find(src => src.id === s)?.status);
-
-                // Fetch Supabase Background
-                if (activeSources.length > 0) {
-                    const dbResults = await Promise.all(
-                        activeSources.map(source =>
-                            referenciaService.searchAll(debouncedSearch, source).catch(() => [])
-                        )
-                    );
-                    setItems(dbResults.flat());
-                } else {
-                    setItems([]);
-                }
-
-                // Fetch Public API (PNCP)
-                if (selectedSources.includes('PNCP')) {
-                    pncpApiService.search(debouncedSearch, 1)
-                        .then(portalResult => {
-                            setPortalItems(portalResult.items);
-                            setTotalPortal(portalResult.total);
-                        })
-                        .catch(err => console.warn('PNCP falhou:', err));
-                } else {
-                    setPortalItems([]);
-                    setTotalPortal(0);
-                }
-
-            } catch (error) {
-                console.error('Erro buscar itens:', error);
-            } finally {
-                setIsSearching(false);
-            }
-        };
-
-        if (open) {
-            fetchItems();
+        if (!open) return;
+        const termo = searchTerm.trim();
+        if (termo.length >= 3 && termo !== searchTermAtivo) {
+            const handler = setTimeout(() => {
+                executarBusca();
+            }, 800);
+            return () => clearTimeout(handler);
         }
-    }, [debouncedSearch, selectedSources, open, sources]);
+    }, [searchTerm, searchTermAtivo, executarBusca, open]);
 
-    const toggleSource = (sourceId: string) => {
-        if (sources.find(s => s.id === sourceId)?.status) return;
-        setSelectedSources(prev =>
-            prev.includes(sourceId)
-                ? prev.filter(id => id !== sourceId)
-                : [...prev, sourceId]
-        );
-    };
+    // Resultados que passam no filtro de "Fontes"
+    const resultadosFiltrados = useMemo(() => {
+        return itensOnline.filter(item => selecionadasFontes.has(fonteDoItem(item.fonte)));
+    }, [itensOnline, selecionadasFontes]);
 
-    const toggleSelection = (itemId: string) => {
-        setSelectedItems(prev => {
+    const toggleSelecionadasFontes = (id: string) => {
+        setSelecionadasFontes(prev => {
             const next = new Set(prev);
-            if (next.has(itemId)) {
-                next.delete(itemId);
-            } else {
-                next.add(itemId);
-            }
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
             return next;
         });
     };
 
-    const toggleSelectAll = () => {
-        if (selectedItems.size === allItems.length && allItems.length > 0) {
-            setSelectedItems(new Set());
+    const toggleSelecao = (id: string) => {
+        setIdsSelecionadosTemp(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const selecionarTodos = () => {
+        if (idsSelecionadosTemp.size === resultadosFiltrados.length && resultadosFiltrados.length > 0) {
+            setIdsSelecionadosTemp(new Set());
         } else {
-            setSelectedItems(new Set(allItems.map(i => i.id)));
+            setIdsSelecionadosTemp(new Set(resultadosFiltrados.map(i => i.id)));
         }
-    };
-
-    const toggleExpand = (itemId: string) => {
-        setExpandedItems(prev => {
-            const next = new Set(prev);
-            if (next.has(itemId)) next.delete(itemId);
-            else next.add(itemId);
-            return next;
-        });
     };
 
     const handleFinish = () => {
-        if (selectedItems.size === 0) {
-            toast({
-                title: "Nenhum item selecionado",
-                variant: "destructive"
-            });
+        if (idsSelecionadosTemp.size === 0) {
+            toast({ title: "Nenhum item selecionado", variant: "destructive" });
             return;
         }
 
-        const itemsToAdd: DFDItem[] = Array.from(selectedItems).map(id => {
-            const item = allItems.find(i => i.id === id);
+        const itemsToAdd: DFDItem[] = Array.from(idsSelecionadosTemp).map(id => {
+            const item = itensOnline.find(i => i.id === id);
             if (!item) return null;
             return {
-                id: `selected-${Date.now()}-${item.codigo}`,
-                codigo: item.codigo,
-                descricao: item.descricao,
-                unidade: item.unidade,
-                quantidade: 1,
-                valorReferencia: item.valor,
+                id: `selected-${Date.now()}-${item.id}`,
+                codigo: item.id.substring(0, 10), // Fallback se tiver string mto longa
+                descricao: item.nome,
+                unidade: item.unidade || 'UN',
+                quantidade: 1, // Default 1
+                valorReferencia: item.preco,
                 tabelaReferencia: item.fonte
             };
         }).filter(Boolean) as DFDItem[];
 
         onAddItems(itemsToAdd);
         onClose();
+        // Reseta o estado local depois de enviar
+        setTimeout(() => {
+            setSearchTerm('');
+            setSearchTermAtivo('');
+            setIdsSelecionadosTemp(new Set());
+            setItensOnline([]);
+        }, 300);
     };
 
     return (
-        <Dialog open={open} onOpenChange={onClose}>
-            {/* FULL SCREEN DIALOG */}
+        <Dialog open={open} onOpenChange={(val) => { if(!val) onClose(); }}>
             <DialogContent className="max-w-none w-screen h-screen m-0 rounded-none p-0 flex flex-col bg-[#F9FAFB]">
                 
-                {/* HEADERS */}
-                <div className="bg-white border-b px-6 py-4 flex items-center justify-between shrink-0">
-                    <Button variant="ghost" className="text-gray-600 font-medium hover:bg-gray-100 px-3" onClick={onClose}>
+                {/* HEADERS (Media Fácil Navbar) */}
+                <div className="bg-white border-b px-6 py-4 flex items-center justify-between shrink-0 shadow-sm z-10">
+                    <Button variant="ghost" className="text-gray-600 font-medium hover:bg-gray-100 px-3 transition-colors" onClick={onClose}>
                         <ArrowLeft className="mr-2" size={16} /> Voltar
                     </Button>
-                    <Button onClick={handleFinish} variant="outline" className="border-gray-200 text-gray-700 bg-white shadow-sm font-medium h-10 px-6">
-                        <ShoppingCart className="mr-2" size={16} /> Meu Orçamento
-                        {selectedItems.size > 0 && (
-                            <span className="ml-2 bg-orange-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                                {selectedItems.size}
-                            </span>
-                        )}
-                    </Button>
+                    <div className="flex items-center gap-3">
+                        <Button onClick={handleFinish} className="bg-[#bc4216] hover:bg-[#a03813] text-white shadow-sm font-medium h-10 px-6 transition-all">
+                            Adicionar e Continuar 
+                            <ShoppingCart className="ml-2 mt-0.5" size={16} />
+                            {idsSelecionadosTemp.size > 0 && (
+                                <span className="ml-2 bg-white/20 text-white rounded-full px-2 py-0.5 text-xs">
+                                    {idsSelecionadosTemp.size}
+                                </span>
+                            )}
+                        </Button>
+                    </div>
                 </div>
 
                 {/* SEARCH BAR & INFO */}
-                <div className="bg-white border-b px-6 py-6 shrink-0">
+                <div className="bg-white border-b px-6 py-6 shrink-0 z-0 relative">
                     <div className="max-w-7xl mx-auto space-y-4">
                         <div className="flex space-x-3">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                            <div className="relative flex-1 group">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#bc4216] transition-colors" size={20} />
                                 <Input 
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full h-14 pl-12 pr-4 text-gray-700 text-lg border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg shadow-sm"
+                                    className="w-full h-14 pl-12 pr-4 text-gray-800 text-lg border-gray-200 focus:border-[#bc4216] focus:ring-[#bc4216] rounded-lg shadow-sm"
                                     placeholder="Pesquise um item: arroz, caneta, papel..."
                                 />
                             </div>
-                            <Button className="h-14 px-10 bg-[#D94F21] hover:bg-[#C24115] text-white font-bold text-lg rounded-lg shadow-sm">
+                            <Button className="h-14 px-10 bg-[#bc4216] hover:bg-[#a03813] text-white font-bold text-lg rounded-lg shadow-sm transition-all">
                                 Buscar
                             </Button>
                         </div>
-                        <p className="text-gray-400 text-sm">
-                            Busque o item desejado. Após os resultados, use os filtros para refinar e selecione as fontes para compor a cesta de preços.
+                        <p className="text-gray-400 text-sm font-medium">
+                            Busque o item desejado. Após os resultados, selecione as fontes para compor a cesta de preços de seu projeto DFD.
                         </p>
                     </div>
                 </div>
 
                 {/* SOURCES TOGGLE */}
                 <div className="max-w-7xl mx-auto w-full px-6 pt-6 pb-2 shrink-0">
-                    <div className="flex items-center space-x-3 overflow-x-auto pb-2 scrollbar-hide">
+                    <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-hide">
                         <Button 
                             variant="outline" 
                             size="icon" 
-                            className={`h-10 w-12 border rounded-md shrink-0 flex items-center justify-center transition-colors ${showFilters ? 'bg-orange-50 text-[#D94F21] border-[#D94F21]' : 'border-gray-200 text-[#D94F21] bg-white'}`}
-                            onClick={() => setShowFilters(!showFilters)}
+                            className="h-10 w-10 border rounded shrink-0 flex items-center justify-center transition-colors border-gray-200 text-gray-500 bg-white"
                         >
-                            <Filter size={18} />
+                            <Filter size={16} />
                         </Button>
                         
-                        <div className="flex items-center space-x-2">
-                            {sources.map(s => (
-                                <div key={s.id} className="relative shrink-0">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => toggleSource(s.id)}
-                                        className={`h-10 px-5 font-semibold text-xs rounded-md border transition-all ${selectedSources.includes(s.id) ? 'border-gray-300 text-gray-800 bg-white shadow-sm' : 'border-gray-100 text-gray-400 bg-white'}`}
-                                    >
-                                        {s.name}
-                                    </Button>
-                                    {s.status && (
-                                        <span className="absolute -top-1.5 -right-1 px-1.5 py-0.5 bg-orange-400 text-white text-[9px] font-black rounded uppercase tracking-wider">
-                                            {s.status}
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {fontesDisponiveis.map(s => {
+                                const isSelected = selecionadasFontes.has(s.id);
+                                return (
+                                    <div key={s.id} className="relative shrink-0 mb-2">
+                                        <Button
+                                            disabled={!!s.emBreve}
+                                            variant="outline"
+                                            onClick={() => toggleSelecionadasFontes(s.id)}
+                                            className={cn(
+                                                "h-10 px-5 font-semibold text-xs rounded border transition-all disabled:opacity-50",
+                                                isSelected 
+                                                    ? "border-[#c2410c] text-[#c2410c] bg-orange-50 shadow-sm"
+                                                    : "border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
+                                            )}
+                                        >
+                                            {s.label}
+                                        </Button>
+                                        {s.emBreve && (
+                                            <span className="absolute -top-2 -right-1 px-1.5 py-0.5 bg-gray-400 text-white text-[9px] font-black rounded uppercase tracking-wider">
+                                                EM BREVE
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
 
                 {/* RESULTS AREA */}
-                <div className="max-w-7xl mx-auto w-full px-6 flex-1 overflow-hidden flex flex-col min-h-0 pt-2 pb-6">
+                <div className="max-w-7xl mx-auto w-full flex-1 overflow-hidden flex flex-col min-h-0 pt-2 pb-6 px-6">
                     
-                    <div className="flex justify-between items-center mb-4 shrink-0">
-                        <h2 className="text-[#D94F21] font-bold text-lg">
-                            {isSearching ? 'BUSCANDO...' : `${Math.max(allItems.length, totalPortal)} RESULTADO(S) ENCONTRADOS`}
+                    <div className="flex justify-between items-center mb-4 shrink-0 bg-white p-4 rounded-t-lg border-b border-gray-100 shadow-sm">
+                        <h2 className="text-[#1a1a1a] font-bold text-base uppercase tracking-tight">
+                            {isSearching ? (
+                                <span className="flex items-center text-[#bc4216]"><Loader2 className="animate-spin h-5 w-5 mr-2" /> BUSCANDO COM IA...</span>
+                            ) : (
+                                <span className="text-[#bc4216]">{resultadosFiltrados.length} RESULTADO(S) ENCONTRADOS</span>
+                            )}
                         </h2>
                         <button 
-                            onClick={toggleSelectAll}
-                            className="text-[#D94F21] hover:underline font-medium text-sm disabled:opacity-50"
-                            disabled={allItems.length === 0}
+                            onClick={selecionarTodos}
+                            className="text-[#bc4216] hover:underline font-bold text-xs uppercase disabled:opacity-50 tracking-wider"
+                            disabled={resultadosFiltrados.length === 0}
                         >
-                            {selectedItems.size === allItems.length && allItems.length > 0 ? "Desmarcar todos" : "Selecionar todos"}
+                            {idsSelecionadosTemp.size === resultadosFiltrados.length && resultadosFiltrados.length > 0 ? "DESMARCAR TODOS" : "SELECIONAR TODOS"}
                         </button>
                     </div>
 
-                    <ScrollArea className="flex-1 -mx-2 px-2">
+                    <ScrollArea className="flex-1 rounded-b-lg border border-gray-100 bg-white shadow-sm -mx-2 px-2 overflow-y-auto w-full">
                         {isSearching ? (
-                            <div className="flex flex-col items-center justify-center py-20">
-                                <Loader2 className="animate-spin text-orange-500 h-10 w-10 mb-4" />
-                                <p className="text-gray-500">Buscando na inteligência de dados...</p>
+                            <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-500">
+                                <Search className="text-[#bc4216]/50 h-10 w-10 mb-4 animate-pulse" />
+                                <p className="text-gray-500 font-medium">Nossa Inteligência Artificial está analisando dezenas de bases do Governo e NFE ao mesmo tempo. Isso pode levar alguns segundos.</p>
                             </div>
-                        ) : allItems.length === 0 ? (
+                        ) : resultadosFiltrados.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20">
-                                <Search className="text-gray-300 h-12 w-12 mb-4" />
-                                <p className="text-gray-400 font-medium">Nenhum item referenciado encontrado. Tente buscar por algo.</p>
+                                <ShoppingCart className="text-gray-200 h-12 w-12 mb-4" />
+                                <p className="text-gray-400 font-medium">Nenhum item referenciado encontrado. Tente buscar por algo ou alterar as Fontes selecionadas.</p>
                             </div>
                         ) : (
-                            <div className="space-y-4 pb-10">
-                                {allItems.map(item => {
-                                    const isExpanded = expandedItems.has(item.id);
-                                    const isSelected = selectedItems.has(item.id);
-
-                                    return (
-                                        <Card key={item.id} className={`border border-gray-200 shadow-sm transition-all ${isSelected ? 'border-orange-500 ring-1 ring-orange-500/20' : ''}`}>
-                                            <CardContent className="p-0">
-                                                {/* ROW PRIMARIA */}
-                                                <div className="flex items-start p-6">
-                                                    
-                                                    <div className="pt-1 pr-6 shrink-0">
-                                                        <Checkbox 
-                                                            checked={isSelected}
-                                                            onCheckedChange={() => toggleSelection(item.id)}
-                                                            className="w-5 h-5 border-gray-300 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
-                                                        />
-                                                    </div>
-
-                                                    <div className="flex-1 grid grid-cols-12 gap-4 items-start">
-                                                        {/* Lado Esquerdo do Card (Infos) */}
-                                                        <div className="col-span-12 md:col-span-9 space-y-4">
-                                                            
-                                                            <div className="flex flex-col items-start gap-2">
-                                                                <span className="bg-[#FFF1EB] text-[#D94F21] text-xs font-bold px-3 py-1 rounded">
-                                                                    {item.fonte}
-                                                                </span>
-                                                                <h3 className="font-bold text-gray-900 text-lg uppercase leading-tight line-clamp-2">
-                                                                    {item.descricao}
-                                                                </h3>
-                                                            </div>
-
-                                                            {/* Mini colunas de atributos */}
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
-                                                                <div className="space-y-1">
-                                                                    <div className="flex items-center text-gray-400 text-[10px] uppercase font-bold tracking-wider">
-                                                                        <Building2 size={12} className="mr-1" /> Órgão/Entidade
-                                                                    </div>
-                                                                    <p className="text-sm font-semibold text-gray-800 truncate" title={item.orgao}>{item.orgao || 'Não informado'}</p>
-                                                                </div>
-                                                                
-                                                                <div className="space-y-1">
-                                                                    <div className="flex items-center text-gray-400 text-[10px] uppercase font-bold tracking-wider">
-                                                                        <Calendar size={12} className="mr-1" /> Data Publicação
-                                                                    </div>
-                                                                    <p className="text-sm font-semibold text-gray-800">{item.data || 'N/D'}</p>
-                                                                </div>
-
-                                                                <div className="space-y-1">
-                                                                    <div className="flex items-center text-gray-400 text-[10px] uppercase font-bold tracking-wider">
-                                                                        <FileText size={12} className="mr-1" /> Modalidade
-                                                                    </div>
-                                                                    <p className="text-sm font-semibold text-gray-800">{item.detalhes?.modalidadeNome || 'Pregão - Eletrônico'}</p>
-                                                                </div>
-
-                                                                <div className="space-y-1">
-                                                                    <div className="flex items-center text-gray-400 text-[10px] uppercase font-bold tracking-wider">
-                                                                        <MapPin size={12} className="mr-1" /> Localidade
-                                                                    </div>
-                                                                    <p className="text-sm font-semibold text-gray-800">{item.detalhes?.municipio || item.detalhes?.uf || 'N/D'}</p>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Botão para Expandir Detalhes */}
-                                                            <button 
-                                                                onClick={() => toggleExpand(item.id)}
-                                                                className="flex items-center text-gray-500 font-medium text-sm hover:text-gray-800 transition-colors pt-2"
-                                                            >
-                                                                {isExpanded ? <ChevronUp size={16} className="mr-1" /> : <ChevronDown size={16} className="mr-1" />}
-                                                                {isExpanded ? 'Ocultar Detalhes' : 'Ver Detalhes'}
-                                                            </button>
-                                                        </div>
-
-                                                        {/* Lado Direito do Card (Preço) */}
-                                                        <div className="col-span-12 md:col-span-3 flex flex-col items-end justify-between h-full space-y-4">
-                                                            <div className="text-right">
-                                                                <div className="text-[#D94F21] font-black text-2xl tracking-tight">
-                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valor)}
-                                                                </div>
-                                                                <p className="text-xs text-gray-400 uppercase font-medium mt-1">
-                                                                    Qtd: 1 {item.unidade}
-                                                                </p>
-                                                            </div>
-
-                                                            {item.fonte === 'PNCP' && (
-                                                                <Button className="w-full sm:w-auto bg-[#D94F21] hover:bg-[#C24115] text-white font-medium text-sm py-5 mt-auto">
-                                                                    Ver no PNCP <ExternalLink size={16} className="ml-2" />
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    
-                                                </div>
-
-                                                {/* AREA EXPANDIDA DE DETALHES */}
-                                                {isExpanded && (
-                                                    <div className="px-6 pb-6 pt-2 bg-gray-50/50 border-t border-gray-100 ml-12">
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-8 py-4">
-                                                            
-                                                            <div className="space-y-1">
-                                                                <div className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">CNPJ Órgão</div>
-                                                                <p className="text-sm font-bold text-gray-900">{item.detalhes?.orgaoEntidade?.cnpj || item.detalhes?.cnpj || 'N/D'}</p>
-                                                            </div>
-
-                                                            <div className="space-y-1">
-                                                                <div className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Unid. Compradora</div>
-                                                                <p className="text-sm font-bold text-gray-900 line-clamp-1" title={item.orgao}>{item.orgao || 'N/D'}</p>
-                                                            </div>
-
-                                                            <div className="space-y-1">
-                                                                <div className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Amparo Legal</div>
-                                                                <p className="text-sm font-bold text-gray-900">{item.detalhes?.amparoLegal?.nome || 'Não informado'}</p>
-                                                            </div>
-                                                            
-                                                            <div className="space-y-1">
-                                                                <div className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Modo de Disputa</div>
-                                                                <p className="text-sm font-bold text-gray-900">{item.detalhes?.modoDisputaNome || 'Pregão'}</p>
-                                                            </div>
-
-                                                            <div className="space-y-1">
-                                                                <div className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Situação</div>
-                                                                <p className="text-sm font-bold text-gray-900">{item.detalhes?.situacaoCompraNome || 'Concluída/Encerrada'}</p>
-                                                            </div>
-
-                                                            <div className="space-y-1">
-                                                                <div className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Início Propostas</div>
-                                                                <p className="text-sm font-bold text-gray-900">{item.detalhes?.dataAberturaProposta ? new Date(item.detalhes?.dataAberturaProposta).toLocaleString('pt-BR') : 'N/D'}</p>
-                                                            </div>
-
-                                                            <div className="space-y-1">
-                                                                <div className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Fim Propostas</div>
-                                                                <p className="text-sm font-bold text-gray-900">{item.detalhes?.dataEncerramentoProposta ? new Date(item.detalhes?.dataEncerramentoProposta).toLocaleString('pt-BR') : 'Não informada'}</p>
-                                                            </div>
-                                                            
-                                                            <div className="space-y-1">
-                                                                <div className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Tipo Edital</div>
-                                                                <p className="text-sm font-bold text-gray-900">{item.detalhes?.tipoInstrumentoConvocatorioNome || 'Não informado'}</p>
-                                                            </div>
-
-                                                        </div>
-                                                        
-                                                        <div className="mt-2 pt-4 border-t border-gray-200">
-                                                            <p className="text-xs text-gray-500 font-medium">
-                                                                Objeto: <span className="font-bold text-gray-900 uppercase">{item.descricao}</span>
-                                                            </p>
-                                                        </div>
-                                                        
-                                                        <div className="mt-4 bg-gray-100 rounded text-xs px-3 py-2 text-gray-500 border border-gray-200">
-                                                            Inf. Adicional: {item.fonte === 'PNCP' ? 'API Direta (Gov)' : 'Base de Dados Local'}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                            </CardContent>
-                                        </Card>
-                                    );
-                                })}
+                            <div className="flex flex-col pb-10">
+                                {resultadosFiltrados.map(item => (
+                                    <ResultItem 
+                                        key={item.id}
+                                        item={item}
+                                        isChecked={idsSelecionadosTemp.has(item.id)}
+                                        onToggle={toggleSelecao}
+                                    />
+                                ))}
                             </div>
                         )}
                     </ScrollArea>
