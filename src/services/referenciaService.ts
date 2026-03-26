@@ -13,18 +13,41 @@ export interface ReferenciaItem {
     detalhes?: any;
 }
 
+async function fetchPaginated(
+    table: string,
+    queryBuilder: (query: any) => any,
+    maxLimit: number = 10000
+): Promise<any[]> {
+    const allData: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+
+    while (allData.length < maxLimit) {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
+        let query = externalSupabase.from(table).select('*');
+        query = queryBuilder(query).range(from, to);
+
+        const { data, error } = await query;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allData.push(...data);
+        page++;
+
+        if (data.length < pageSize) break;
+    }
+
+    return allData.slice(0, maxLimit);
+}
+
 export const referenciaService = {
     async searchPNCP(term: string): Promise<ReferenciaItem[]> {
         const processedTerm = term.trim().toLowerCase();
-        const { data, error } = await externalSupabase
-            .from('referencia_pncp')
-            .select('*')
-            .or(`item_nome.ilike.%${processedTerm}%,municipio.ilike.%${processedTerm}%`)
-            .limit(1000); 
+        const data = await fetchPaginated('referencia_pncp', q => q.or(`item_nome.ilike.%${processedTerm}%,municipio.ilike.%${processedTerm}%`));
 
-        if (error) throw error;
-
-        return (data || []).map(item => ({
+        return data.map(item => ({
             id: item.id,
             codigo: item.id, 
             descricao: item.item_nome,
@@ -38,37 +61,9 @@ export const referenciaService = {
     },
 
     async searchSINAPI(term: string): Promise<ReferenciaItem[]> {
-        const { data, error } = await externalSupabase
-            .from('referencia_sinapi')
-            .select('*')
-            .ilike('descricao', `%${term}%`)
-            .limit(1000); 
+        const data = await fetchPaginated('referencia_sinapi', q => q.or(`produto.ilike.%${term}%,substancia.ilike.%${term}%`));
 
-        if (error) throw error;
-
-        return (data || []).map(item => ({
-            id: item.id,
-            codigo: item.codigo,
-            descricao: item.descricao,
-            unidade: item.unidade || 'M2',
-            valor: parseFloat(item.preco_base) || 0,
-            fonte: 'SINAPI',
-            data: item.data_publicacao ? new Date(item.data_publicacao).toLocaleDateString('pt-BR') : '',
-            orgao: 'Caixa Econômica Federal - SINAPI',
-            detalhes: item
-        }));
-    },
-
-    async searchCMED(term: string): Promise<ReferenciaItem[]> {
-        const { data, error } = await externalSupabase
-            .from('referencia_cmed')
-            .select('*')
-            .or(`produto.ilike.%${term}%,substancia.ilike.%${term}%`)
-            .limit(1000); 
-
-        if (error) throw error;
-
-        return (data || []).map(item => ({
+        return data.map(item => ({
             id: item.id,
             codigo: (item.ean?.trim() && item.ean?.trim() !== '-') ? item.ean.trim() : `CMED-${item.id.substring(0, 8)}`,
             descricao: `${item.produto} - ${item.substancia}${item.apresentacao ? ` ${item.apresentacao}` : ''}`,
@@ -82,15 +77,9 @@ export const referenciaService = {
     },
 
     async searchCATSER(term: string): Promise<ReferenciaItem[]> {
-        const { data, error } = await externalSupabase
-            .from('referencia_catser')
-            .select('*')
-            .ilike('descricao', `%${term}%`)
-            .limit(1000); 
+        const data = await fetchPaginated('referencia_catser', q => q.ilike('descricao', `%${term}%`));
 
-        if (error) throw error;
-
-        return (data || []).map(item => ({
+        return data.map(item => ({
             id: `catser-${item.id}`,
             codigo: item.codigo,
             descricao: item.descricao,
@@ -106,15 +95,9 @@ export const referenciaService = {
     async searchBPS(term: string): Promise<ReferenciaItem[]> {
         // BPS (Banco de Preços em Saúde) - Como não temos uma tabela dedicada, 
         // usamos a base de NFe filtrada por termos de saúde para maior precisão
-        const { data, error } = await externalSupabase
-            .from('referencia_nfe')
-            .select('*')
-            .ilike('item_nome', `%${term}%`)
-            .limit(1000); 
+        const data = await fetchPaginated('referencia_nfe', q => q.ilike('item_nome', `%${term}%`));
 
-        if (error) throw error;
-
-        return (data || []).map(item => ({
+        return data.map(item => ({
             id: `bps-${item.id}`,
             codigo: item.id,
             descricao: item.item_nome,
@@ -129,15 +112,9 @@ export const referenciaService = {
     },
 
     async searchSETOP(term: string, uf: string = 'MG'): Promise<ReferenciaItem[]> {
-        const { data, error } = await externalSupabase
-            .from('referencia_setop')
-            .select('*')
-            .ilike('descricao', `%${term}%`)
-            .limit(1000); 
+        const data = await fetchPaginated('referencia_setop', q => q.ilike('descricao', `%${term}%`));
 
-        if (error) throw error;
-
-        return (data || []).map(item => ({
+        return data.map(item => ({
             id: `setop-${item.id}`,
             codigo: item.codigo,
             descricao: item.descricao,
@@ -152,15 +129,9 @@ export const referenciaService = {
     },
 
     async searchSIMPRO(term: string): Promise<ReferenciaItem[]> {
-        const { data, error } = await externalSupabase
-            .from('referencia_simpro')
-            .select('*')
-            .ilike('descricao', `%${term}%`)
-            .limit(1000); 
+        const data = await fetchPaginated('referencia_simpro', q => q.ilike('descricao', `%${term}%`));
 
-        if (error) throw error;
-
-        return (data || []).map(item => ({
+        return data.map(item => ({
             id: `simpro-${item.id}`,
             codigo: item.codigo_simpro || 'N/A',
             descricao: item.descricao,
@@ -175,15 +146,9 @@ export const referenciaService = {
     },
 
     async searchSIGTAP(term: string): Promise<ReferenciaItem[]> {
-        const { data, error } = await externalSupabase
-            .from('referencia_sigtap')
-            .select('*')
-            .ilike('descricao', `%${term}%`)
-            .limit(1000); 
+        const data = await fetchPaginated('referencia_sigtap', q => q.ilike('descricao', `%${term}%`));
 
-        if (error) throw error;
-
-        return (data || []).map(item => ({
+        return data.map(item => ({
             id: `sigtap-${item.id}`,
             codigo: item.codigo,
             descricao: item.descricao,
@@ -209,7 +174,7 @@ export const referenciaService = {
 
         if (error) throw error;
 
-        return (data || []).map(item => ({
+        return data.map(item => ({
             id: `nfe-${item.id}`,
             codigo: item.id,
             descricao: item.item_nome,
@@ -224,15 +189,9 @@ export const referenciaService = {
     },
 
     async searchCEASA(term: string): Promise<ReferenciaItem[]> {
-        const { data, error } = await externalSupabase
-            .from('referencia_ceasa')
-            .select('*')
-            .ilike('item_nome', `%${term}%`)
-            .limit(1000); 
+        const data = await fetchPaginated('referencia_ceasa', q => q.ilike('item_nome', `%${term}%`));
 
-        if (error) throw error;
-
-        return (data || []).map(item => ({
+        return data.map(item => ({
             id: `ceasa-${item.id}`,
             codigo: item.id.toString(),
             descricao: item.item_nome,
@@ -246,15 +205,9 @@ export const referenciaService = {
     },
 
     async searchCATMAT(term: string): Promise<ReferenciaItem[]> {
-        const { data, error } = await externalSupabase
-            .from('referencia_pncp') // Usando PNCP como fallback enquanto a tabela oficial catmat é carregada, ou mudar para a correta se existir
-            .select('*')
-            .ilike('item_nome', `%${term}%`)
-            .limit(1000); 
+        const data = await fetchPaginated('referencia_pncp', q => q.ilike('item_nome', `%${term}%`));
 
-        if (error) throw error;
-
-        return (data || []).map(item => ({
+        return data.map(item => ({
             id: `catmat-${item.id}`,
             codigo: item.id,
             descricao: item.item_nome,

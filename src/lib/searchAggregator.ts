@@ -87,7 +87,7 @@ function extractKeywords(termo: string): string[] {
 export async function searchAllSources(termo: string, filters: SearchFilters, fastMode = false): Promise<PNCPItem[]> {
     if (!termo || termo.length < 3) return [];
 
-    const limit = filters.limitPerSource || (fastMode ? 1 : 1000);
+    const limit = filters.limitPerSource || (fastMode ? 1 : 10000);
     const termoLower = termo.toLowerCase();
     const termoLimpo = cleanSearchTerm(termo);
     const termoLimpoLower = termoLimpo.toLowerCase();

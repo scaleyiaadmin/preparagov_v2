@@ -261,7 +261,7 @@ const ETP = () => {
             <Card>
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900">1. Informações Básicas do ETP</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-700">Nome do ETP (Objeto)</Label>
                     <Input
@@ -269,22 +269,6 @@ const ETP = () => {
                       onChange={(e) => updateFormData('objeto', e.target.value)}
                       placeholder="Ex: Aquisição de Computadores..."
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">Descrição Sucinta</Label>
-                    <Select
-                      value={formData.descricaoSucinta}
-                      onValueChange={(value) => updateFormData('descricaoSucinta', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {objetoOptions.map(option => (
-                          <SelectItem key={option} value={option}>{option}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
 

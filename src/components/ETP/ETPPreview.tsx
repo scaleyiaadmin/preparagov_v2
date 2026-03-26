@@ -70,9 +70,6 @@ const ETPPreview = ({ formData, onGeneratePDF, user }: ETPPreviewProps) => {
     fetchPrefeituraData();
   }, [currentUser?.prefeituraId]);
 
-  React.useEffect(() => {
-    setTimeout(() => window.print(), 800);
-  }, []);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {

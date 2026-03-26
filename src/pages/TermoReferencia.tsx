@@ -13,7 +13,8 @@ import {
   Filter,
   Loader2,
   Calendar,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -28,6 +29,7 @@ import {
 import { useLocation } from 'react-router-dom';
 import TRCreationWizard from '../components/TermoReferencia/TRCreationWizard';
 import TRSelectionModal from '../components/TermoReferencia/TRSelectionModal';
+import TRPreview from '../components/TermoReferencia/TRPreview';
 import { termoReferenciaService } from '@/services/termoReferenciaService';
 import { useAuth } from '@/contexts/AuthContext';
 import { DbTermoReferencia } from '@/types/database';
@@ -39,6 +41,8 @@ const TermoReferencia = () => {
   const [selectedOrigin, setSelectedOrigin] = useState<'cronograma' | 'dfds-livres' | 'itens-especificos' | null>(null);
   const [selectedData, setSelectedData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewTR, setPreviewTR] = useState<DbTermoReferencia | null>(null);
+  const [editingTR, setEditingTR] = useState<DbTermoReferencia | null>(null);
   const [termosData, setTermosData] = useState<DbTermoReferencia[]>([]);
   const [counts, setCounts] = useState({ total: 0, elaboracao: 0, prontos: 0 });
   const [filters, setFilters] = useState({
@@ -179,23 +183,74 @@ const TermoReferencia = () => {
   };
 
   const handleViewTR = (tr: DbTermoReferencia) => {
-    toast({
-      title: "Visualizando TR",
-      description: `Abrindo detalhes do TR: ${tr.objeto?.substring(0, 30)}...`,
-    });
+    setPreviewTR(tr);
   };
 
   const handleEditTR = (tr: DbTermoReferencia) => {
-    toast({
-      title: "Editando TR",
-      description: `Abrindo editor para: ${tr.objeto?.substring(0, 30)}...`,
-    });
+    setEditingTR(tr);
+    setSelectedOrigin('edit' as any);
+    setShowWizard(true);
   };
 
   const handleDownloadTR = (tr: DbTermoReferencia) => {
-    toast({
-      title: "Download iniciado",
-      description: `Baixando TR: ${tr.objeto?.substring(0, 30)}...`,
+    setPreviewTR(tr);
+  };
+
+  const handleDeleteTR = async (tr: DbTermoReferencia) => {
+    if (window.confirm("Tem certeza que deseja excluir este Termo de Referência? Esta ação não pode ser desfeita.")) {
+      try {
+        await termoReferenciaService.deleteTermoReferencia(tr.id);
+        toast({
+          title: "Excluído",
+          description: "O Termo de Referência foi removido com sucesso.",
+        });
+        loadData();
+      } catch (error) {
+        console.error('Erro ao excluir:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível excluir o TR.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const generatePDF = (filename: string, elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar o PDF.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    import('html2pdf.js').then((html2pdfModule) => {
+      const html2pdf = html2pdfModule.default || html2pdfModule;
+      const opt = {
+        margin: [15, 15],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      toast({
+        title: "Gerando PDF",
+        description: "Aguarde enquanto o documento é processado...",
+      });
+
+      (html2pdf as any)().set(opt).from(element).save().then(() => {
+        toast({
+          title: "PDF Gerado",
+          description: "O download foi concluído com sucesso."
+        });
+      });
+    }).catch(err => {
+        console.error("html2pdf load fail:", err);
     });
   };
 
@@ -218,6 +273,7 @@ const TermoReferencia = () => {
     setShowWizard(false);
     setSelectedOrigin(null);
     setSelectedData(null);
+    setEditingTR(null);
     loadData(); // Refresh list after closing wizard
   };
 
@@ -237,11 +293,23 @@ const TermoReferencia = () => {
     }
   };
 
+  if (previewTR) {
+    return (
+      <TRPreview
+        formData={previewTR.dados_json}
+        onClose={() => setPreviewTR(null)}
+        onGeneratePDF={() => generatePDF(`TR_${previewTR.numero_tr || previewTR.id}.pdf`, 'tr-preview')}
+        user={user}
+      />
+    );
+  }
+
   if (showWizard && selectedOrigin) {
     return (
       <TRCreationWizard
-        origin={selectedOrigin}
+        origin={selectedOrigin as any}
         selectedData={selectedData}
+        trToEdit={editingTR || undefined}
         onClose={handleCloseTRWizard}
         onSave={handleSaveTR}
       />
@@ -472,6 +540,15 @@ const TermoReferencia = () => {
                                 <Download size={16} className="text-green-600" />
                               </Button>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteTR(termo)}
+                              className="h-8 w-8 p-0"
+                              title="Excluir"
+                            >
+                              <Trash2 size={16} className="text-red-500" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>

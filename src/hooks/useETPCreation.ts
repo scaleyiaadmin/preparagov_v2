@@ -11,6 +11,7 @@ import html2pdf from 'html2pdf.js';
 interface SelectedDFD {
   id: string; // Changed to string for UUID
   objeto: string;
+  descricaoSucinta?: string;
   valorEstimado: string;
   tipoDFD: string;
   secretaria?: string;
@@ -109,7 +110,8 @@ export const useETPCreation = () => {
             secretaria: secretaria?.nome || 'Não informada',
             secretario: 'Não informado',
             responsavelDemanda: user?.nome || 'Não informado',
-            usedInETP: usedIds.has(d.id)
+            usedInETP: usedIds.has(d.id),
+            descricaoSucinta: d.descricao_sucinta || ''
           };
         });
         setAvailableDFDs(formatted);
@@ -228,7 +230,11 @@ export const useETPCreation = () => {
 
     // Calculate total value
     const totalValue = dfds.reduce((sum, dfd) => {
-      const value = parseFloat(dfd.valorEstimado.replace(/[R$.,\s]/g, '').replace(',', '.')) || 0;
+      const cleanStr = String(dfd.valorEstimado || '0')
+        .replace(/[R$\s]/g, '')
+        .replace(/\./g, '')
+        .replace(',', '.');
+      const value = parseFloat(cleanStr) || 0;
       return sum + value;
     }, 0);
 
@@ -260,6 +266,12 @@ ${dfdDescriptions}
     // Auto-generate enhanced demand description
     const description = generateDemandDescription(dfds);
     updateFormData('descricaoDemanda', description);
+
+    if (dfds.length > 0) {
+      updateFormData('descricaoSucinta', dfds[0].descricaoSucinta || '');
+    } else {
+      updateFormData('descricaoSucinta', '');
+    }
   };
 
   const generateWithAI = async (field: keyof ETPFormData) => {
@@ -339,7 +351,7 @@ A alternativa escolhida foi a aquisição por meio de licitação pública, gara
   const canProceed = () => {
     switch (currentStep) {
       case 0:
-        return formData.objeto.trim() !== '' && formData.descricaoSucinta.trim() !== '' && formData.selectedDFDs.length > 0;
+        return formData.objeto.trim() !== '' && formData.selectedDFDs.length > 0;
       case 1:
         return formData.descricaoDemanda.trim() !== '';
       case 2:

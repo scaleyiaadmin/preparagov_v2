@@ -12,7 +12,7 @@ interface FormStepProps {
   description: string;
   value: string;
   onValueChange: (value: string) => void;
-  onGenerateAI: () => void;
+  onGenerateAI?: () => void;
   hasCondition?: boolean;
   conditionLabel?: string;
   conditionValue?: boolean;
@@ -47,10 +47,6 @@ const FormStep = ({
             </CardTitle>
             <p className="text-gray-600">{description}</p>
           </div>
-          <Button variant="outline" onClick={onGenerateAI}>
-            <Sparkles size={16} className="mr-2" />
-            Gerar com IA
-          </Button>
         </div>
       </CardHeader>
       <CardContent>

@@ -34,8 +34,9 @@ import { termoReferenciaService } from '@/services/termoReferenciaService';
 import { DbTermoReferencia } from '@/types/database';
 
 interface TRCreationWizardProps {
-  origin: 'cronograma' | 'dfds-livres' | 'itens-especificos';
-  selectedData: any;
+  origin: 'cronograma' | 'dfds-livres' | 'itens-especificos' | 'edit';
+  selectedData?: any;
+  trToEdit?: DbTermoReferencia;
   onClose: () => void;
   onSave: (data: any) => void;
 }
@@ -135,7 +136,7 @@ const mapDFDTypeToNatureza = (tipo: string): string => {
   return 'materiais-consumo';
 };
 
-const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationWizardProps) => {
+const TRCreationWizard = ({ origin, selectedData, trToEdit, onClose, onSave }: TRCreationWizardProps) => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -212,11 +213,18 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
   const { toast } = useToast();
 
   useEffect(() => {
+    if (trToEdit) {
+      setCurrentTrId(trToEdit.id);
+      if (trToEdit.dados_json) {
+        setFormData(trToEdit.dados_json as any);
+      }
+      return;
+    }
     const natureza = mapDFDTypeToNatureza(getOriginDescription());
     if (natureza && !formData.naturezaObjeto) {
       setFormData(prev => ({ ...prev, naturezaObjeto: natureza }));
     }
-  }, [selectedData, origin]);
+  }, [selectedData, origin, trToEdit]);
 
   const steps = [
     { title: 'Identificação e Origem', icon: <FileText size={16} /> },
@@ -428,6 +436,7 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
           title: "Rascunho Atualizado",
           description: "As alterações foram salvas com sucesso.",
         });
+        onClose();
       } else {
         const result = await termoReferenciaService.createTermoReferencia(trData);
         setCurrentTrId(result.id);
@@ -435,6 +444,7 @@ const TRCreationWizard = ({ origin, selectedData, onClose, onSave }: TRCreationW
           title: "Rascunho Criado",
           description: "O Termo de Referência foi criado como rascunho.",
         });
+        onClose();
       }
     } catch (error) {
       console.error('Erro ao salvar TR:', error);
