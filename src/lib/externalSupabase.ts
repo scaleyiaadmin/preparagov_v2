@@ -6,4 +6,15 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = 'https://qwlbclurkhfnsztopeoj.supabase.co';
 const supabaseAnonKey = 'sb_publishable_5ATbbplIn-PbSyuB0gU87A_m2lawRWM';
 
-export const externalSupabase = createClient(supabaseUrl, supabaseAnonKey);
+export const externalSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+  global: {
+    headers: {
+      'apikey': supabaseAnonKey,
+    }
+  }
+});
