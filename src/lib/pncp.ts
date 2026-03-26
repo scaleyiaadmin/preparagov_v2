@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { externalSupabase as supabase } from './externalSupabase';
 
 // URLs base pré-calculadas (evita import.meta.env.DEV em cada chamada)
 const IS_DEV = import.meta.env.DEV;

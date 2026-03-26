@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { externalSupabase as supabase } from './externalSupabase';
 import { PNCPItem } from './pncp';
 
 /**
