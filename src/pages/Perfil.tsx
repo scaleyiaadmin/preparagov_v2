@@ -80,6 +80,11 @@ const Perfil = () => {
   const [newCampoLabel, setNewCampoLabel] = useState('');
   const [newCampoObrigatorio, setNewCampoObrigatorio] = useState(false);
 
+  // Estados para ETP
+  const [camposExtrasETP, setCamposExtrasETP] = useState<CampoExtra[]>([]);
+  const [newCampoLabelETP, setNewCampoLabelETP] = useState('');
+  const [newCampoObrigatorioETP, setNewCampoObrigatorioETP] = useState(false);
+
   useEffect(() => {
     if (!user) return;
 

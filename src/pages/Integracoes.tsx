@@ -21,6 +21,9 @@ import {
     Cloud
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { systemConfigService } from '@/services/systemConfigService';
+import { useEffect } from 'react';
 
 type IntegrationView = 'grid' | 'pncp';
 
@@ -31,6 +34,7 @@ const Integracoes = () => {
     const [testLoading, setTestLoading] = useState(false);
     const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
 
+    const { user } = useAuth();
     const [config, setConfig] = useState({
         pncp_user: '',
         pncp_token: '',
@@ -38,20 +42,66 @@ const Integracoes = () => {
         pncp_ambiente: 'homologacao'
     });
 
+    // Load configs from Supabase
+    useEffect(() => {
+        const loadConfigs = async () => {
+            if (!user?.prefeituraId) return;
+            try {
+                const configs = await systemConfigService.getAllConfigs(user.prefeituraId);
+                if (Object.keys(configs).length > 0) {
+                    setConfig(prev => ({
+                        ...prev,
+                        pncp_user: configs.pncp_user || '',
+                        pncp_token: configs.pncp_token || '',
+                        pncp_unidade_id: configs.pncp_unidade_id || '',
+                        pncp_ambiente: configs.pncp_ambiente || 'homologacao'
+                    }));
+                }
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+            }
+        };
+        loadConfigs();
+    }, [user]);
+
     const handleInputChange = (field: string, value: string) => {
         setConfig(prev => ({ ...prev, [field]: value }));
         setTestResult(null);
     };
 
     const handleSave = async () => {
+        if (!user?.prefeituraId) {
+            toast({
+                title: "Erro",
+                description: "É necessário estar vinculado a uma prefeitura para salvar configurações.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            // Salvar cada configuração no system_config
+            await Promise.all(
+                Object.entries(config).map(([key, value]) =>
+                    systemConfigService.setConfig(key, value, user.prefeituraId)
+                )
+            );
+
             toast({
                 title: "Configurações salvas",
                 description: "As credenciais de integração foram atualizadas com sucesso.",
             });
-        }, 1500);
+        } catch (error: any) {
+            console.error('Erro ao salvar:', error);
+            toast({
+                title: "Erro ao salvar",
+                description: error.message || "Não foi possível salvar as configurações.",
+                variant: "destructive"
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleTestConnection = async () => {
@@ -87,7 +137,8 @@ const Integracoes = () => {
             icon: <Globe className="text-orange-500" size={22} />,
             status: 'atv',
             badge: 'ATIVO',
-            badgeVariant: 'success' as const
+            badgeVariant: 'default' as const,
+            badgeClass: 'bg-green-500 hover:bg-green-600 text-white border-transparent'
         },
         {
             id: 'media_facil',
@@ -298,7 +349,10 @@ const Integracoes = () => {
                             <div className="w-12 h-12 rounded-[14px] bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:bg-white group-hover:shadow-sm transition-all group-hover:scale-105">
                                 {integration.icon}
                             </div>
-                            <Badge variant={integration.badgeVariant} className={`font-medium px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider ${integration.status === 'soon' ? 'bg-gray-100 text-gray-500 hover:bg-gray-100 shadow-none' : ''}`}>
+                            <Badge 
+                                variant={integration.badgeVariant} 
+                                className={`font-medium px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider ${integration.badgeClass || ''} ${integration.status === 'soon' ? 'bg-gray-100 text-gray-500 hover:bg-gray-100 shadow-none' : ''}`}
+                            >
                                 {integration.badge}
                             </Badge>
                         </div>

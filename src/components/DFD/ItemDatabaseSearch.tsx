@@ -123,15 +123,27 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                 // Todas as fontes ativas sem status "EM BREVE"
                 const activeSources = selectedSources.filter(s => !sources.find(src => src.id === s)?.status);
 
-                // Busca em TODAS as fontes ativas em paralelo (inclui cache PNCP)
-                if (activeSources.length > 0) {
-                    const dbResults = await Promise.all(
-                        activeSources.map(source =>
-                            referenciaService.searchAll(debouncedSearch, source).catch(() => [])
-                        )
-                    );
+                // Prepara as buscas
+                const dbSearchPromise = activeSources.length > 0 
+                    ? Promise.all(activeSources.map(source => 
+                        referenciaService.searchAll(debouncedSearch, source).catch(() => [])
+                      ))
+                    : Promise.resolve([]);
+
+                const pncpApiPromise = selectedSources.includes('PNCP')
+                    ? pncpApiService.search(debouncedSearch, 1, selectedStates.length === 1 ? selectedStates[0] : undefined)
+                        .catch(err => {
+                            console.warn('Falha silenciosa api PNCP:', err);
+                            return { items: [], total: 0 };
+                        })
+                    : Promise.resolve({ items: [], total: 0 });
+
+                // Executa em paralelo para melhor performance
+                const [dbResults, portalResult] = await Promise.all([dbSearchPromise, pncpApiPromise]);
+
+                // Processa resultados do Banco Local
+                if (dbResults.length > 0) {
                     const combined = dbResults.flat();
-                    // Deduplica por código
                     const seen = new Set<string>();
                     setItems(combined.filter(item => {
                         if (seen.has(item.codigo)) return false;
@@ -142,16 +154,10 @@ const ItemDatabaseSearch = ({ open, onClose, onAddItems }: ItemDatabaseSearchPro
                     setItems([]);
                 }
 
-                // Busca na API pública do PNCP (resultados de processos, complementar ao cache)
-                if (selectedSources.includes('PNCP')) {
-                    const ufFilter = selectedStates.length === 1 ? selectedStates[0] : undefined;
-                    // Executa a requisição separadamente (sem travar) 
-                    pncpApiService.search(debouncedSearch, 1, ufFilter)
-                        .then(portalResult => {
-                            setPortalItems(portalResult.items);
-                            setTotalPortal(portalResult.total);
-                        })
-                        .catch(err => console.warn('Falha silenciosa api PNCP:', err));
+                // Processa resultados do Portal PNCP
+                if (selectedSources.includes('PNCP') && portalResult) {
+                    setPortalItems(portalResult.items);
+                    setTotalPortal(portalResult.total);
                     setPortalPage(1);
                 } else {
                     setPortalItems([]);
