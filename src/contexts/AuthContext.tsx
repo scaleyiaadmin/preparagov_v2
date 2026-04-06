@@ -24,6 +24,7 @@ interface AuthContextType extends AuthState {
   getAllPrefeituras: () => Prefeitura[];
   getSecretariasForPrefeitura: (prefeituraId: string) => DbSecretaria[];
   addSecretaria: (data: Omit<DbSecretaria, 'id' | 'created_at'>) => void;
+  refreshSecretarias: () => Promise<void>;
   switchToUser: (email: string) => void;
   createPrefeitura: (prefeituraData: Pick<DbPrefeitura, 'nome' | 'cnpj' | 'uf' | 'municipio'>) => Promise<boolean>;
   deletePrefeitura: (prefeituraId: string) => Promise<boolean>;
@@ -625,6 +626,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getAllPrefeituras,
         getSecretariasForPrefeitura,
         addSecretaria,
+        refreshSecretarias: fetchSecretarias,
         switchToUser,
         createPrefeitura,
         deletePrefeitura,
