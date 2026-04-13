@@ -63,9 +63,23 @@ const FormStep = ({
           
           {(!hasCondition || conditionValue) && (
             <div className="space-y-2">
-              <Label htmlFor={`field-${title}`}>
-                {hasCondition ? 'Descreva detalhadamente:' : `Descreva ${title.toLowerCase()}:`}
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor={`field-${title}`}>
+                  {hasCondition ? 'Descreva detalhadamente:' : `Descreva ${title.toLowerCase()}:`}
+                </Label>
+                {onGenerateAI && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onGenerateAI}
+                    className="text-purple-600 border-purple-200 hover:bg-purple-50 hover:text-purple-700"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Gerar com IA
+                  </Button>
+                )}
+              </div>
               <Textarea
                 id={`field-${title}`}
                 value={value}
