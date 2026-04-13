@@ -58,13 +58,6 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
 
   const dfdNumber = useRef(generateDFDNumber()).current;
 
-  React.useEffect(() => {
-    if (open) {
-      setTimeout(() => {
-        window.print();
-      }, 800);
-    }
-  }, [open]);
 
   const handleGeneratePDF = () => {
     window.print();
@@ -87,7 +80,7 @@ const DFDPreview = ({ open, onClose, formData, globalJustification = '' }: DFDPr
         {/* Conteúdo com scroll */}
         <div className="flex-1 overflow-y-auto space-y-6 p-1 bg-white print:overflow-visible print:p-0">
           {/* Container for PDF Generation */}
-          <div ref={contentRef} className="bg-white p-8 print:p-0 print:text-black">
+          <div ref={contentRef} id="dfd-print-content" className="bg-white p-8 print:p-0 print:text-black">
             {/* Cabeçalho do documento com logo */}
             <div className="text-center border-b pb-4">
               {logoUrl && (

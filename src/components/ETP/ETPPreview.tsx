@@ -103,7 +103,7 @@ const ETPPreview = ({ formData, onGeneratePDF, user }: ETPPreviewProps) => {
   const etpId = generateETPId();
 
   return (
-    <div className="space-y-6" id="etp-preview">
+    <div className="space-y-6" id="etp-print-content">
       {/* Header */}
       <Card>
         <CardContent className="p-8">

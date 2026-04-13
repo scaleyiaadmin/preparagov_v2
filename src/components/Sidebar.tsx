@@ -84,14 +84,14 @@ const Sidebar = ({ isOpen, onToggle, isCollapsed }: SidebarProps) => {
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden print:hidden"
           onClick={onToggle}
         />
       )}
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-50 transition-all duration-300 ease-in-out flex flex-col",
+        "fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-50 transition-all duration-300 ease-in-out flex flex-col print:hidden",
         isCollapsed ? "w-16 lg:translate-x-0" : "w-64 lg:translate-x-0",
         isOpen ? "translate-x-0" : (isCollapsed ? "lg:translate-x-0 -translate-x-full" : "-translate-x-full")
       )}>

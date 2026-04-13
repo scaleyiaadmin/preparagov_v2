@@ -106,3 +106,170 @@ All colors MUST be HSL.
 .gradient-orange {
   background: linear-gradient(135deg, hsl(17 88% 59%) 0%, hsl(25 95% 53%) 100%);
 }
+
+/* ============================================================
+   ESTILOS DE IMPRESSÃO - PreparaGov
+   Esconde toda a UI e exibe apenas o conteúdo do documento
+   ============================================================ */
+@media print {
+  /* Reset base */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Esconde elementos da UI que não devem aparecer na impressão */
+  header,
+  nav,
+  aside,
+  footer,
+  [data-sidebar],
+  [class*="sidebar"],
+  [class*="Sidebar"],
+  .print\:hidden,
+  [data-html2canvas-ignore],
+  button:not(.print-show),
+  .toaster,
+  [role="dialog"] [role="dialog"] {
+    display: none !important;
+  }
+
+  /* Body e html sem margens */
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    width: 210mm !important;
+    height: auto !important;
+  }
+
+  /* Remove o layout da aplicação - mostra apenas o conteúdo central */
+  body > div,
+  #root {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  /* Esconde o layout principal (sidebar + header) */
+  .flex.h-screen,
+  .flex.min-h-screen,
+  [class*="layout"],
+  [class*="Layout"] {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Quando é um Dialog/Modal de impressão do DFD, mostra apenas seu conteúdo */
+  [role="dialog"] {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: white !important;
+    overflow: visible !important;
+  }
+
+  /* Overlay/backdrop do dialog - esconde */
+  [data-radix-dialog-overlay],
+  [data-state="open"][class*="overlay"],
+  [class*="DialogOverlay"],
+  [class*="Overlay"] {
+    display: none !important;
+  }
+
+  /* Container do conteúdo do documento */
+  [class*="DialogContent"] {
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Preview do DFD/ETP - conteúdo principal */
+  #dfd-print-content,
+  #etp-print-content,
+  .print-content {
+    display: block !important;
+    width: 100% !important;
+    padding: 16mm 20mm !important;
+    margin: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Scroll containers viram visíveis */
+  .overflow-y-auto,
+  .overflow-auto,
+  .overflow-hidden {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Cards sem sombra e bordas sutis na impressão */
+  [class*="Card"],
+  .card {
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    margin-bottom: 8px !important;
+  }
+
+  /* Tabelas na impressão */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    font-size: 10pt !important;
+  }
+
+  th, td {
+    border: 1px solid #9ca3af !important;
+    padding: 4px 8px !important;
+  }
+
+  /* Tipografia de impressão */
+  body {
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+    color: #111827 !important;
+  }
+
+  h1 { font-size: 16pt !important; }
+  h2 { font-size: 13pt !important; }
+  h3 { font-size: 11pt !important; }
+
+  /* Quebra de página */
+  .page-break-before { page-break-before: always !important; }
+  .page-break-after  { page-break-after: always !important; }
+  .avoid-break       { page-break-inside: avoid !important; }
+
+  /* Configuração da página A4 */
+  @page {
+    size: A4 portrait;
+    margin: 15mm 20mm 20mm 20mm;
+  }
+}
