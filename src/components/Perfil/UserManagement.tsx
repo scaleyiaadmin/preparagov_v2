@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Edit, Trash2, Key, AlertTriangle, Shield } from 'lucide-react';
 
 interface User {
@@ -39,12 +40,17 @@ interface Secretaria {
 
 const UserManagement = () => {
   const { toast } = useToast();
+  const { getCurrentUser, getSecretariasForPrefeitura } = useAuth();
+  
+  const currentUser = getCurrentUser();
+  const secretarias = currentUser?.prefeituraId 
+    ? getSecretariasForPrefeitura(currentUser.prefeituraId)
+    : [];
+
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const [users, setUsers] = useState<User[]>([]);
-
-  const [secretarias] = useState<Secretaria[]>([]);
 
   const [newUser, setNewUser] = useState({
     nome: '',
