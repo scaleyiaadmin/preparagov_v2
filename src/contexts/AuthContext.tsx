@@ -45,6 +45,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     impersonating: null,
   });
 
+  const mapDbUserToUser = useCallback((dbUser: DbUser): User => ({
+    id: String(dbUser.id),
+    email: dbUser.email,
+    nome: dbUser.nome || dbUser.email.split('@')[0],
+    role: dbUser.tipo_perfil || 'operator',
+    prefeituraId: dbUser.prefeitura_id ? String(dbUser.prefeitura_id) : null,
+    secretariaId: dbUser.secretaria_id ? String(dbUser.secretaria_id) : null,
+    permissions: (dbUser.modulos_acesso && Object.keys(dbUser.modulos_acesso).length > 0)
+      ? dbUser.modulos_acesso
+      : defaultPermissionsByRole[dbUser.tipo_perfil || 'operator'],
+    createdAt: dbUser.created_at || new Date().toISOString(),
+    status: dbUser.status || 'ativo',
+  }), []);
+
   const fetchUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase.from('usuarios_acesso').select('*');
@@ -53,25 +67,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Cast data to DbUser[] to ensure type safety based on our schema definition
       const dbUsers = data as unknown as DbUser[];
 
-      const mappedUsers: User[] = (dbUsers || []).map(dbUser => ({
-        id: dbUser.id.toString(),
-        email: dbUser.email,
-        nome: dbUser.nome || dbUser.email.split('@')[0],
-        role: dbUser.tipo_perfil || 'operator',
-        prefeituraId: dbUser.prefeitura_id || null,
-        secretariaId: dbUser.secretaria_id || null,
-        permissions: (dbUser.modulos_acesso && Object.keys(dbUser.modulos_acesso).length > 0)
-          ? dbUser.modulos_acesso
-          : defaultPermissionsByRole[dbUser.tipo_perfil || 'operator'],
-        createdAt: dbUser.created_at || new Date().toISOString(),
-        status: dbUser.status || 'ativo',
-        aceitouTermosIA: dbUser.aceitou_termos_ia || false,
-      }));
+      const mappedUsers: User[] = (dbUsers || []).map(mapDbUserToUser);
       setUsers(mappedUsers);
     } catch (error) {
       handleSupabaseError(error, 'Fetching Users');
     }
-  }, []);
+  }, [mapDbUserToUser]);
 
   const fetchPrefeituras = useCallback(async () => {
     try {
@@ -198,17 +199,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: dbUser.email,
           nome: dbUser.nome || dbUser.email.split('@')[0],
           role: role,
-          prefeituraId: dbUser.prefeitura_id || null,
-          secretariaId: dbUser.secretaria_id || null,
-          permissions: isGlobalAdmin
-            ? defaultPermissionsByRole.super_admin
-            : (dbUser.modulos_acesso && Object.keys(dbUser.modulos_acesso).length > 0)
-              ? dbUser.modulos_acesso
-              : defaultPermissionsByRole[role],
-          createdAt: dbUser.created_at || new Date().toISOString(),
-          status: dbUser.status || 'ativo',
-          aceitouTermosIA: dbUser.aceitou_termos_ia || false,
-        };
+           prefeituraId: dbUser.prefeitura_id ? String(dbUser.prefeitura_id) : null,
+           secretariaId: dbUser.secretaria_id ? String(dbUser.secretaria_id) : null,
+           permissions: isGlobalAdmin
+             ? defaultPermissionsByRole.super_admin
+             : (dbUser.modulos_acesso && Object.keys(dbUser.modulos_acesso).length > 0)
+               ? dbUser.modulos_acesso
+               : defaultPermissionsByRole[role],
+           createdAt: dbUser.created_at || new Date().toISOString(),
+           status: dbUser.status || 'ativo',
+         };
 
         setAuthState({
           user,
@@ -385,8 +385,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         prefeitura_id: userData.prefeituraId || null,
         secretaria_id: userData.secretariaId || null,
         modulos_acesso: userData.permissions,
-        status: userData.status,
-        aceitou_termos_ia: userData.aceitouTermosIA || false
+        status: userData.status
       };
 
       const { data, error } = await supabase
@@ -397,30 +396,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      // Cast response to DbUser
-      const dbUser = data as unknown as DbUser;
-
-      const newUser: User = {
-        id: dbUser.id,
-        email: dbUser.email,
-        nome: dbUser.nome,
-        role: dbUser.tipo_perfil || 'operator',
-        prefeituraId: dbUser.prefeitura_id,
-        secretariaId: dbUser.secretaria_id,
-        permissions: dbUser.modulos_acesso || defaultPermissionsByRole[dbUser.tipo_perfil || 'operator'],
-        createdAt: dbUser.created_at,
-        status: dbUser.status || 'ativo',
-        aceitouTermosIA: dbUser.aceitou_termos_ia || false,
-      };
-
-      setUsers(prev => [...prev, newUser]);
-      toast({ title: "Usuário criado", description: `${newUser.nome} foi cadastrado com sucesso` });
-      return newUser;
+      // Refresh list from DB to ensure local state matches exactly
+      await fetchUsers();
+      
+      toast({ title: "Usuário criado", description: `${userData.nome} foi cadastrado com sucesso` });
+      return null; 
     } catch (error) {
       handleSupabaseError(error, 'Creating User');
       return null;
     }
-  }, [toast]);
+  }, [toast, fetchUsers]);
 
 
   const updateUser = useCallback(async (userId: string, updates: Partial<User>) => {
@@ -433,7 +418,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (updates.secretariaId !== undefined) dbUpdates.secretaria_id = updates.secretariaId || null;
       if (updates.permissions) dbUpdates.modulos_acesso = updates.permissions;
       if (updates.status) dbUpdates.status = updates.status;
-      if (updates.aceitouTermosIA !== undefined) dbUpdates.aceitou_termos_ia = updates.aceitouTermosIA;
 
       const { error } = await supabase
         .from('usuarios_acesso')
@@ -442,14 +426,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
+      await fetchUsers();
       toast({ title: "Usuário atualizado", description: "As alterações foram salvas com sucesso" });
       return true;
     } catch (error) {
       handleSupabaseError(error, 'Updating User');
       return false;
     }
-  }, [toast]);
+  }, [toast, fetchUsers]);
 
 
   const deleteUser = useCallback(async (userId: string) => {
