@@ -11,17 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Edit, Trash2, Key, AlertTriangle, Shield } from 'lucide-react';
+import { User, ModulePermissions } from '@/types/auth';
+import { Plus, Edit, Trash2, Key, AlertTriangle, Loader2 } from 'lucide-react';
 
-interface User {
-  id: string;
-  nome: string;
-  email: string;
-  secretaria: string;
-  permissions: UserPermissions;
-}
-
-interface UserPermissions {
+interface LocalUserPermissions {
   criarDFD: boolean;
   acessarPCA: boolean;
   criarETP: boolean;
@@ -32,30 +25,25 @@ interface UserPermissions {
   visualizarRelatorios: boolean;
 }
 
-interface Secretaria {
-  id: string;
-  nome: string;
-  responsavel: string;
-}
-
 const UserManagement = () => {
   const { toast } = useToast();
-  const { getCurrentUser, getSecretariasForPrefeitura } = useAuth();
+  const { getCurrentUser, getSecretariasForPrefeitura, getUsersForPrefeitura, createUser, updateUser, deleteUser } = useAuth();
   
   const currentUser = getCurrentUser();
   const secretarias = currentUser?.prefeituraId 
     ? getSecretariasForPrefeitura(currentUser.prefeituraId)
     : [];
 
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const dbUsers = currentUser?.prefeituraId ? getUsersForPrefeitura(currentUser.prefeituraId) : [];
 
-  const [users, setUsers] = useState<User[]>([]);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [newUser, setNewUser] = useState({
     nome: '',
     email: '',
-    secretaria: '',
+    secretariaId: '',
     permissions: {
       criarDFD: false,
       acessarPCA: false,
@@ -68,17 +56,15 @@ const UserManagement = () => {
     }
   });
 
-  const validatePermissions = (permissions: UserPermissions): string[] => {
+  const validatePermissions = (permissions: LocalUserPermissions): string[] => {
     const conflicts: string[] = [];
-    
     if (permissions.criarDFD && permissions.acessarPCA) {
       conflicts.push('Usuário com acesso ao PCA não pode criar DFDs');
     }
-    
     return conflicts;
   };
 
-  const handlePermissionChange = (permission: keyof UserPermissions, checked: boolean) => {
+  const handlePermissionChange = (permission: keyof LocalUserPermissions, checked: boolean) => {
     const newPermissions = { ...newUser.permissions, [permission]: checked };
     
     // Auto-resolve conflicts
@@ -94,7 +80,27 @@ const UserManagement = () => {
     }));
   };
 
-  const handleSaveUser = () => {
+  const mapLocalPermissionsToDb = (localPerms: LocalUserPermissions) => ({
+    dfd: localPerms.criarDFD,
+    pca: localPerms.acessarPCA,
+    etp: localPerms.criarETP,
+    mapaRiscos: localPerms.criarMapaRiscos,
+    termoReferencia: localPerms.criarTR,
+    edital: localPerms.criarEdital,
+  });
+
+  const mapDbPermissionsToLocal = (dbPerms: Partial<ModulePermissions>): LocalUserPermissions => ({
+    criarDFD: !!dbPerms?.dfd,
+    acessarPCA: !!dbPerms?.pca,
+    criarETP: !!dbPerms?.etp,
+    criarMapaRiscos: !!dbPerms?.mapaRiscos,
+    criarTR: !!dbPerms?.termoReferencia,
+    criarEdital: !!dbPerms?.edital,
+    editarDadosInstitucionais: false,
+    visualizarRelatorios: true,
+  });
+
+  const handleSaveUser = async () => {
     const conflicts = validatePermissions(newUser.permissions);
     
     if (conflicts.length > 0) {
@@ -106,34 +112,64 @@ const UserManagement = () => {
       return;
     }
 
-    if (editingUser) {
-      setUsers(prev => prev.map(user => 
-        user.id === editingUser.id 
-          ? { ...editingUser, ...newUser, id: editingUser.id }
-          : user
-      ));
+    if (!newUser.nome || !newUser.email || !newUser.secretariaId) {
       toast({
-        title: "Usuário Atualizado",
-        description: "Dados do usuário foram atualizados com sucesso."
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha o nome, e-mail e a secretaria.",
+        variant: "destructive"
       });
-    } else {
-      const newUserData: User = {
-        id: Date.now().toString(),
-        ...newUser
-      };
-      setUsers(prev => [...prev, newUserData]);
-      toast({
-        title: "Usuário Cadastrado",
-        description: "Novo usuário foi cadastrado com sucesso."
-      });
+      return;
     }
 
-    setShowUserModal(false);
-    setEditingUser(null);
+    setIsSaving(true);
+
+    try {
+      if (editingUserId) {
+        await updateUser(editingUserId, {
+          nome: newUser.nome,
+          email: newUser.email,
+          secretariaId: newUser.secretariaId,
+          permissions: mapLocalPermissionsToDb(newUser.permissions),
+        });
+        toast({
+          title: "Usuário Atualizado",
+          description: "Dados do usuário foram atualizados com sucesso."
+        });
+      } else {
+        await createUser({
+          nome: newUser.nome,
+          email: newUser.email,
+          role: 'operator',
+          prefeituraId: currentUser?.prefeituraId || '',
+          secretariaId: newUser.secretariaId,
+          permissions: mapLocalPermissionsToDb(newUser.permissions),
+          status: 'ativo'
+        }, '123456'); // default password
+        toast({
+          title: "Usuário Cadastrado",
+          description: "Novo usuário cadastrado com sucesso. A senha inicial é 123456"
+        });
+      }
+
+      setShowUserModal(false);
+      setEditingUserId(null);
+      resetForm();
+    } catch (error) {
+       toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar o usuário.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const resetForm = () => {
     setNewUser({
       nome: '',
       email: '',
-      secretaria: '',
+      secretariaId: '',
       permissions: {
         criarDFD: false,
         acessarPCA: false,
@@ -145,28 +181,25 @@ const UserManagement = () => {
         visualizarRelatorios: false
       }
     });
+    setEditingUserId(null);
   };
 
   const handleEditUser = (user: User) => {
-    setEditingUser(user);
+    setEditingUserId(user.id);
     setNewUser({
       nome: user.nome,
       email: user.email,
-      secretaria: user.secretaria,
-      permissions: { ...user.permissions }
+      secretariaId: user.secretariaId || '',
+      permissions: mapDbPermissionsToLocal(user.permissions)
     });
     setShowUserModal(true);
   };
 
-  const handleDeleteUser = (userId: string) => {
-    setUsers(prev => prev.filter(user => user.id !== userId));
-    toast({
-      title: "Usuário Removido",
-      description: "Usuário foi removido com sucesso."
-    });
+  const handleDeleteUser = async (userId: string) => {
+    await deleteUser(userId);
   };
 
-  const getPermissionsSummary = (permissions: UserPermissions): string[] => {
+  const getPermissionsSummary = (permissions: LocalUserPermissions): string[] => {
     const activePermissions: string[] = [];
     if (permissions.criarDFD) activePermissions.push('DFD');
     if (permissions.acessarPCA) activePermissions.push('PCA');
@@ -186,26 +219,12 @@ const UserManagement = () => {
           <h2 className="text-xl font-semibold">Usuários Vinculados</h2>
           <p className="text-sm text-muted-foreground">Gerencie usuários e suas permissões</p>
         </div>
-        <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
+        <Dialog open={showUserModal} onOpenChange={(open) => {
+            setShowUserModal(open);
+            if (!open) resetForm();
+        }}>
           <DialogTrigger asChild>
-            <Button onClick={() => {
-              setEditingUser(null);
-              setNewUser({
-                nome: '',
-                email: '',
-                secretaria: '',
-                permissions: {
-                  criarDFD: false,
-                  acessarPCA: false,
-                  criarETP: false,
-                  criarMapaRiscos: false,
-                  criarTR: false,
-                  criarEdital: false,
-                  editarDadosInstitucionais: false,
-                  visualizarRelatorios: false
-                }
-              });
-            }}>
+            <Button onClick={() => resetForm()}>
               <Plus size={16} className="mr-2" />
               Novo Usuário
             </Button>
@@ -213,7 +232,7 @@ const UserManagement = () => {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
+                {editingUserId ? 'Editar Usuário' : 'Novo Usuário'}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
@@ -240,15 +259,15 @@ const UserManagement = () => {
               <div>
                 <Label htmlFor="secretaria">Secretaria</Label>
                 <Select 
-                  value={newUser.secretaria} 
-                  onValueChange={(value) => setNewUser(prev => ({ ...prev, secretaria: value }))}
+                  value={newUser.secretariaId} 
+                  onValueChange={(value) => setNewUser(prev => ({ ...prev, secretariaId: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a secretaria" />
                   </SelectTrigger>
                   <SelectContent>
                     {secretarias.map(secretaria => (
-                      <SelectItem key={secretaria.id} value={secretaria.nome}>
+                      <SelectItem key={secretaria.id} value={secretaria.id}>
                         {secretaria.nome}
                       </SelectItem>
                     ))}
@@ -365,8 +384,9 @@ const UserManagement = () => {
                 <Button variant="outline" onClick={() => setShowUserModal(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleSaveUser}>
-                  {editingUser ? 'Atualizar' : 'Cadastrar'}
+                <Button onClick={handleSaveUser} disabled={isSaving}>
+                  {isSaving ? <Loader2 size={16} className="animate-spin mr-2" /> : null}
+                  {editingUserId ? 'Atualizar' : 'Cadastrar'}
                 </Button>
               </div>
             </div>
@@ -387,53 +407,64 @@ const UserManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.nome}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.secretaria}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {getPermissionsSummary(user.permissions).map(permission => (
-                        <Badge key={permission} variant="secondary" className="text-xs">
-                          {permission}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditUser(user)}
-                      >
-                        <Edit size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          toast({
-                            title: "Senha Redefinida",
-                            description: "Nova senha enviada por e-mail para o usuário."
-                          });
-                        }}
-                      >
-                        <Key size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
-                  </TableCell>
+              {dbUsers.filter(u => u.id !== currentUser?.id).map((user) => {
+                const secretariaNome = secretarias.find(s => s.id === user.secretariaId)?.nome || '-';
+                const localPerms = mapDbPermissionsToLocal(user.permissions);
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.nome}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{secretariaNome}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {getPermissionsSummary(localPerms).map(permission => (
+                          <Badge key={permission} variant="secondary" className="text-xs">
+                            {permission}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <Edit size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            toast({
+                              title: "Senha Redefinida",
+                              description: "Nova senha enviada por e-mail para o usuário."
+                            });
+                          }}
+                        >
+                          <Key size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {dbUsers.filter(u => u.id !== currentUser?.id).length === 0 && (
+                <TableRow>
+                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                     Nenhum outro usuário cadastrado pela sua organização.
+                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
