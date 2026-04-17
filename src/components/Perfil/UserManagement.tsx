@@ -42,45 +42,9 @@ const UserManagement = () => {
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: '1',
-      nome: 'Maria Silva',
-      email: 'maria@gov.br',
-      secretaria: 'Secretaria de Administração',
-      permissions: {
-        criarDFD: true,
-        acessarPCA: false,
-        criarETP: false,
-        criarMapaRiscos: true,
-        criarTR: true,
-        criarEdital: false,
-        editarDadosInstitucionais: false,
-        visualizarRelatorios: true
-      }
-    },
-    {
-      id: '2',
-      nome: 'João Santos',
-      email: 'joao@gov.br',
-      secretaria: 'Secretaria de Finanças',
-      permissions: {
-        criarDFD: false,
-        acessarPCA: true,
-        criarETP: true,
-        criarMapaRiscos: false,
-        criarTR: true,
-        criarEdital: true,
-        editarDadosInstitucionais: false,
-        visualizarRelatorios: true
-      }
-    }
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
 
-  const [secretarias] = useState<Secretaria[]>([
-    { id: '1', nome: 'Secretaria de Administração', responsavel: 'Ana Costa' },
-    { id: '2', nome: 'Secretaria de Finanças', responsavel: 'Carlos Lima' }
-  ]);
+  const [secretarias] = useState<Secretaria[]>([]);
 
   const [newUser, setNewUser] = useState({
     nome: '',
