@@ -1,7 +1,7 @@
 // Configurações do banco de dados de referência externo
 // Usando fetch puro para evitar interferência de JWT do sistema principal.
-const EXTERNAL_URL = 'https://qwlbclurkhfnsztopeoj.supabase.co';
-const EXTERNAL_KEY = 'sb_publishable_5ATbbplIn-PbSyuB0gU87A_m2lawRWM';
+const EXTERNAL_URL = import.meta.env.VITE_SUPABASE_REFERENCE_URL || import.meta.env.VITE_SUPABASE_URL;
+const EXTERNAL_KEY = import.meta.env.VITE_SUPABASE_REFERENCE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const defaultHeaders: Record<string, string> = {
   'apikey': EXTERNAL_KEY,

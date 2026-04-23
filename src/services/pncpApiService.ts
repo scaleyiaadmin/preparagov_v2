@@ -24,14 +24,23 @@ export const pncpApiService = {
             // Documentação sugere: /v1/contratacoes/publicacao
             // Parâmetros comuns: termo, pagina, tamanhoPagina
             const baseUrl = 'https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao';
+            const hoje = new Date();
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setDate(hoje.getDate() - 180);
+
+            const dataInicial = sixMonthsAgo.toISOString().split('T')[0].replace(/-/g, '').slice(0, 8);
+            const dataFinal = hoje.toISOString().split('T')[0].replace(/-/g, '').slice(0, 8);
+
             const params = new URLSearchParams({
+                dataInicial,
+                dataFinal,
                 pagina: page.toString(),
                 tamanhoPagina: '20',
                 termo: term,
             });
 
             if (uf) {
-                params.append('uf', uf);
+                params.append('ufSigla', uf); // O correto na nova API é ufSigla
             }
 
             const controller = new AbortController();
